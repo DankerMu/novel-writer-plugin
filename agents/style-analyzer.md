@@ -25,7 +25,7 @@ description: |
   <commentary>仿写模式：分析参考作者公开章节，source_type 标记为 reference</commentary>
   </example>
 model: sonnet
-color: orange
+color: yellow
 tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 ---
 
