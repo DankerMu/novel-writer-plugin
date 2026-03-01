@@ -49,6 +49,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 - `mode: "mini"` — 标识迷你卷规划模式（仅规划 chapter_range 指定的章数，通常 3 章）
 - 输入精简：brief.md + world/rules.json + characters/active/* + style-profile.json + storylines.json + foreshadowing/global.json
+- `genre`（从 brief.md 或 style-profile.json 提取）— 用于查询 genre→excitement_type 默认映射
 - `platform_guide` 路径（可选）— 若存在，读取 `## 黄金三章参数` section 获取平台差异化参数（章节字数、钩子密度、主角登场时限等）
 - **不传入** `prev_volume_review`（首卷无前卷）
 - **不传入** `prev_chapter_summaries`（尚无已完成章节）
@@ -73,7 +74,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 0. **模式判断**：
    - 若 `inherit_mode == true`：Read `existing_outline_path`，分析已有章节的 storyline、角色关系、伏笔布局；Read 所有 `chapter_summaries`，建立已有情节基调认知。后续步骤从 `plan_start` 章开始规划，保留已有章节区块不变
-   - 若 `mode == "mini"`：精简分析流程——跳过步骤 1（无上卷回顾），直接从 brief + world rules + characters 出发设计章节结构。读取 `platform_guide`（若存在）的 `## 黄金三章参数` section，据此调整章节字数、钩子密度、主角登场时限等参数
+   - 若 `mode == "mini"`：精简分析流程——跳过步骤 1（无上卷回顾），直接从 brief + world rules + characters 出发设计章节结构。读取 `platform_guide`（若存在）的 `## 黄金三章参数` section，据此调整章节字数、钩子密度、主角登场时限等参数。从 brief.md 或 style-profile.json 提取 genre，查询 `skills/novel-writing/references/excitement-type-by-genre.md` 获取该 genre 的推荐 excitement_type 组合
    - 否则：正常全量卷规划流程
 1. 分析上卷回顾，识别未完结线索和待回收伏笔
 2. 从 storylines.json 选取本卷活跃线（≤4 条），确定 primary/secondary/seasoning 角色
@@ -82,7 +83,8 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 5. 生成结构化大纲（每章 `###` 区块）
 6. 从大纲派生每章 L3 章节契约
    - 根据每章的核心冲突类型，填充 `excitement_type` 数组（从 8 种枚举中选 1-2 个；setup 章单独标注 `["setup"]`）
-   - 可选填写 `excitement_note`（当枚举无法精确描述爽点时）
+   - **genre 感知**：参考 `skills/novel-writing/references/excitement-type-by-genre.md` 映射表，优先从项目 genre 推荐的枚举中选取；映射表为默认推荐，可根据具体章节内容选用表中未列出的枚举
+   - 可选填写 `excitement_note`（当 M5 枚举无法精确描述爽点时，用自由文本补充——尤其是映射表中标注的 M7+ 建议枚举场景）
 7. 生成故事线调度和伏笔计划
 8. 检查大纲中是否引用了 characters/active/ 不存在的角色，如有则输出 new-characters.json
 
