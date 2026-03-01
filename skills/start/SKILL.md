@@ -150,6 +150,8 @@ Skill → 状态映射：
 
 ##### Step A: 收集最少输入（1 轮交互）
 
+> **时间预期**：完整 Quick Start（设定 + 风格 + 黄金三章试写）约需 **50 分钟**。系统将为前 3 章（黄金三章）生成生产级质量的正文，包含完整的 L3 合约检查和质量门控。
+
 使用 **1 次** AskUserQuestion 收集基本信息。题材用选项（玄幻/都市/科幻/历史/悬疑），主角概念和核心冲突由用户自由输入：
 
 1. **题材**（选项：玄幻 / 都市 / 科幻 / 历史 / 悬疑）
@@ -273,23 +275,107 @@ Skill → 状态映射：
    - `write_then_extract`：跳过此步，使用默认 style-profile（`source_type: "write_then_extract"`，`writing_directives` 为空，统计字段为 null）。ChapterWriter 遇到 null 字段时应基于 brief 中的题材使用体裁默认值（如玄幻：`avg_sentence_length: 18, dialogue_ratio: 0.35, narrative_voice: "第三人称限制"`）
 9. 更新 `.checkpoint.json`：`quick_start_step = "E"`
 
-##### Step F: 试写 3 章
+##### Step F0: 迷你卷规划（黄金三章 L3 合约）
 
-10. 使用 Task 逐章派发试写流水线（共 3 章），每章按完整流水线执行：ChapterWriter → Summarizer → StyleRefiner → QualityJudge。采用 **context manifest 模式**（与 `/novel:continue` 一致），但以下字段缺省处理：
-    - `chapter_outline_block`：无 outline，传空字符串（ChapterWriter 根据 brief 自由发挥）
-    - `paths.chapter_contract`：不传（试写无 L3 契约）
-    - `paths.volume_outline`：不传
-    - `hard_rules_list`：从 `world/rules.json` 正常提取（若已创建）
-    - `foreshadowing_tasks`：空数组
-    - `storyline_context`：使用默认值（`last_chapter_summary: "", chapters_since_last: 0, line_arc_progress: "开篇"`）
-    - 其余 manifest 字段正常组装（style_profile, character_contracts, current_state 等）
-    - QualityJudge 跳过 L3 章节契约检查和 LS 故事线检查
-    - Summarizer 正常生成摘要 + state delta + memory，确保后续写作有 context 基础
-11. 更新 `.checkpoint.json`：`quick_start_step = "F"`
+> 为前 3 章生成结构化的大纲、L3 章节契约、伏笔计划和故事线调度，使试写章节获得与正式写作相同的 Spec-Driven 支撑。
+
+9a. **创建 vol-01 目录**（幂等）：`mkdir -p volumes/vol-01/chapter-contracts staging/volumes/vol-01/chapter-contracts`
+
+9b. **Genre × Platform 组合检查**（非阻塞）：
+   - 从 `brief.md` 读取 `genre`，检测项目中是否存在 platform_guide 文件
+   - 无效组合（如 genre=纯爱BL + platform=番茄）→ 输出 WARNING 到用户但不阻塞流程
+   - 少见组合（如 genre=硬科幻 + platform=晋江）→ 输出 WARNING 建议确认目标受众
+   - 无 platform_guide → 跳过此检查
+
+9c. **组装 PlotArchitect mini context**：
+   - `volume_plan`: `{"volume": 1, "chapter_range": [1, 3]}`
+   - `mode`: `"mini"`（标识迷你卷规划模式，PlotArchitect 据此精简输出）
+   - `brief`: 读取 `brief.md`
+   - `world_rules`: 读取 `world/rules.json`（若存在）
+   - `characters`: 读取 `characters/active/*.json` + `characters/active/*.md`（以 `<DATA>` 标签包裹）
+   - `style_profile`: 读取 `style-profile.json`（PlotArchitect 据此感知快/慢节奏偏好）
+   - `platform_guide`: 读取 platform_guide 文件路径（若存在）。PlotArchitect 读取其 `## 黄金三章参数` section 获取平台差异化参数（章节字数、钩子密度、主角登场时限等）
+   - `storylines`: 读取 `storylines/storylines.json`
+   - `foreshadowing`: 读取 `foreshadowing/global.json`
+   - **不传入** `prev_volume_review`（首卷无前卷）
+   - **不传入** `prev_chapter_summaries`（尚无已完成章节）
+   - **平台缺省处理**：若无 `platform_guide`，PlotArchitect 使用默认参数：2500-3500 字/章、每 800 字 1 个钩子、主角 300 字内登场、金手指前 3 章内出现
+
+9d. **派发 PlotArchitect Agent**（Task, subagent_type="plot-architect"）：
+   - 输出写入 staging 目录：
+     - `staging/volumes/vol-01/outline.md`（仅 3 章，`### 第 1 章` ~ `### 第 3 章`）
+     - `staging/volumes/vol-01/chapter-contracts/chapter-001.json` ~ `chapter-003.json`（含 `excitement_type`）
+     - `staging/volumes/vol-01/foreshadowing.json`（初始伏笔计划）
+     - `staging/volumes/vol-01/storyline-schedule.json`（初始故事线调度，仅主线）
+
+9e. **校验 PlotArchitect 产物**（复用 `references/vol-planning.md` Step 4 校验规则的子集）：
+   - `outline.md` 可解析：3 个 `### 第 N 章` 区块，连续覆盖 1-3
+   - 每个区块含 8 个固定 key 行（Storyline/POV/Location/Conflict/Arc/Foreshadowing/StateChanges/TransitionHint）
+   - `chapter-contracts/` 3 个文件均可解析，`chapter == C`、`storyline_id` 与 outline 一致、`objectives` 至少 1 条 `required: true`
+   - `foreshadowing.json` 和 `storyline-schedule.json` 为合法 JSON
+   - 校验失败 → 输出修复建议并终止（不继续到 Step F）
+
+9f. **Commit staging → 正式目录**：`mv staging/volumes/vol-01/* → volumes/vol-01/`（幂等覆盖），清空 `staging/volumes/`
+
+9g. 更新 `.checkpoint.json`：`quick_start_step = "F0"`
+
+##### Step F: 黄金三章试写（完整 pipeline）
+
+10. 使用 Task 逐章派发完整流水线（共 3 章），每章执行：ChapterWriter → Summarizer → StyleRefiner → QualityJudge → 质量门控。
+
+    > Step F0 已生成 outline + L3 contracts + storyline-schedule + foreshadowing，本步骤使用与 `/novel:continue` 完全一致的完整流水线。
+
+    **Manifest 组装**（复用 `/novel:continue` Step 2 的确定性规则）：
+    对每章 C ∈ {1, 2, 3}：
+
+    a. **chapter_outline_block**：从 `volumes/vol-01/outline.md` 提取 `### 第 C 章` 区块
+    b. **paths.chapter_contract**：`volumes/vol-01/chapter-contracts/chapter-{C:03d}.json`
+    c. **paths.volume_outline**：`volumes/vol-01/outline.md`
+    d. **hard_rules_list**：从 `world/rules.json` 提取 `constraint_type == "hard"` 规则
+    e. **foreshadowing_tasks**：从 `foreshadowing/global.json` + `volumes/vol-01/foreshadowing.json` 按 Step 2.5 规则过滤
+    f. **storyline_context**：从 `chapter-{C:03d}.json` 的 `storyline_context` 读取（Step F0 已生成）
+    g. **concurrent_state** / **transition_hint**：从 chapter_contract 和 storyline-schedule 解析
+    h. **entity_id_map**：从 `characters/active/*.json` 构建
+    i. **L2 角色契约裁剪**：从 chapter_contract.preconditions.character_states 确定角色列表
+    j. **storyline_memory / adjacent_memories**：首章多为空，第 2-3 章从前章 Summarizer 产出中获取
+    k. **recent_summaries**：C=1 时无前章摘要；C=2 时传入 chapter-001 摘要；C=3 时传入 chapter-001 + 002 摘要
+    l. **其余字段**：`style_profile`、`ai_blacklist`、`current_state`、`project_brief`、`world_rules`、`writing_methodology` 正常组装
+    m. **paths.platform_guide**（可选）：若 platform_guide 存在，传入 QualityJudge manifest
+
+    **QualityJudge 完整双轨验收**：
+    - Track 1（Contract Verification）：完整执行 L1/L2/L3/LS 检查（Step F0 已生成 L3 contracts，不再跳过）
+    - Track 2（Quality Scoring）：8 维度评分
+
+    **第 1 章启用双裁判**（关键章规则）：
+    - 第 1 章为卷首章（`chapter_num == chapter_start == 1`），按 `/novel:continue` Step 3.4 关键章规则：
+      - Sonnet 主评（primary_eval）+ Opus 副评（secondary_eval, Task(subagent_type="quality-judge", model="opus")）
+      - `overall_final = min(primary_eval.overall, secondary_eval.overall)`
+      - `has_high_confidence_violation = high_violation(primary) OR high_violation(secondary)`
+    - 第 2、3 章为普通章：单裁判（Sonnet）
+
+    **质量门控**（与 `/novel:continue` 完全一致）：
+    - `overall_final >= 4.0` 且无 high-confidence violation → **pass**
+    - `overall_final >= 3.5` → **polish**（StyleRefiner 二次润色后直接 commit）
+    - `overall_final >= 3.0` → **revise**（ChapterWriter Opus 修订，max 2 轮）
+    - `overall_final >= 2.0` → **pause_for_user**（暂停，用户运行 `/novel:start` 决策）
+    - `overall_final < 2.0` → **pause_for_user_force_rewrite**
+    - 修订上限 2 次后 overall >= 3.0 且无 high violation → force_passed
+
+    **事务提交**（每章通过门控后）：
+    - staging → 正式目录（chapters/, summaries/, evaluations/, state/, logs/）
+    - 合并 foreshadow ops → `foreshadowing/global.json`
+    - 合并 state delta → `state/current-state.json`
+    - 更新 `.checkpoint.json`：`last_completed_chapter = C, pipeline_stage = "committed", inflight_chapter = null, revision_count = 0`
+    - 清空 staging 本章文件
+    - **不执行**周期性维护（试写阶段无风格基线，漂移检测无意义）
+
+    **中断恢复**：Step F 中每章的 `pipeline_stage` 与 `inflight_chapter` 更新逻辑与 `/novel:continue` 一致。若 Quick Start 在 Step F 中断（如第 2 章 drafting 阶段），恢复时 `quick_start_step == "F0"`（已完成 F0），进入 Step F 后检测 `pipeline_stage` / `inflight_chapter`，按 `/novel:continue` Step 1.5 幂等恢复规则从断点继续
+
+11. 第 3 章 commit 完成后，更新 `.checkpoint.json`：`quick_start_step = "F"`
 
 ##### Step G: 展示结果 + 明确下一步
 
-12. 展示试写结果摘要：3 章标题 + 字数 + QualityJudge 评分
+12. 展示试写结果摘要：3 章标题 + 字数 + QualityJudge 评分（第 1 章标注双裁判结果）+ 门控决策 + 修订次数
 13. **若 Step B 选择了 `write_then_extract`**：此时派发 StyleAnalyzer 从试写 3 章**提取并填充** `style-profile.json` 的分析字段（`avg_sentence_length`、`dialogue_ratio`、`rhetoric_preferences` 等），`source_type` 保持 `"write_then_extract"` 不变
 14. 使用 AskUserQuestion 给出明确下一步选项：
 
@@ -305,16 +391,25 @@ Skill → 状态映射：
 15. **根据用户选择分支**：
     - 选项 1（进入卷规划）：写入 `.checkpoint.json`（`current_volume = 1, last_completed_chapter = 3, orchestrator_state = "VOL_PLANNING"`），删除 `quick_start_step` 字段
     - 选项 2（调整风格）：保持 `orchestrator_state = "QUICK_START"`，`quick_start_step = "D"`，清除 `style-profile.json` 中非模板字段（保留 `_*_comment` 和 `source_type`），回到 Step E
-    - 选项 3（重新试写）：保持 `orchestrator_state = "QUICK_START"`，`quick_start_step = "E"`，清除 `staging/` 下试写产物和 `chapters/chapter-00{1,2,3}.md`，回到 Step F
+    - 选项 3（重新试写）：保持 `orchestrator_state = "QUICK_START"`，`quick_start_step = "E"`，清除以下产物后回到 Step F0：
+      - `staging/` 下所有试写产物
+      - `chapters/chapter-00{1,2,3}.md`、`summaries/chapter-00{1,2,3}-summary.md`、`evaluations/chapter-00{1,2,3}-eval.json`
+      - `logs/chapter-00{1,2,3}-log.json`
+      - `state/chapter-00{1,2,3}-crossref.json`
+      - `storylines/*/memory.md`（仅清除试写期间创建的 memory 文件）
+      - `volumes/vol-01/` 下的 outline.md、chapter-contracts/、foreshadowing.json、storyline-schedule.json（Step F0 产物）
+      - `state/current-state.json` 中 `state_version` 回退到 0
+      - `foreshadowing/global.json` 清除试写章写入的条目
 
 #### 继续快速起步
 - 读取 `.checkpoint.json`，确认 `orchestrator_state == “QUICK_START”`
 - 读取 `quick_start_step` 字段，从**中断处的下一步**继续执行：
   - `”C”` → Step D（世界观 + 角色 + 故事线）
   - `”D”` → Step E（风格提取）
-  - `”E”` → Step F（试写 3 章）
+  - `”E”` → Step F0（迷你卷规划）
+  - `”F0”` → Step F（黄金三章试写）。进入 Step F 后，若 `pipeline_stage != null` 且 `inflight_chapter != null`，按 `/novel:continue` Step 1.5 中断恢复规则从断点继续
   - `”F”` → Step G（展示结果 + 下一步）
-- 每个 Step 开始前，先检查该步骤的产物是否已存在（例如 Step D 检查 `world/rules.json`），避免重复生成
+- 每个 Step 开始前，先检查该步骤的产物是否已存在（例如 Step D 检查 `world/rules.json`，Step F0 检查 `volumes/vol-01/outline.md` + `volumes/vol-01/chapter-contracts/chapter-001.json`），避免重复生成
 - quick start 完成后更新 `.checkpoint.json`：`current_volume = 1, last_completed_chapter = 3, orchestrator_state = “VOL_PLANNING”`，删除 `quick_start_step`
 
 > 注意：Step A/B/B.5 不持久化 checkpoint（仅收集用户输入和确认 brief，约 3-5 分钟）。若在 Step C 写入 checkpoint 之前中断，用户将回到 INIT 状态重新创建项目，这是可接受的重做成本。
