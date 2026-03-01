@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ChapterContract",
+  "description": "L3 chapter contract with excitement_type for specifying chapter excitement focus.",
+  "type": "object",
+  "required": ["chapter", "storyline_id", "objectives"],
+  "properties": {
+    "chapter": { "type": "integer", "minimum": 1 },
+    "storyline_id": { "type": "string" },
+    "storyline_context": {
+      "type": "object",
+      "properties": {
+        "last_chapter_summary": { "type": "string" },
+        "chapters_since_last": { "type": "integer", "minimum": 0 },
+        "line_arc_progress": { "type": "string" },
+        "concurrent_state": { "type": "string" }
+      }
+    },
+    "preconditions": {
+      "type": "object",
+      "properties": {
+        "character_states": { "type": "object", "additionalProperties": true },
+        "required_world_rules": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "objectives": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "required", "description"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string", "enum": ["plot", "foreshadowing", "character_development"] },
+          "required": { "type": "boolean" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "postconditions": {
+      "type": "object",
+      "properties": {
+        "state_changes": { "type": "object", "additionalProperties": true },
+        "foreshadowing_updates": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "excitement_type": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "power_up",
+          "reversal",
+          "cliffhanger",
+          "emotional_peak",
+          "mystery_reveal",
+          "confrontation",
+          "worldbuilding_wow",
+          "setup"
+        ]
+      }
+    },
+    "excitement_note": {
+      "type": ["string", "null"]
+    }
+  },
+  "additionalProperties": true,
+  "if": {
+    "required": ["excitement_type"],
+    "properties": {
+      "excitement_type": {
+        "contains": { "const": "setup" }
+      }
+    }
+  },
+  "then": {
+    "properties": {
+      "excitement_type": {
+        "maxItems": 1,
+        "description": "setup is mutually exclusive with other excitement types"
+      }
+    }
+  }
+}
