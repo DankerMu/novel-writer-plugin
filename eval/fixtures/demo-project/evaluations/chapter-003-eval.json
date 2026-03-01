@@ -47,18 +47,18 @@
       "emotional_impact": { "score": 4, "weight": 0.08, "reason": "fixture", "evidence": "fixture" },
       "storyline_coherence": { "score": 4, "weight": 0.08, "reason": "fixture", "evidence": "fixture" }
     },
-    "overall_raw": 3.76,
-    "overall_weighted": 3.89,
+    "overall_raw": 3.75,
+    "overall_weighted": 4.0,
     "platform_weights": { "pacing": 1.5, "character": 0.8, "emotional_impact": 1.5, "style_naturalness": 0.7, "foreshadowing": 1.0, "plot_logic": 0.8, "immersion": 1.5, "storyline_coherence": 0.8 },
-    "overall": 3.89,
-    "recommendation": "polish"
+    "overall": 4.0,
+    "recommendation": "pass"
   },
   "metadata": {
     "judges": {
-      "primary": { "model": "sonnet", "overall": 3.89, "overall_raw": 3.76, "overall_weighted": 3.89 },
+      "primary": { "model": "sonnet", "overall": 4.0, "overall_raw": 3.75, "overall_weighted": 4.0 },
       "used": "primary",
-      "overall_final": 3.89
+      "overall_final": 4.0
     },
-    "gate": { "decision": "polish", "revisions": 0, "force_passed": false }
+    "gate": { "decision": "pass", "revisions": 0, "force_passed": false }
   }
 }

@@ -126,6 +126,7 @@
 **基础综合分（overall_raw）**：
 
 
+
 **平台加权综合分（overall_weighted）**：
 
 当 `paths.platform_guide` 存在且含 `## 评估权重` section 时，QualityJudge 读取平台乘数（multiplier_i），按直接公式计算：
@@ -138,26 +139,19 @@
 
 ## 平台硬门（章节 001-003）
 
-当 `paths.platform_guide` 存在且章节 ≤ 003 时，Track 2 评分完成后执行平台特定硬门检查：
+> **执行顺序**：Track 1 (L1-L3+LS) → Track 2 (评分) → 平台硬门 (引用 Track 2 评分结果) → 门控决策。
 
-| 平台 | 硬门示例 |
-|------|----------|
-| 番茄小说 | Ch001 主角 200 字内登场并面临冲突；每章末悬念钩子；Ch003 前至少一次反转 |
-| 起点中文网 | Ch003 世界观框架建立；immersion ≥ 3.5 |
-| 晋江文学城 | 主角人设行为展现；CP lead 登场；style_naturalness ≥ 3.5 |
+当 `paths.platform_guide` 存在且章节 ≤ 003 时执行平台特定硬门检查：
+
+| 平台 | 硬门 |
+|------|------|
+| 番茄小说 | Ch001: 主角 200 字内登场并面临冲突；Ch001-003: 每章末悬念钩子；Ch003: 前 3 章至少一次反转/打脸/升级事件 |
+| 起点中文网 | Ch003: 世界观框架建立；Ch003: immersion ≥ 3.5 |
+| 晋江文学城 | Ch001-002: 主角人设通过行为（非旁白）展现；Ch001-003: 至少一个 CP lead 登场；Ch001-002: 情感基调建立；Ch001-003: style_naturalness ≥ 3.5 |
 
 任一硬门 fail → 强制 revise，不受 overall score 影响。无平台或章节 > 003 时跳过。
 
-详见 `agents/quality-judge.md` § Platform Hard Gates。```
-overall = plot_logic × 0.18
-        + character × 0.18
-        + immersion × 0.15
-        + foreshadowing × 0.10
-        + pacing × 0.08
-        + style_naturalness × 0.15
-        + emotional_impact × 0.08
-        + storyline_coherence × 0.08
-```
+详见 `agents/quality-judge.md` § Platform Hard Gates。
 
 ## 门控决策
 
@@ -167,6 +161,8 @@ overall = plot_logic × 0.18
 | 任意 | 平台硬门任一 fail（Ch001-003 + platform_guide） | 强制修订（不受 overall 影响） |
 | 4.0-5.0 | 无 violation 且无硬门 fail | 直接通过 |
 | 3.5-3.9 | 无 violation | StyleRefiner 二次润色后通过 |
-| 3.0-3.4 | 无 violation | ChapterWriter（Opus）自动修订 |
-| 2.0-2.9 | 无 violation | 通知用户，人工审核决定重写范围 |
-| < 2.0 | 无 violation | 强制全章重写 |
+| 3.0-3.4 | 无 violation | ChapterWriter（Opus）自动修订（最多 2 轮） |
+| 2.0-2.9 | 无 violation | 暂停，通知用户审核决定下一步 |
+| < 2.0 | 无 violation | 暂停，建议全章重写（等待用户通过 `/novel:start` 决策） |
+
+**修订上限兜底**：修订 2 次后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail → `force_passed=true`，允许提交（避免无限循环）。
