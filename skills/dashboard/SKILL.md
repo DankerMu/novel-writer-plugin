@@ -95,7 +95,7 @@ description: >
 ### Step 3: 格式化输出
 
 ```
-📖 {project_name}
+[PROJECT] {project_name}
 ━━━━━━━━━━━━━━━━━━━━━━━━
 进度：第 {vol} 卷，第 {ch}/{total_ch} 章
 总字数：{word_count} 万字

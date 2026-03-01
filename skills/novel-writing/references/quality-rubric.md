@@ -125,13 +125,13 @@
 
 **基础综合分（overall_raw）**：
 
-
+`overall_raw = Σ(score_i × base_weight_i)`，其中 base_weight 为各维度的固定权重（见上方 8 维度定义）。
 
 **平台加权综合分（overall_weighted）**：
 
 当 `paths.platform_guide` 存在且含 `## 评估权重` section 时，QualityJudge 读取平台乘数（multiplier_i），按直接公式计算：
 
-
+`overall_weighted = Σ(score_i × multiplier_i) / Σ(multiplier_i)`
 
 乘数即权重（从等权基准 1/8 推导），不叠加 base_weight。范围 [0.5, 2.0]，超出时钳位。
 
