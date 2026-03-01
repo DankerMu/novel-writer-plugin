@@ -4,6 +4,7 @@
 
 - high_violation(eval) := 任一 contract_verification.{l1,l2,l3}_checks 中存在 status="violation" 且 confidence="high"
   或任一 contract_verification.ls_checks 中存在 status="violation" 且 confidence="high" 且（constraint_type 缺失或 == "hard"）
+- platform_hard_gate_fail(eval) := 任一 contract_verification.platform_hard_gates 中存在 status="fail"（章节 001-003 且有 platform_guide 时才可能非空）
 - has_high_confidence_violation：取自 Step 4 的计算结果（关键章=双裁判 OR 合并，普通章=单裁判）
   > confidence=medium/low 仅记录警告，不触发 hard gate（避免误报疲劳）
 

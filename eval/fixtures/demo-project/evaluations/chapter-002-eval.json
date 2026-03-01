@@ -28,6 +28,7 @@
           "detail": "Synthetic soft violation (should not count as hard gate)"
         }
       ],
+      "platform_hard_gates": [],
       "has_violations": true,
       "has_warnings": false
     },
