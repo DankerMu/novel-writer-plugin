@@ -81,6 +81,8 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 4. 规划伏笔节奏（新增 + 推进 + 回收）
 5. 生成结构化大纲（每章 `###` 区块）
 6. 从大纲派生每章 L3 章节契约
+   - 根据每章的核心冲突类型，填充 `excitement_type` 数组（从 8 种枚举中选 1-2 个；setup 章单独标注 `["setup"]`）
+   - 可选填写 `excitement_note`（当枚举无法精确描述爽点时）
 7. 生成故事线调度和伏笔计划
 8. 检查大纲中是否引用了 characters/active/ 不存在的角色，如有则输出 new-characters.json
 
@@ -139,11 +141,33 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
     "不违反 W-001, W-002",
     "不违反 C-角色ID-001（L2 角色契约）",
     "postconditions 中的状态变更在正文中有因果支撑"
-  ]
+  ],
+  "excitement_type": ["reversal"],
+  "excitement_note": null
 }
 ```
 
 **链式传递**：前章的 postconditions 自动成为下一章的 preconditions。
+
+**excitement_type 枚举**（根级字段，每章必填）：
+
+| 值 | 含义 |
+|----|------|
+| `power_up` | 主角实力提升/获得新能力 |
+| `reversal` | 局势反转/打脸 |
+| `cliffhanger` | 悬念高峰/断崖式结尾 |
+| `emotional_peak` | 情感爆发/催泪/燃点 |
+| `mystery_reveal` | 谜团揭示/真相大白 |
+| `confrontation` | 正面对决/高手过招 |
+| `worldbuilding_wow` | 世界观震撼展示/新设定揭幕 |
+| `setup` | 铺垫章（蓄力/布局/伏笔密集埋设） |
+
+**校验规则**：
+- `excitement_type` 为非空数组（`[]` 拒绝——每章必须有明确的爽点定位或标注为 setup）
+- `setup` 与其他类型**互斥**（铺垫章不应同时标注爽点；若章节在铺垫中包含小爽点，选择主要爽点类型而非 setup）
+- 每章 1-2 个类型为宜（过多说明章节焦点不集中）
+- `excitement_note`（可选字符串）：当枚举无法精确描述时补充说明
+- 未来扩展保留（M6 提议新增 `underdog_rise`/`tension_build`/`chemistry_spark`）：QualityJudge 遇到未知枚举值时 WARNING 而非 crash
 
 # Format
 

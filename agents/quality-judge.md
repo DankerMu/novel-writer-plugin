@@ -89,6 +89,11 @@ tools: ["Read", "Glob", "Grep"]
    - 所有 `required: true` 的 objectives 是否达成
    - postconditions 中的状态变更是否有因果支撑
    - acceptance_criteria 逐条验证
+   - **excitement_type 爽点落地评估**（如 chapter_contract 含 `excitement_type`）：
+     - 非 setup 章：检查正文中是否存在与标注爽点类型匹配的段落（如 `reversal` → 是否有反转桥段、`power_up` → 是否有升级/获得段落）。未落地的爽点类型输出为 soft violation（不阻断，记入 pacing 维度评分）
+     - setup 章（`excitement_type == ["setup"]`）：不要求章内高潮，改用「铺垫有效性」标准——检查是否有伏笔埋设、信息布局或悬念线索推进（详见 quality-rubric.md §5 补充标准）
+     - `excitement_type` 缺失时（旧项目/向后兼容）：跳过爽点落地评估，仅使用常规 pacing 标准
+     - 遇到未知枚举值时：输出 WARNING（`unknown excitement_type: {value}`）并跳过该类型的评估，不 crash
 4. **LS 故事线规范检查**：
    - LS-001（hard）：本章事件时间是否与并发线矛盾
      - 若输入中包含一致性检查摘要（timeline_contradiction / ls_001_signals）且 confidence="high"：将其视为强证据，结合正文核验；若正文未消解矛盾 → 输出 LS-001 violation（confidence=high）并给出可执行修复建议
@@ -123,7 +128,7 @@ tools: ["Read", "Glob", "Grep"]
 | character（角色塑造） | 0.18 | 言行符合人设、性格连续性 |
 | immersion（沉浸感） | 0.15 | 画面感、氛围营造、详略得当 |
 | foreshadowing（伏笔处理） | 0.10 | 埋设自然度、推进合理性、回收满足感 |
-| pacing（节奏） | 0.08 | 冲突强度、张弛有度 |
+| pacing（节奏） | 0.08 | 冲突强度、张弛有度；excitement_type 爽点落地评估（如存在） |
 | style_naturalness（风格自然度） | 0.15 | AI 黑名单命中率、句式重复率、与 style-profile 匹配度 |
 | emotional_impact（情感冲击） | 0.08 | 情感起伏、读者代入感 |
 | storyline_coherence（故事线连贯） | 0.08 | 切线流畅度、跟线难度、并发线暗示自然度 |

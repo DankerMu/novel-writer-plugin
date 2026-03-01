@@ -81,6 +81,17 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 当 L3 章节契约存在时（通过 `paths.chapter_contract` 读取），必须完成所有 `required: true` 的 objectives。
 
+当章节契约包含 `excitement_type` 时，据此调整写作重心：
+- `power_up`：安排实力提升/获得新能力的爽感段落，注重「结算奖励」的满足感
+- `reversal`：设计局势反转/打脸桥段，前期铺垫压制 → 后期反杀释放
+- `cliffhanger`：章末必须在悬念最高点截断，留下强烈的「然后呢」驱动力
+- `emotional_peak`：聚焦情感爆发，用角色内心独白和关系互动推动催泪/燃点
+- `mystery_reveal`：安排谜团揭示，信息逐步释放直到真相时刻
+- `confrontation`：正面对决场景，注重博弈感和紧张氛围
+- `worldbuilding_wow`：展示世界观的震撼面，新设定以角色体验方式呈现
+- `setup`：铺垫章以蓄力/布局/伏笔为主，不强求章内高潮，但需保持阅读推进力（每千字至少 1 个信息增量或悬念线索）
+- `excitement_type` 缺失时（旧项目/向后兼容）：按大纲自由发挥，不做特定爽点定位
+
 # Process
 
 1. **读取 context manifest 中的文件**：按读取优先级依次 Read 所需文件（style_profile 优先）
