@@ -1,0 +1,32 @@
+{
+  "project": "m6-golden-chapters-research",
+  "type": "custom",
+  "created": "2026-03-01T11:30:00+08:00",
+  "current_phase": "DONE",
+  "current_version": 2,
+  "termination": { "score_threshold": 90, "max_iterations": 3 },
+  "iterations": [
+    {
+      "version": 1,
+      "phase_completed": "DRAFT",
+      "dr_reports": [
+        "dr/research-golden-chapters.md",
+        "dr/golden-chapters-platform-research.md",
+        "dr/audience-eval-research.md",
+        "dr/research-quantifiable-metrics.md"
+      ],
+      "skipped_items": [],
+      "timestamp": "2026-03-01T13:45:00+08:00"
+    },
+    {
+      "version": 2,
+      "phase_completed": "REVIEW",
+      "score": 91,
+      "new_dr_items": 0,
+      "checklist_items": 11,
+      "all_items_addressed": true,
+      "skipped_items": [],
+      "timestamp": "2026-03-01T14:45:00+08:00"
+    }
+  ]
+}
