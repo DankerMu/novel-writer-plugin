@@ -1,0 +1,64 @@
+{
+  "chapter": 3,
+  "eval_used": {
+    "contract_verification": {
+      "l1_checks": [
+        {
+          "rule_id": "W-001",
+          "status": "pass",
+          "confidence": "high",
+          "detail": "OK"
+        }
+      ],
+      "l2_checks": [],
+      "l3_checks": [
+        {
+          "objective_id": "OBJ-03-1",
+          "status": "pass",
+          "confidence": "high",
+          "detail": "Main conflict established"
+        }
+      ],
+      "ls_checks": [],
+      "platform_hard_gates": [
+        {
+          "gate_id": "fanqie_ch003_reversal",
+          "status": "pass",
+          "detail": "Ch002 中存在打脸桥段（回溯摘要确认）",
+          "fix_suggestion": null
+        },
+        {
+          "gate_id": "fanqie_ch003_cliffhanger",
+          "status": "pass",
+          "detail": "章末悬念钩子：主角发现隐藏势力",
+          "fix_suggestion": null
+        }
+      ],
+      "has_violations": false,
+      "has_warnings": false
+    },
+    "scores": {
+      "plot_logic": { "score": 4, "weight": 0.18, "reason": "fixture", "evidence": "fixture" },
+      "character": { "score": 3, "weight": 0.18, "reason": "fixture", "evidence": "fixture" },
+      "immersion": { "score": 4, "weight": 0.15, "reason": "fixture", "evidence": "fixture" },
+      "foreshadowing": { "score": 4, "weight": 0.10, "reason": "fixture", "evidence": "fixture" },
+      "pacing": { "score": 5, "weight": 0.08, "reason": "fixture — high pacing for 番茄", "evidence": "fixture" },
+      "style_naturalness": { "score": 3, "weight": 0.15, "reason": "fixture", "evidence": "fixture" },
+      "emotional_impact": { "score": 4, "weight": 0.08, "reason": "fixture", "evidence": "fixture" },
+      "storyline_coherence": { "score": 4, "weight": 0.08, "reason": "fixture", "evidence": "fixture" }
+    },
+    "overall_raw": 3.75,
+    "overall_weighted": 4.0,
+    "platform_weights": { "pacing": 1.5, "character": 0.8, "emotional_impact": 1.5, "style_naturalness": 0.7, "foreshadowing": 1.0, "plot_logic": 0.8, "immersion": 1.5, "storyline_coherence": 0.8 },
+    "overall": 4.0,
+    "recommendation": "pass"
+  },
+  "metadata": {
+    "judges": {
+      "primary": { "model": "sonnet", "overall": 4.0, "overall_raw": 3.75, "overall_weighted": 4.0 },
+      "used": "primary",
+      "overall_final": 4.0
+    },
+    "gate": { "decision": "pass", "revisions": 0, "force_passed": false }
+  }
+}

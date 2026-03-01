@@ -1,6 +1,6 @@
 {
+  "chapter": 2,
   "eval_used": {
-    "chapter": 2,
     "contract_verification": {
       "l1_checks": [
         {
@@ -42,13 +42,15 @@
       "emotional_impact": { "score": 4, "weight": 0.08, "reason": "fixture", "evidence": "fixture" },
       "storyline_coherence": { "score": 4, "weight": 0.08, "reason": "fixture", "evidence": "fixture" }
     },
+    "overall_raw": 4.0,
+    "overall_weighted": null,
+    "platform_weights": null,
     "overall": 4.0,
-    "overall_final": 4.0,
     "recommendation": "revise"
   },
   "metadata": {
     "judges": {
-      "primary": { "model": "sonnet", "overall": 4.0 },
+      "primary": { "model": "sonnet", "overall": 4.0, "overall_raw": 4.0, "overall_weighted": null },
       "used": "primary",
       "overall_final": 4.0
     },

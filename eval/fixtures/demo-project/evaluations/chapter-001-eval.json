@@ -21,7 +21,20 @@
           "detail": "Synthetic violation for fixture"
         }
       ],
-      "platform_hard_gates": [],
+      "platform_hard_gates": [
+        {
+          "gate_id": "fanqie_ch001_protagonist",
+          "status": "pass",
+          "detail": "主角在第 80 字登场并面临冲突",
+          "fix_suggestion": null
+        },
+        {
+          "gate_id": "fanqie_ch001_cliffhanger",
+          "status": "fail",
+          "detail": "章末缺少明确悬念钩子",
+          "fix_suggestion": "在章末添加未解悬念或危机暗示"
+        }
+      ],
       "has_violations": true,
       "has_warnings": false
     },
@@ -35,21 +48,18 @@
       "emotional_impact": { "score": 3, "weight": 0.08, "reason": "fixture", "evidence": "fixture" },
       "storyline_coherence": { "score": 3, "weight": 0.08, "reason": "fixture", "evidence": "fixture" }
     },
+    "overall_raw": 3.0,
+    "overall_weighted": 3.0,
+    "platform_weights": { "pacing": 1.5, "character": 0.8, "emotional_impact": 1.5, "style_naturalness": 0.7, "foreshadowing": 1.0, "plot_logic": 0.8, "immersion": 1.5, "storyline_coherence": 0.8 },
     "overall": 3.0,
-    "overall_final": 3.0,
-    "has_violations": true,
     "recommendation": "revise"
   },
   "metadata": {
     "judges": {
-      "primary": {
-        "overall": 3.0
-      },
+      "primary": { "model": "sonnet", "overall": 3.0, "overall_raw": 3.0, "overall_weighted": 3.0 },
+      "used": "primary",
       "overall_final": 3.0
     },
-    "gate": {
-      "decision": "revise",
-      "reason": "Score below 3.5 threshold"
-    }
+    "gate": { "decision": "revise", "revisions": 1, "force_passed": false }
   }
 }
