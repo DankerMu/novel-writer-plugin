@@ -32,6 +32,8 @@ LS 故事线规范  → 多线叙事约束（防串线、控节奏）
 
 ChapterWriter 收到 hard 规则时会以禁止项注入：违反即自动拒绝。
 
+**canon_status**（M5.1）：每条规则含 `canon_status` 字段，区分已确立事实（`established`）和卷规划预案（`planned`）。编排器预过滤 planned 规则，仅注入 established 给 ChapterWriter；章节契约引用的 planned 规则以 `[INTRODUCING]` 前缀注入。Summarizer 输出 `canon_hints` 后，编排器在 commit 阶段将 planned 升级为 established。缺失时默认 `established`（向后兼容）。
+
 ## L2 角色契约
 
 **文件**：`characters/active/*.json`
@@ -43,6 +45,8 @@ ChapterWriter 收到 hard 规则时会以禁止项注入：违反即自动拒绝
 - 性格底线（绝不会做的事）
 - 关系约束（敌友关系不可突变）
 - 成长轨迹（从 A 到 B 需要什么条件）
+
+**结构化数组**（M5.1）：角色 JSON 新增 `abilities[]`、`known_facts[]`、`relationships[]` 数组，每个条目含可选 `canon_status`（`established`/`planned`），编排器预过滤 planned 条目后传给 ChapterWriter。例外：章节契约 `preconditions.character_states` 引用的 planned 条目保留并标记 `introducing: true`，表示本章将首次展现。缺失时视为空数组。
 
 角色退场有三重保护：活跃伏笔检查 → 故事线依赖检查 → 用户确认。
 
@@ -58,6 +62,7 @@ ChapterWriter 收到 hard 规则时会以禁止项注入：违反即自动拒绝
 - 必须出场的角色
 - 伏笔埋设/回收要求
 - 状态变更预期
+- **爽点类型**（`excitement_type`，M5.3）：从 8 种枚举中标注 1-2 个（`power_up`/`reversal`/`cliffhanger`/`emotional_peak`/`mystery_reveal`/`confrontation`/`worldbuilding_wow`/`setup`），ChapterWriter 据此调整写作重心，QualityJudge 评估爽点是否落地。`setup` 与其他类型互斥（铺垫章用独立评分标准）
 
 QualityJudge 验收时逐条检查章节契约的达成情况。
 
@@ -104,7 +109,7 @@ QualityJudge 采用双轨验收：
 project/
 ├── brief.md                  创作纲领
 ├── .checkpoint.json           进度快照
-├── style-profile.json         风格指纹
+├── style-profile.json         风格指纹（含 platform 平台标识）
 ├── ai-blacklist.json          AI 用语黑名单
 ├── world/
 │   ├── geography.md           地理设定
