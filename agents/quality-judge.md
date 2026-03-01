@@ -148,7 +148,7 @@ tools: ["Read", "Glob", "Grep"]
    - **平台加权**（若 `paths.platform_guide` 存在且含 `## 评估权重` section）：
      - 读取 platform_guide 的评估权重表，提取每维度的乘数（multiplier）
      - 钳位校验：乘数超出 [0.5, 2.0] 范围时钳位到边界值并在 `risk_flags` 中输出 WARNING（`platform_weight_clamped:{dimension}`）
-     - `overall_weighted` = Σ(score_i × base_weight_i × multiplier_i) / Σ(base_weight_i × multiplier_i)
+     - `overall_weighted` = Σ(score_i × multiplier_i) / Σ(multiplier_i)（乘数即权重，不叠加 base_weight）
    - **无 platform_guide 或无评估权重 section 时**：`overall_weighted` 不输出（null），`overall` = `overall_raw`
    - **有 platform_guide 且有评估权重时**：`overall` = `overall_weighted`（门控决策和 recommendation 使用此值）
    - `overall` 是 QualityJudge recommendation 和入口 Skill gate_decision 的输入值
@@ -259,7 +259,7 @@ else:
   },
   "overall_raw": 3.82,
   "overall_weighted": 3.95,
-  "platform_weights": {"pacing": 1.5, "character": 0.8, "emotional_impact": 1.5, "style_naturalness": 0.5, "foreshadowing": 1.0, "plot_logic": 0.8, "immersion": 1.5, "storyline_coherence": 0.8},
+  "platform_weights": {"pacing": 1.5, "character": 0.8, "emotional_impact": 1.5, "style_naturalness": 0.7, "foreshadowing": 1.0, "plot_logic": 0.8, "immersion": 1.5, "storyline_coherence": 0.8},
   "overall": 3.95,
   "recommendation": "pass | polish | revise | review | rewrite",
   "risk_flags": ["character_speech_missing:protagonist", "foreshadow_premature:ancient_prophecy"],

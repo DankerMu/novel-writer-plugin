@@ -67,7 +67,7 @@
 
 ## 评估权重（QualityJudge 乘数）
 
-> 乘数格式：默认 1.0，范围 [0.5, 2.0]。QualityJudge 读取后按 `overall_weighted = Σ(score_i × base_weight_i × multiplier_i) / Σ(base_weight_i × multiplier_i)` 计算加权综合分。
+> 乘数格式：默认 1.0，范围 [0.5, 2.0]。QualityJudge 读取后按 `overall_weighted = Σ(score_i × multiplier_i) / Σ(multiplier_i)` 计算加权综合分（乘数即权重，不叠加 base_weight）。
 
 | 维度 | 乘数 | 理由 |
 |------|------|------|
