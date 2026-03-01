@@ -101,6 +101,23 @@ tools: ["Read", "Glob", "Grep"]
      - 若 confidence="medium/low"：仅提示，不应直接触发 hard gate（仍可输出为 violation_suspected/violation 且 confidence 降级）
    - LS-002~004（soft）：报告但不阻断（切线锚点、交汇铺垫、休眠线记忆重建）
    - LS-005（M1/M2 soft → M3 hard）：非交汇事件章中，Summarizer 标记 `leak_risk: high` 的跨线实体泄漏。M1/M2 阶段报告但不阻断；M3 升级为 hard 强制修正
+5. **平台硬门检查**（章节 001-003 且 `paths.platform_guide` 存在时）：
+   - 从 `paths.platform_guide` 读取平台标识，按以下规则执行硬门检查：
+   - **番茄小说**：
+     - Ch001: 主角在前 200 字内登场并面临冲突
+     - Ch001-003: 每章末尾有明确悬念钩子
+     - Ch003: 前 3 章内至少出现一次反转/打脸/升级事件（可回溯前两章判断）
+   - **起点中文网**：
+     - Ch003: 前 3 章建立世界观基础框架
+     - Ch003: immersion 维度评分 ≥ 3.5（依赖 Track 2 评分结果，先完成 Track 2 再判定此门）
+   - **晋江文学城**：
+     - Ch001-002: 主角人设通过行为（非旁白）展现
+     - Ch001-003: 至少一个 CP lead 登场
+     - Ch001-002: 情感基调建立
+     - Overall: style_naturalness 维度评分 ≥ 3.5（依赖 Track 2 评分结果）
+   - **无 platform_guide 或章节 > 003**：跳过全部硬门，仅使用标准质量门控（向后兼容）
+   - 硬门失败时：`platform_hard_gates` 中对应条目 `status = "fail"`，并附带平台特定的修改建议（`fix_suggestion`）
+   - 任一硬门 fail → 强制 `recommendation = "revise"`，不受 overall score 影响
 
 输出：
 ```json
@@ -110,6 +127,7 @@ tools: ["Read", "Glob", "Grep"]
     "l2_checks": [{"contract_id": "C-NAME-001", "status": "pass | violation", "confidence": "high | medium | low", "detail": "..."}],
     "l3_checks": [{"objective_id": "OBJ-48-1", "status": "pass | violation", "confidence": "high | medium | low", "detail": "..."}],
     "ls_checks": [{"rule_id": "LS-001", "status": "pass | violation", "constraint_type": "hard", "confidence": "high | medium | low", "detail": "..."}],
+    "platform_hard_gates": [{"gate_id": "fanqie_ch001_protagonist", "status": "pass | fail", "detail": "...", "fix_suggestion": "..."}],
     "has_violations": false
   }
 }
@@ -154,6 +172,8 @@ tools: ["Read", "Glob", "Grep"]
 ```
 if has_violations:
     recommendation = "revise"  # 强制修订，不管分数多高
+elif any(gate.status == "fail" for gate in platform_hard_gates):
+    recommendation = "revise"  # 平台硬门失败，强制修订
 elif overall >= 4.0:
     recommendation = "pass"
 elif overall >= 3.5:
@@ -178,6 +198,7 @@ else:
     "l2_checks": [],
     "l3_checks": [],
     "ls_checks": [],
+    "platform_hard_gates": [],
     "has_violations": false,
     "has_warnings": false,
     "violation_details": []
@@ -229,6 +250,8 @@ else:
 # Edge Cases
 
 - **无章节契约（试写阶段）**：前 3 章无 L3 契约，跳过 Track 1 的 L3 检查
+- **无平台（向后兼容）**：`paths.platform_guide` 缺失或章节号 > 003 时，`platform_hard_gates` 输出为空数组 `[]`，门控逻辑跳过硬门检查
+- **平台硬门依赖 Track 2 评分**：起点 immersion ≥ 3.5 和晋江 style_naturalness ≥ 3.5 需先完成 Track 2 评分再判定；执行顺序为 Track 1 (L1-L4+LS) → Track 2 (评分) → 平台硬门 (引用评分结果) → 门控决策
 - **无故事线规范（M1 早期）**：M1 早期可能无 storyline-spec.json，跳过 LS 检查
 - **关键章双裁判模式**：卷首/卷尾/交汇事件章由入口 Skill 使用 Task(model=opus) 发起第二次调用并取较低分，QualityJudge 自身按正常流程执行即可
 - **lint-blacklist 缺失**：若未提供 lint 统计，你仍需给出黑名单命中率与例句，但需标注为估计值；若提供则以其为准
