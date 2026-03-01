@@ -49,7 +49,7 @@ description: >
 
 | 指标 | 来源文件 | JSON 路径 |
 |------|---------|----------|
-| 综合评分 | `evaluations/chapter-*-eval.json` | `.overall_final` |
+| 综合评分 | `evaluations/chapter-*-eval.json` | `.metadata.judges.overall_final`（或顶层 `.overall_final` 若存在） |
 | 等权均分 | `evaluations/chapter-*-eval.json` | `.eval_used.overall_raw` |
 | 平台适配分 | `evaluations/chapter-*-eval.json` | `.eval_used.overall_weighted`（null 则跳过） |
 | 平台标识 | `style-profile.json` | `.platform`（用于生成动态标签） |

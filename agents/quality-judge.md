@@ -144,7 +144,7 @@ tools: ["Read", "Glob", "Grep"]
    - 若 prompt 中提供了黑名单精确统计 JSON（lint-blacklist），你必须使用其中的 `total_hits` / `hits_per_kchars` / `hits[]` 作为计数依据（忽略 whitelist/exemptions 的词条）
    - 若未提供，则你可以基于正文做启发式估计，但需在 `style_naturalness.reason` 中明确标注为“估计值”
 4. **综合分计算**：
-   - `overall_raw` = 各维度 score × base_weight 的加权均值（8 维度权重见 Track 2 表）— 等权基线，向后兼容
+   - `overall_raw` = 各维度 score × base_weight 的加权均值（8 维度权重见 Track 2 表）— base-weight 基线，向后兼容
    - **平台加权**（若 `paths.platform_guide` 存在且含 `## 评估权重` section）：
      - 读取 platform_guide 的评估权重表，提取每维度的乘数（multiplier）
      - 钳位校验：乘数超出 [0.5, 2.0] 范围时钳位到边界值并在 `risk_flags` 中输出 WARNING（`platform_weight_clamped:{dimension}`）
