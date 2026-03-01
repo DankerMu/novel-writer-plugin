@@ -309,8 +309,8 @@ for chapter_num in range(start, start + remaining_N):
        - overall ≥ 4.0 且无上述硬门失败 → pass
        - overall ≥ 3.5 → polish（StyleRefiner 二次润色）
        - overall ≥ 3.0 → revise（ChapterWriter Opus 修订，最多 2 轮）
-       - overall ≥ 2.0 → review（暂停，通知用户审核）
-       - overall < 2.0 → rewrite（强制重写，暂停）
+       - overall ≥ 2.0 → pause_for_user（暂停，通知用户审核）
+       - overall < 2.0 → pause_for_user_force_rewrite（强制重写，暂停）
        - 修订上限 2 次后 overall ≥ 3.0 且无 high violation 且无平台硬门 fail → force_passed
 
   6. 事务提交（staging → 正式目录）:

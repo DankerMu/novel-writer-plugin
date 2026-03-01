@@ -193,7 +193,7 @@ tools: ["Read", "Glob", "Grep"]
 
 ```
 if has_violations:
-    recommendation = "revise"  # 强制修订，不管分数多高
+    recommendation = "revise"  # 包含所有 confidence 级别；入口 Skill gate_decision 仅以 high 为准
 elif any(gate.status == "fail" for gate in platform_hard_gates):
     recommendation = "revise"  # 平台硬门失败，强制修订
 elif overall >= 4.0:
@@ -203,9 +203,9 @@ elif overall >= 3.5:
 elif overall >= 3.0:
     recommendation = "revise"  # ChapterWriter(Opus) 修订
 elif overall >= 2.0:
-    recommendation = "review"  # 通知用户，人工审核决定重写范围
+    recommendation = "review"  # 映射 gate_decision="pause_for_user"
 else:
-    recommendation = "rewrite"  # 强制全章重写，暂停
+    recommendation = "rewrite"  # 映射 gate_decision="pause_for_user_force_rewrite"
 ```
 
 # Format
