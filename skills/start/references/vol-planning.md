@@ -15,14 +15,14 @@
      3) 取消
 2. 组装 PlotArchitect context（确定性，按 `docs/dr-workflow/novel-writer-tool/final/prd/08-orchestrator.md` §8.3）：
    - `volume_plan`: `{ "volume": V, "chapter_range": [plan_start, plan_end] }`
-   - `prev_volume_review`：读取 `volumes/vol-{V-1:02d}/review.md`（如存在，以 `<DATA type="summary" ...>` 注入）
+   - `prev_volume_review`：传入 `volumes/vol-{V-1:02d}/review.md` 路径（如存在；PlotArchitect 按需 Read）
    - `global_foreshadowing`：读取 `foreshadowing/global.json`
    - `storylines`：读取 `storylines/storylines.json`
    - `project_brief`：读取 `brief.md`（PlotArchitect 从中提取 genre 用于 excitement_type 映射；后续卷中 brief 仍为有效输入源）
-   - `world_docs`：读取 `world/*.md`（以 `<DATA type="world_doc" ...>` 注入）+ `world/rules.json`（结构化 JSON）
-   - `characters`：读取 `characters/active/*.md`（以 `<DATA type="character_profile" ...>` 注入）+ `characters/active/*.json`（L2 contracts 结构化 JSON）
+   - `world_docs`：传入 `world/*.md` 路径列表 + `world/rules.json` 路径（PlotArchitect 按需 Read）
+   - `characters`：传入 `characters/active/*.md` + `characters/active/*.json` 路径列表（PlotArchitect 按需 Read）
    - `user_direction`：用户额外方向指示（如有）
-   - `prev_chapter_summaries`（首卷替代 `prev_volume_review`）：若 `prev_volume_review` 不存在且 `last_completed_chapter > 0`，读取最近 3 章 `summaries/chapter-*-summary.md` 作为上下文（黄金三章是 QUICK_START 多轮交互的核心产出，PlotArchitect 必须基于其已建立的人物关系和情节基调规划后续章节），以 `<DATA type="summary" ...>` 注入
+   - `prev_chapter_summaries`（首卷替代 `prev_volume_review`）：若 `prev_volume_review` 不存在且 `last_completed_chapter > 0`，传入最近 3 章 `summaries/chapter-*-summary.md` 路径列表（PlotArchitect 按需 Read）
    - `inherit_mode`（黄金三章继承）：若以下条件**全部**满足，启用继承模式：
      - `V == 1`（第 1 卷）
      - `plan_start > 1`（已有已完成章节，即 `last_completed_chapter > 0`）
