@@ -18,6 +18,7 @@
    - `prev_volume_review`：读取 `volumes/vol-{V-1:02d}/review.md`（如存在，以 `<DATA type="summary" ...>` 注入）
    - `global_foreshadowing`：读取 `foreshadowing/global.json`
    - `storylines`：读取 `storylines/storylines.json`
+   - `project_brief`：读取 `brief.md`（PlotArchitect 从中提取 genre 用于 excitement_type 映射；后续卷中 brief 仍为有效输入源）
    - `world_docs`：读取 `world/*.md`（以 `<DATA type="world_doc" ...>` 注入）+ `world/rules.json`（结构化 JSON）
    - `characters`：读取 `characters/active/*.md`（以 `<DATA type="character_profile" ...>` 注入）+ `characters/active/*.json`（L2 contracts 结构化 JSON）
    - `user_direction`：用户额外方向指示（如有）
