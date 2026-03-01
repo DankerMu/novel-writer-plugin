@@ -1,9 +1,11 @@
 ---
 name: continue
+is_user_facing: true
 description: >
   该技能用于续写小说的下一章或批量续写多章。支持参数 [N] 指定章数（默认 1，建议不超过 5）。
   This skill should be used when the user says "续写", "继续写", "写下一章", "继续创作",
-  "写N章", "批量续写", "恢复中断的章节", "断点续写", or selects "继续写作" from /novel:start.
+  "写N章", "批量续写", "恢复中断的章节", "断点续写", /novel:continue,
+  or selects "继续写作" from /novel:start.
   Requires project to be in WRITING or CHAPTER_REWRITE state.
 ---
 

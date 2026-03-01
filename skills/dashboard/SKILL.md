@@ -1,5 +1,6 @@
 ---
 name: dashboard
+is_user_facing: true
 description: >
   This skill should be used when the user wants to check novel project status, progress,
   quality scores, foreshadowing tracking, or cost statistics.
