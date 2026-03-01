@@ -222,6 +222,7 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 - 根据 Step 2.5 注入策略确定 `storyline_memory` / `adjacent_memories[]` 的路径（过滤 dormant 线）
 - 确定 `recent_summaries[]`（近 3 章摘要路径，按时间倒序）
 - 其余路径为固定模式（如 `style-profile.json`、`ai-blacklist.json`）
+- **平台指南条件加载**：读取 `style-profile.json` 的 `platform` 字段（缺失或 null 则跳过）。若 `platform` 非空，计算路径 `templates/platforms/{platform}.md`：文件存在则加入 `manifest.paths.platform_guide`（ChapterWriter + QualityJudge 均注入）；文件不存在则输出 WARNING（「平台指南 {platform}.md 不存在，跳过」）并继续（不阻断流水线）
 
 关键原则：
 - 同一输入 → 同一 manifest（确定性）

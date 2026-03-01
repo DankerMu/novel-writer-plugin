@@ -196,6 +196,26 @@ Skill → 状态映射：
 - 选项 3 → `source_type: "template"`，展示预置模板列表让用户选择，存入 `style_template_id`
 - 选项 4 → `source_type: "write_then_extract"`（先跳过 StyleAnalyzer，试写后回填）
 
+**平台偏好采集**（在 Step B 内完成，不延迟到后续步骤）：
+
+风格来源选择完成后，使用 AskUserQuestion 询问目标平台：
+
+```
+目标发布平台：
+1. 番茄小说 (Recommended) — 免费短章快节奏
+2. 起点中文网 — 付费长章体系
+3. 晋江文学城 — 女性向，文笔要求高
+4. 跳过 — 不指定平台
+```
+
+- 选项 1 → `platform = "fanqie"`
+- 选项 2 → `platform = "qidian"`
+- 选项 3 → `platform = "jinjiang"`
+- 选项 4 → `platform = null`
+- Other（用户输入自定义字符串）→ `platform = 该字符串`（如 `"zongheng"`，系统将尝试加载 `templates/platforms/{platform}.md`；文件不存在时 WARNING 并跳过）
+
+`platform` 值在 Step C 写入 `style-profile.json` 的 `platform` 字段。
+
 > 关键：每条路径的补充信息必须在 Step B 内收齐，不得延迟到 Step E 再问。Step E 仅执行 StyleAnalyzer 派发，不再与用户交互。
 
 ##### Step B.5: Brief 交互完善（1-2 轮交互）
@@ -239,7 +259,7 @@ Skill → 状态映射：
 1. 创建项目目录结构（参考 `docs/dr-workflow/novel-writer-tool/final/prd/09-data.md` §9.1）
 2. 从 `${CLAUDE_PLUGIN_ROOT}/templates/` 复制模板文件到项目目录（至少生成以下文件）：
    - `brief.md`：从 `brief-template.md` 复制并用用户输入填充占位符
-   - `style-profile.json`：从 `style-profile-template.json` 复制（后续由 StyleAnalyzer 填充）
+   - `style-profile.json`：从 `style-profile-template.json` 复制（后续由 StyleAnalyzer 填充）。若 Step B 采集了 `platform` 值（非 null），立即写入 `style-profile.json` 的 `platform` 字段
    - `ai-blacklist.json`：从 `ai-blacklist.json` 复制
 3. **初始化最小可运行文件**（模板复制后立即创建，确保后续 Agent 可正常读取）：
    - `.checkpoint.json`：`{"last_completed_chapter": 0, "current_volume": 0, "orchestrator_state": "QUICK_START", "pipeline_stage": null, "inflight_chapter": null, "quick_start_step": "C", "revision_count": 0, "pending_actions": [], "last_checkpoint_time": "<now>"}`
@@ -282,7 +302,7 @@ Skill → 状态映射：
 9a. **创建 vol-01 目录**（幂等）：`mkdir -p volumes/vol-01/chapter-contracts staging/volumes/vol-01/chapter-contracts`
 
 9b. **Genre × Platform 组合检查**（非阻塞）：
-   - 从 `brief.md` 读取 `genre`，检测项目中是否存在 platform_guide 文件
+   - 从 `brief.md` 读取 `genre`，从 `style-profile.json` 读取 `platform` 字段，若 `platform` 非空则检查 `templates/platforms/{platform}.md` 是否存在
    - 无效组合（如 genre=纯爱BL + platform=番茄）→ 输出 WARNING 到用户但不阻塞流程
    - 少见组合（如 genre=硬科幻 + platform=晋江）→ 输出 WARNING 建议确认目标受众
    - 无 platform_guide → 跳过此检查
@@ -340,7 +360,7 @@ Skill → 状态映射：
     j. **storyline_memory / adjacent_memories**：首章多为空，第 2-3 章从前章 Summarizer 产出中获取
     k. **recent_summaries**：C=1 时无前章摘要；C=2 时传入 chapter-001 摘要；C=3 时传入 chapter-001 + 002 摘要
     l. **其余字段**：`style_profile`、`ai_blacklist`、`current_state`、`project_brief`、`world_rules`、`writing_methodology` 正常组装
-    m. **paths.platform_guide**（可选）：若 platform_guide 存在，传入 QualityJudge manifest
+    m. **paths.platform_guide**（可选）：若 platform_guide 存在，传入 ChapterWriter + QualityJudge manifest
 
     **QualityJudge 完整双轨验收**：
     - Track 1（Contract Verification）：完整执行 L1/L2/L3/LS 检查（Step F0 已生成 L3 contracts，不再跳过）

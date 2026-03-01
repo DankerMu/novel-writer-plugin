@@ -65,6 +65,7 @@ tools: ["Read", "Glob", "Grep"]
 - `paths.storyline_spec` → 故事线规范（可选）
 - `paths.storyline_schedule` → 本卷故事线调度（可选）
 - `paths.cross_references` → Summarizer 串线检测输出
+- `paths.platform_guide` → 平台写作指南（可选，M5.2 注入路径；M6.2 启用后用于平台加权评分）
 - `paths.quality_rubric` → 8 维度评分标准
 
 > **读取优先级**：先读 `chapter_draft`（评估对象），再读 `chapter_contract` + `quality_rubric`（评估标准），最后读其余参照文件。
