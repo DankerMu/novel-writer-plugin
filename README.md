@@ -133,9 +133,9 @@ agents/                        8 个 Agent 定义
   summarizer.md
   world-builder.md
 skills/
-  start/SKILL.md               /novel:start 冷启动
-  continue/SKILL.md            /novel:continue 续写
-  dashboard/SKILL.md              /novel:dashboard 状态
+  start/SKILL.md              /novel:start 冷启动
+  continue/SKILL.md           /novel:continue 续写
+  dashboard/SKILL.md          /novel:dashboard 状态
   novel-writing/               共享方法论知识库
     SKILL.md
     references/

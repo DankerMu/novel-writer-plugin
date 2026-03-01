@@ -586,7 +586,7 @@ Ch {X}: {字数}字 {分数} {状态} | Ch {X+1}: {字数}字 {分数} {状态} 
 
 ````markdown
 ---
-name: status
+name: dashboard
 description: >
   This skill should be used when the user wants to check novel project status, progress,
   quality scores, foreshadowing tracking, or cost statistics.

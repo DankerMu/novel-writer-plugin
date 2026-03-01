@@ -26,8 +26,8 @@ cc-novel-writer/
 │   │   └── SKILL.md                   # /novel:start     状态感知交互入口
 │   ├── continue/
 │   │   └── SKILL.md                   # /novel:continue  续写下一章（高频快捷）
-│   ├── status/
-│   │   └── SKILL.md                   # /novel:dashboard    只读状态查看
+│   ├── dashboard/
+│   │   └── SKILL.md                   # /novel:dashboard  只读状态查看
 │   └── novel-writing/                 # 共享知识库（Claude 按需自动加载）
 │       ├── SKILL.md                   # 核心方法论 + 风格指南
 │       └── references/
