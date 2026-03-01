@@ -22,6 +22,18 @@
    - `characters`：读取 `characters/active/*.md`（以 `<DATA type="character_profile" ...>` 注入）+ `characters/active/*.json`（L2 contracts 结构化 JSON）
    - `user_direction`：用户额外方向指示（如有）
    - `prev_chapter_summaries`（首卷替代 `prev_volume_review`）：若 `prev_volume_review` 不存在且 `last_completed_chapter > 0`，读取最近 3 章 `summaries/chapter-*-summary.md` 作为上下文（黄金三章是 QUICK_START 多轮交互的核心产出，PlotArchitect 必须基于其已建立的人物关系和情节基调规划后续章节），以 `<DATA type="summary" ...>` 注入
+   - `inherit_mode`（黄金三章继承）：若以下条件**全部**满足，启用继承模式：
+     - `V == 1`（第 1 卷）
+     - `plan_start > 1`（已有已完成章节，即 `last_completed_chapter > 0`）
+     - `volumes/vol-01/outline.md` 已存在（Step F0 已生成前 3 章 outline）
+     - `volumes/vol-01/chapter-contracts/chapter-001.json` 已存在
+   - 启用继承模式时，额外传入 PlotArchitect：
+     - `inherit_mode: true`
+     - `existing_outline_path`: `volumes/vol-01/outline.md`（PlotArchitect 读取已有章节 outline，从 `plan_start` 章开始扩展）
+     - `existing_contracts_range`: `[1, last_completed_chapter]`（已固化的 L3 contracts 范围，不可重写）
+     - `chapter_summaries`: 读取 `summaries/chapter-001-summary.md` ~ `chapter-{last_completed_chapter:03d}-summary.md`
+     - `existing_foreshadowing_path`: `volumes/vol-01/foreshadowing.json`（已有伏笔计划，扩展而非重建）
+     - `existing_schedule_path`: `volumes/vol-01/storyline-schedule.json`（已有调度，扩展而非重建）
 3. 使用 Task 派发 PlotArchitect Agent 生成本卷规划产物（写入 staging 目录，step 6 commit 到正式路径）：
    - `staging/volumes/vol-{V:02d}/outline.md`（严格格式：每章 `###` 区块 + 固定 `- **Key**:` 行）
    - `staging/volumes/vol-{V:02d}/storyline-schedule.json`
@@ -29,6 +41,12 @@
    - `staging/volumes/vol-{V:02d}/new-characters.json`（可为空数组）
    - `staging/volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.json`（`C ∈ [plan_start, plan_end]`）
    - （注意：`foreshadowing/global.json` 为事实索引，由 `/novel:continue` 在每章 commit 阶段从 `foreshadow` ops 更新；卷规划阶段不生成/覆盖 global.json）
+   - **继承模式下 PlotArchitect 的行为约束**（仅 `inherit_mode == true` 时适用）：
+     - `outline.md`：保留已有章节（1-{last_completed_chapter}）的 `### 第 N 章` 区块不变，可在区块末尾追加 `<!-- [NOTE] ... -->` 标记行（如建议加强某处伏笔）；从 `plan_start` 章开始新增区块
+     - `chapter-contracts/`：已有章节的 `.json` 只读不改；从 `plan_start` 章开始生成新 contracts
+     - `foreshadowing.json`：在已有条目基础上扩展（新增 + 更新 target_resolve_range），不删除已有条目
+     - `storyline-schedule.json`：在已有调度基础上扩展（新增 chapter range 覆盖、convergence_events），不删除已有 active_storylines
+     - `new-characters.json`：正常输出（扫描 plan_start..plan_end 中引用但未注册的角色）
 4. 规划产物校验（对 `staging/` 下的产物执行；失败则停止并给出修复建议，禁止"缺文件继续写"导致断链）：
    - `outline.md` 可解析：可用 `/^### 第 (\\d+) 章/` 找到章节区块，且连续覆盖 `plan_start..plan_end`（不允许跳章，否则下游契约缺失会导致流水线崩溃）
    - 每个章节区块包含固定 key 行：`Storyline/POV/Location/Conflict/Arc/Foreshadowing/StateChanges/TransitionHint`
@@ -38,7 +56,9 @@
      - `chapter == C`
      - `storyline_id` 与 outline 中 `- **Storyline**:` 一致
      - `objectives` 至少 1 条 `required: true`
-   - 链式传递检查（最小实现）：若 `chapter-{C-1}.json.postconditions.state_changes` 中出现角色 X，则 `chapter-{C}.json.preconditions.character_states` 必须包含 X（值可不同，代表显式覆盖）。对 `plan_start` 章：若 `chapter-{plan_start-1}.json` 不存在（如首卷试写章无契约），跳过该章的链式传递检查，其 preconditions 由 PlotArchitect 从试写摘要派生
+   - 链式传递检查（最小实现）：若 `chapter-{C-1}.json.postconditions.state_changes` 中出现角色 X，则 `chapter-{C}.json.preconditions.character_states` 必须包含 X（值可不同，代表显式覆盖）。对 `plan_start` 章：
+     - 继承模式下 `chapter-{plan_start-1}.json` 存在（Step F0 已生成）→ 正常执行链式传递检查
+     - 非继承模式或 `chapter-{plan_start-1}.json` 不存在 → 跳过该章的链式传递检查，其 preconditions 由 PlotArchitect 从试写摘要派生
    - `foreshadowing.json` 与 `new-characters.json` 均存在且为合法 JSON
 5. 审核点交互（AskUserQuestion）：
    - 展示摘要：

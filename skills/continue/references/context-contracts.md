@@ -142,6 +142,7 @@ quality_judge_manifest = {
     storyline_schedule: "volumes/vol-{V:02d}/storyline-schedule.json", # 可选
     cross_references: "staging/state/chapter-{C:03d}-crossref.json",
     quality_rubric: "skills/novel-writing/references/quality-rubric.md",
+    platform_guide: "platform_guide.md",                                  # 可选（M6.2 启用后用于平台加权评分）
   }
 }
 ```
