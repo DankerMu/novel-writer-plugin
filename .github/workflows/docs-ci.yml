@@ -15,7 +15,7 @@ jobs:
 
       - uses: DavidAnson/markdownlint-cli2-action@v19
         with:
-          globs: "docs/**/*.md"
+          globs: "{docs,agents,skills}/**/*.md"
 
   links:
     name: Link Check
@@ -30,14 +30,24 @@ jobs:
             --no-progress
             --exclude-path node_modules
             --suggest
-            "docs/**/*.md"
+            "{docs,agents,skills}/**/*.md"
           fail: true
 
   structure:
-    name: Manifest Validation
+    name: Manifest & JSON Validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validate plugin JSON files
+        run: |
+          echo "Checking .claude-plugin/plugin.json..."
+          python3 -c "import json; json.load(open('.claude-plugin/plugin.json'))"
+          echo "Checking .claude-plugin/marketplace.json..."
+          python3 -c "import json; json.load(open('.claude-plugin/marketplace.json'))"
+          echo "Checking hooks/hooks.json..."
+          python3 -c "import json; json.load(open('hooks/hooks.json'))"
+          echo "All plugin JSON files valid."
 
       - name: Validate manifest.json
         run: |
