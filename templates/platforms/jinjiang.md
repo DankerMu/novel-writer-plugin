@@ -80,6 +80,15 @@
 | immersion | 1.1 | 代入感需求略高于标准 |
 | storyline_coherence | 0.8 | 多线复杂度需求低，聚焦主 CP 线 |
 
+## 黄金三章硬门（QualityJudge 强制检查）
+
+> 以下为 QualityJudge 对章节 001-003 执行的硬门检查。任一 fail → 强制 revise，不受 overall score 影响。
+
+- **Ch001-002**: 主角人设通过行为（非旁白）展现
+- **Ch001-003**: 至少一个 CP lead 登场
+- **Ch001-002**: 情感基调建立
+- **Ch001-003**: style_naturalness 维度评分 ≥ 3.5（引用 Track 2 结果）
+
 ## 黄金三章参数
 
 - 章节字数：3000-4000 字/章

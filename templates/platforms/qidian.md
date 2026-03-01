@@ -72,6 +72,13 @@
 | immersion | 1.2 | 「以战代练」设定沉浸感是起点核心体验 |
 | storyline_coherence | 1.2 | 多线叙事连贯性适度加权（worldbuilding consistency 待 M7 独立维度） |
 
+## 黄金三章硬门（QualityJudge 强制检查）
+
+> 以下为 QualityJudge 对章节 001-003 执行的硬门检查。任一 fail → 强制 revise，不受 overall score 影响。
+
+- **Ch003**: 前 3 章让读者感知到世界观/力量体系的存在与层级感（冰山式暗示，非框架建立）
+- **Ch003**: immersion 维度评分 ≥ 3.5（引用 Track 2 结果）
+
 ## 黄金三章参数
 
 - 章节字数：3000-3500 字/章

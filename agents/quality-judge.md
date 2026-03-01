@@ -171,7 +171,7 @@ tools: ["Read", "Glob", "Grep"]
 - Ch003: 前 3 章内至少出现一次反转/打脸/升级事件（回溯 `paths.recent_summaries[]` 判断；若前章摘要不可用则标注 `status: "skipped", detail: "前章摘要不可用，无法回溯判定"`）
 
 **起点中文网**：
-- Ch003: 前 3 章建立世界观基础框架
+- Ch003: 前 3 章让读者感知到世界观/力量体系的存在与层级感（冰山式暗示，非框架建立）
 - Ch003: immersion 维度评分 ≥ 3.5（引用 Track 2 结果）
 
 **晋江文学城**：
@@ -193,7 +193,7 @@ tools: ["Read", "Glob", "Grep"]
 
 ```
 if has_violations:
-    recommendation = "revise"  # 强制修订，不管分数多高
+    recommendation = "revise"  # 包含所有 confidence 级别；入口 Skill gate_decision 仅以 high 为准
 elif any(gate.status == "fail" for gate in platform_hard_gates):
     recommendation = "revise"  # 平台硬门失败，强制修订
 elif overall >= 4.0:
@@ -203,9 +203,9 @@ elif overall >= 3.5:
 elif overall >= 3.0:
     recommendation = "revise"  # ChapterWriter(Opus) 修订
 elif overall >= 2.0:
-    recommendation = "review"  # 通知用户，人工审核决定重写范围
+    recommendation = "review"  # 映射 gate_decision="pause_for_user"
 else:
-    recommendation = "rewrite"  # 强制全章重写，暂停
+    recommendation = "rewrite"  # 映射 gate_decision="pause_for_user_force_rewrite"
 ```
 
 # Format

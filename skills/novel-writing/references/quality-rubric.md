@@ -146,7 +146,7 @@
 | 平台 | 硬门 |
 |------|------|
 | 番茄小说 | Ch001: 主角 200 字内登场并面临冲突；Ch001-003: 每章末悬念钩子；Ch003: 前 3 章至少一次反转/打脸/升级事件 |
-| 起点中文网 | Ch003: 世界观框架建立；Ch003: immersion ≥ 3.5 |
+| 起点中文网 | Ch003: 世界观/力量体系存在与层级感可感知（冰山式暗示）；Ch003: immersion ≥ 3.5 |
 | 晋江文学城 | Ch001-002: 主角人设通过行为（非旁白）展现；Ch001-003: 至少一个 CP lead 登场；Ch001-002: 情感基调建立；Ch001-003: style_naturalness ≥ 3.5 |
 
 任一硬门 fail → 强制 revise，不受 overall score 影响。无平台或章节 > 003 时跳过。
@@ -155,14 +155,14 @@
 
 ## 门控决策
 
-| 综合分范围 | 合规状态 | 行动 |
-|-----------|---------|------|
-| 任意 | 有 high-confidence violation | 强制修订（无论分数多高；仅 confidence="high" 触发，medium/low 记录警告不阻断） |
-| 任意 | 平台硬门任一 fail（Ch001-003 + platform_guide） | 强制修订（不受 overall 影响） |
-| 4.0-5.0 | 无 violation 且无硬门 fail | 直接通过 |
-| 3.5-3.9 | 无 violation | StyleRefiner 二次润色后通过 |
-| 3.0-3.4 | 无 violation | ChapterWriter（Opus）自动修订（最多 2 轮） |
-| 2.0-2.9 | 无 violation | 暂停，通知用户审核决定下一步 |
-| < 2.0 | 无 violation | 暂停，建议全章重写（等待用户通过 `/novel:start` 决策） |
+| 综合分范围 | 合规状态 | QJ recommendation | gate_decision | 行动 |
+|-----------|---------|-------------------|---------------|------|
+| 任意 | 有 high-confidence violation | `revise` | `revise` | 强制修订（无论分数多高；仅 confidence="high" 触发，medium/low 记录警告不阻断） |
+| 任意 | 平台硬门任一 fail（Ch001-003 + platform_guide） | `revise` | `revise` | 强制修订（不受 overall 影响） |
+| 4.0-5.0 | 无 violation 且无硬门 fail | `pass` | `pass` | 直接通过 |
+| 3.5-3.9 | 无 violation | `polish` | `polish` | StyleRefiner 二次润色后通过 |
+| 3.0-3.4 | 无 violation | `revise` | `revise` | ChapterWriter（Opus）自动修订（最多 2 轮） |
+| 2.0-2.9 | 无 violation | `review` | `pause_for_user` | 暂停，通知用户审核决定下一步 |
+| < 2.0 | 无 violation | `rewrite` | `pause_for_user_force_rewrite` | 暂停，建议全章重写（等待用户通过 `/novel:start` 决策） |
 
 **修订上限兜底**：修订 2 次后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail → `force_passed=true`，允许提交（避免无限循环）。
