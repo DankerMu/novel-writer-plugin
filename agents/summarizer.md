@@ -63,6 +63,7 @@ tools: ["Read", "Write", "Edit", "Glob"]
 4. 如有 ChapterWriter 的 hints，与正文交叉核对——以正文实际内容为准
 5. 扫描正文中出现的非本线实体，生成串线检测输出
 6. 标记 entity_id_map 中不存在的实体，输出未知实体报告
+6.5. **识别 Canon Hints**：扫描本章正文，识别叙事中首次确立的世界规则或角色能力/已知事实/关系。仅从正文推断（不读取 rules.json 或角色 JSON），输出轻量级提示供编排器 commit 阶段做确定性升级
 7. 生成对应故事线的更新后记忆内容（≤500 字）
 8. 标注下一章必须知道的 3-5 个关键信息点
 
@@ -108,6 +109,9 @@ tools: ["Read", "Write", "Edit", "Glob"]
   "ops": [
     {"op": "set", "path": "characters.character-id.字段", "value": "新值"},
     {"op": "foreshadow", "path": "伏笔ID", "value": "planted | advanced | resolved", "detail": "..."}
+  ],
+  "canon_hints": [
+    {"type": "world_rule | ability | known_fact | relationship", "hint": "自然语言描述", "confidence": "high | medium", "evidence": "正文依据"}
   ]
 }
 ```
@@ -150,6 +154,30 @@ tools: ["Read", "Write", "Edit", "Glob"]
 **6. Context 传递标记**
 
 标注下一章必须知道的 3-5 个关键信息点（用于 context 组装优先级排序）。
+
+**7. Canon Hints**（写入 `staging/state/chapter-{C:03d}-delta.json` 顶层 `canon_hints` 字段）
+
+本章叙事中首次确立的世界规则或角色能力/事实/关系。Summarizer 仅从正文推断，不读取 rules.json 或角色 JSON——轻量输出，由编排器 commit 阶段做确定性匹配与升级。
+
+```json
+{
+  "canon_hints": [
+    {"type": "world_rule", "hint": "修炼者突破金丹期需要灵气浓度≥3级", "confidence": "high", "evidence": "正文第3段明确描述了突破条件"},
+    {"type": "ability", "hint": "林枫掌握火球术", "confidence": "high", "evidence": "正文中林枫首次施展火球术攻击敌人"},
+    {"type": "known_fact", "hint": "苏瑶的师门背景", "confidence": "medium", "evidence": "对话中暗示但未完全展开"},
+    {"type": "relationship", "hint": "林枫与苏瑶结盟", "confidence": "high", "evidence": "两人在战斗后正式达成同盟"}
+  ]
+}
+```
+
+- `type`：`"world_rule"` | `"ability"` | `"known_fact"` | `"relationship"`
+- `hint`：自然语言描述（编排器用于模糊匹配 planned 条目）
+- `confidence`：`"high"` | `"medium"`（low 不输出，避免噪声）
+- `evidence`：正文依据（一句话）
+
+
+
+> `canon_hints` 为可选输出——若本章无新确立的规则/能力，则 `canon_hints` 为空数组或不输出。编排器 commit 阶段读取此字段时，缺失视为空数组。
 
 # Edge Cases
 

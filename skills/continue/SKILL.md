@@ -111,12 +111,17 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 #### Step 2.2: `hard_rules_list`（L1 世界规则 → 禁止项列表，确定性）
 
 1. 读取并解析 `world/rules.json`（如不存在则 `hard_rules_list = []`）。
-2. 筛选 `constraint_type == "hard"` 的规则，按 `id` 升序输出为禁止项列表：
+2. 筛选 `constraint_type == “hard”` 且 `(canon_status == “established” 或 canon_status 缺失)` 的规则，按 `id` 升序输出为禁止项列表：
 
 ```
 - [W-001][magic_system] 修炼者突破金丹期需要天地灵气浓度 ≥ 3级
-- [W-002][geography] 禁止在“幽暗森林”使用火系法术（exceptions: ...）
+- [W-002][geography] 禁止在”幽暗森林”使用火系法术（exceptions: ...）
+- [INTRODUCING][W-003][magic_system] 本章首次展现的规则描述
 ```
+
+> **Canon Status 过滤**：`canon_status == “planned”` 的规则默认不注入。例外：若 `chapter_contract.preconditions.required_world_rules`（如存在）引用了某 planned 规则 ID，则以 `[INTRODUCING]` 前缀注入该规则，表示本章将首次展现。
+
+同时将所有 planned 规则 ID 列表记为 `planned_rule_ids`，传给 QualityJudge 用于 planned 引用检测。
 
 该列表用于 ChapterWriter（禁止项提示）与 QualityJudge（逐条验收）。
 
@@ -148,6 +153,14 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 加载内容：
 - `character_contracts`：记录 `characters/active/{slug_id}.json` 路径列表（写入 manifest.paths.character_contracts）
 - `character_profiles`：记录 `characters/active/{slug_id}.md` 路径列表（如存在；写入 QualityJudge manifest.paths.character_profiles）
+
+**Canon Status 预过滤**（对入选角色 JSON 执行）：
+
+1. 对每个入选角色的 `abilities[]`、`known_facts[]`、`relationships[]` 数组，过滤掉 `canon_status == "planned"` 的条目（仅保留 `established` 或缺失 canon_status 的条目）
+2. 例外：若 `chapter_contract.preconditions.character_states` 引用了某角色的 planned 条目（按 name/fact/target 模糊匹配），保留该条目并追加 `"introducing": true` 标记
+3. 过滤后的角色 JSON 写入 `staging/context/characters/{slug_id}.json`（临时副本，commit 阶段随 staging 清理）
+4. `manifest.paths.character_contracts[]` 指向裁剪后的 `staging/context/characters/{slug_id}.json`（而非原始 `characters/active/` 路径）
+5. 向后兼容：若角色 JSON 无 `abilities`/`known_facts`/`relationships` 字段，视为空数组，跳过过滤
 
 #### Step 2.5: storylines context + memory 注入（确定性）
 
@@ -303,6 +316,18 @@ for chapter_num in range(start, start + remaining_N):
      - 移动 staging/storylines/{storyline_id}/memory.md → storylines/{storyline_id}/memory.md
      - 移动 staging/state/chapter-{C:03d}-crossref.json → state/chapter-{C:03d}-crossref.json（保留跨线泄漏审计数据）
      - 合并 state delta: 校验 ops（§10.6）→ 逐条应用 → state_version += 1 → 追加 state/changelog.jsonl
+     - **Canon Status 升级**（基于 Summarizer canon_hints）：
+       - 读取 `staging/state/chapter-{C:03d}-delta.json` 的顶层 `canon_hints` 字段（缺失则跳过整个升级步骤）
+       - 对每条 hint（`{type, hint, confidence, evidence}`）：
+         - 按 `type` 在对应源中搜索 `canon_status == "planned"` 的条目：
+           - `type == "world_rule"` → 搜索 `world/rules.json` 的 `rules[]`，按 `hint` 与 `rule` 字段模糊匹配
+           - `type == "ability" | "known_fact" | "relationship"` → 搜索 `characters/active/*.json` 对应数组，按 `hint` 与 `name`/`fact`/`target` 模糊匹配
+         - 检查本章 `ops[]` 中是否存在与该 hint 关联的 `set`/`foreshadow` 操作（双条件：hint 匹配 + ops 关联证据）
+         - 双条件均满足 → 升级：`canon_status: "planned" → "established"` + 更新 `last_verified: C`
+         - 单条件或零条件 → 跳过（保持 planned）
+       - 幂等：已 established 的条目跳过
+       - 写回 `world/rules.json` / `characters/active/{slug_id}.json`
+       - 记录每条升级操作到 `state/changelog.jsonl`（`{chapter, op: "canon_upgrade", target, from: "planned", to: "established"}`）
      - 更新 foreshadowing/global.json（从 foreshadow ops 提取；幂等合并，详见 `references/foreshadowing.md`）：
        - 读取 `staging/state/chapter-{C:03d}-delta.json`，筛选 `ops[]` 中 `op=="foreshadow"` 的记录
        - 读取 `foreshadowing/global.json`（不存在则初始化为 `{"foreshadowing":[]}`）

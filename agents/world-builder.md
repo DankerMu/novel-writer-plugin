@@ -60,7 +60,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 1. 分析创作纲领，提取世界观核心要素（仅聚焦最影响前 3 章的设定）
 2. 参考背景研究资料（如有），确保设定有事实依据
 3. 生成精简叙述文档（geography.md、history.md、rules.md — 每个 ≤300 字，点到为止）
-4. 抽取 **≤3 条核心 hard 规则**（rules.json），聚焦「读者立刻能感知到的硬约束」（如：力量体系上限、地理不可通行区、社会铁律）
+4. 抽取 **≤3 条核心 hard 规则**（rules.json），聚焦「读者立刻能感知到的硬约束」（如：力量体系上限、地理不可通行区、社会铁律）。新建规则 `canon_status` 初始化为 `"planned"`
 5. 初始化 storylines.json：仅 1 条 `type:main_arc` 主线（从创作纲领的核心冲突派生）
 6. 创建 `storylines/main-arc/memory.md`（空文件）
 
@@ -70,7 +70,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 1. 分析创作纲领，提取世界观核心要素（地理、历史、力量体系、社会结构）
 2. 参考背景研究资料（如有），确保设定有事实依据
 3. 生成叙述性文档（geography.md、history.md、rules.md）
-4. 从叙述文档中抽取结构化规则表 rules.json（每条规则标注 hard/soft）
+4. 从叙述文档中抽取结构化规则表 rules.json（每条规则标注 hard/soft）。新建规则 `canon_status` 初始化为 `"planned"`
 5. 基于势力关系派生初始故事线 storylines.json（至少 1 条 type:main_arc 主线）
 6. 为每条已定义故事线创建 storylines/{id}/memory.md
 
@@ -78,7 +78,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 1. 读取已有设定和规则表
 2. 分析新增需求与已有设定的兼容性（重点检查 hard 规则冲突）
 3. 仅输出变更文件（`world/*.md` / `world/rules.json`）+ 追加 `world/changelog.md` 条目（append-only）
-4. 对新增/修改的规则条目更新 `last_verified`（若提供 `last_completed_chapter` 则写入，否则置为 `null`）
+4. 新增规则 `canon_status` 初始化为 `"planned"`；已有规则的 `canon_status` **不可手动修改**（仅编排器 commit 阶段可升级）。对新增/修改的规则条目更新 `last_verified`（若提供 `last_completed_chapter` 则写入，否则置为 `null`）
 5. 若新增规则与已有 hard 规则矛盾，返回结构化 JSON（见 Edge Cases）
 
 # Constraints
@@ -102,6 +102,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
       "category": "magic_system | geography | social | physics",
       "rule": "规则的自然语言描述",
       "constraint_type": "hard | soft",
+      "canon_status": "established | planned",
       "exceptions": [],
       "introduced_chapter": null,
       "last_verified": null
@@ -110,11 +111,12 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 }
 ```
 
-**严格 schema 约束**：输出 JSON 的字段名必须与上述 schema **完全一致**（`id`/`category`/`rule`/`constraint_type`/`exceptions`/`introduced_chapter`/`last_verified`）。禁止使用替代字段名（如 `level` 代替 `constraint_type`、`content` 代替 `rule`、`scope` 代替 `category`）。下游 QualityJudge 按此 schema 逐字段校验，字段名不匹配会导致验收失败。
+**严格 schema 约束**：输出 JSON 的字段名必须与上述 schema **完全一致**（`id`/`category`/`rule`/`constraint_type`/`canon_status`/`exceptions`/`introduced_chapter`/`last_verified`）。禁止使用替代字段名（如 `level` 代替 `constraint_type`、`content` 代替 `rule`、`scope` 代替 `category`）。下游 QualityJudge 按此 schema 逐字段校验，字段名不匹配会导致验收失败。
 
 - `constraint_type: "hard"` — 不可违反，违反即阻塞（类似编译错误）
 - `constraint_type: "soft"` — 可有例外，但需说明理由
 - ChapterWriter 收到 hard 规则时以禁止项注入：`"违反以下规则的内容将被自动拒绝"`
+- `canon_status` — 规则的确立状态：`"established"` 表示已在正文中叙事确立的事实，`"planned"` 表示卷规划预案尚未在正文中展现。缺失时默认视为 `"established"`（向后兼容）。仅编排器 commit 阶段可基于 Summarizer canon_hints 将 planned 升级为 established，Agent 不可手动修改此字段
 - `last_verified` — 最近一次确认该规则仍然有效的章节号；在增量世界观更新时，优先写入 `last_completed_chapter`（如提供）
 
 # Storylines — 小说级故事线模型（初始化模式）

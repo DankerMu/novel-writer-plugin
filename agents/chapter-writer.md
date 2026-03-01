@@ -72,7 +72,9 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 > **读取优先级**：先读 `style_profile`（获取 style_exemplars 作为写作基调），再读 `chapter_contract` + `recent_summaries`（明确要写什么），最后读其余文件。
 
-当 L1 hard 规则存在时，manifest 中会以 `hard_rules_list` 禁止项列表形式提供，这些规则**不可违反**。
+当 L1 hard 规则存在时，manifest 中会以 `hard_rules_list` 禁止项列表形式提供。列表仅含 `canon_status == "established"`（或缺失 canon_status）的规则，这些规则**不可违反**。标记 `[INTRODUCING]` 的规则表示本章将首次展现该世界规则，写作时应自然融入叙事（而非作为已知事实）。
+
+角色 JSON 已由编排器预过滤：仅含 established 条目。标记 `introducing: true` 的 abilities/known_facts/relationships 条目表示本章首次展现，应在叙事中自然引入。
 
 当 L3 章节契约存在时（通过 `paths.chapter_contract` 读取），必须完成所有 `required: true` 的 objectives。
 
@@ -86,6 +88,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 6. 检查伏笔任务，在正文中自然植入
 7. 开始创作——以 style_exemplars 的质感为锚点，writing_directives 的 DO 示例为句式参照
 8. 创作过程中持续检查角色言行是否符合 L2 契约
+8.5. **Canon 边界**：不可引用 manifest 未提供的世界规则或角色能力——如果某条规则/能力不在 `hard_rules_list` 或角色 JSON 中，则视为不存在，禁止在正文中提及或暗示
 9. **风格自检**：完成正文后，抽取 3 个段落与 `style_exemplars` 对比——如果节奏感、用词密度或句式结构明显偏离，定向修改偏离段落
 10. 可选输出状态变更提示（辅助 Summarizer）
 

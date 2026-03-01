@@ -83,6 +83,7 @@
         "layer": { "type": "string", "enum": ["L1", "L2", "L3", "LS"] },
         "rule_id": { "type": "string" },
         "constraint_type": { "type": "string", "enum": ["hard", "soft"] },
+        "status": { "type": "string", "enum": ["pass", "violation", "warning"] },
         "confidence": { "$ref": "#/$defs/confidence" },
         "detail": { "type": "string" },
         "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence_item" } }
