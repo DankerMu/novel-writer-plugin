@@ -376,12 +376,14 @@ Skill → 状态映射：
     - 第 2、3 章为普通章：单裁判（Sonnet）
 
     **质量门控**（与 `/novel:continue` 完全一致）：
-    - `overall_final >= 4.0` 且无 high-confidence violation → **pass**
+    - high-confidence violation → **revise**（强制修订）
+    - 平台硬门任一 fail（章节 001-003 且有 platform_guide）→ **revise**（强制修订）
+    - `overall_final >= 4.0` 且无上述硬门失败 → **pass**
     - `overall_final >= 3.5` → **polish**（StyleRefiner 二次润色后直接 commit）
     - `overall_final >= 3.0` → **revise**（ChapterWriter Opus 修订，max 2 轮）
     - `overall_final >= 2.0` → **pause_for_user**（暂停，用户运行 `/novel:start` 决策）
     - `overall_final < 2.0` → **pause_for_user_force_rewrite**
-    - 修订上限 2 次后 overall >= 3.0 且无 high violation → force_passed
+    - 修订上限 2 次后 overall >= 3.0 且无 high violation 且无平台硬门 fail → force_passed
 
     **事务提交**（每章通过门控后）：
     - staging → 正式目录（chapters/, summaries/, evaluations/, state/, logs/）

@@ -4,6 +4,7 @@
 
 - high_violation(eval) := 任一 contract_verification.{l1,l2,l3}_checks 中存在 status="violation" 且 confidence="high"
   或任一 contract_verification.ls_checks 中存在 status="violation" 且 confidence="high" 且（constraint_type 缺失或 == "hard"）
+- platform_hard_gate_fail(eval) := 任一 contract_verification.platform_hard_gates 中存在 status="fail"（章节 001-003 且有 platform_guide 时才可能非空）
 - has_high_confidence_violation：取自 Step 4 的计算结果（关键章=双裁判 OR 合并，普通章=单裁判）
   > confidence=medium/low 仅记录警告，不触发 hard gate（避免误报疲劳）
 
@@ -12,6 +13,8 @@
 ```
 if has_high_confidence_violation:
   gate_decision = "revise"
+elif platform_hard_gate_fail(eval):
+  gate_decision = "revise"  # 平台硬门失败，强制修订（章节 001-003 且有 platform_guide 时）
 else:
   if overall_final >= 4.0: gate_decision = "pass"
   elif overall_final >= 3.5: gate_decision = "polish"
@@ -31,7 +34,7 @@ else:
   - 回到步骤 2 重新走 Summarizer -> StyleRefiner -> QualityJudge -> 门控（保证摘要/state/crossref 与正文一致）
 
 - 若 gate_decision="revise" 且 revision_count == 2（次数耗尽）：
-  - 若 has_high_confidence_violation=false 且 overall_final >= 3.0：
+  - 若 has_high_confidence_violation=false 且 platform_hard_gate_fail(eval)=false 且 overall_final >= 3.0：
     - 设置 force_passed=true，允许提交（避免无限循环）
     - 记录：eval metadata + log 中标记 force_passed=true（门控被上限策略终止）
     - 将 gate_decision 覆写为 "pass"

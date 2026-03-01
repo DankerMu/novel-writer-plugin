@@ -21,6 +21,7 @@
           "detail": "Synthetic violation for fixture"
         }
       ],
+      "platform_hard_gates": [],
       "has_violations": true,
       "has_warnings": false
     },
