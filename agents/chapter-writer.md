@@ -121,7 +121,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 9. **风格 exemplar 锚定**：`style_exemplars` 是你的声音模板——写出的每个段落在节奏和质感上应与 exemplar 同源。`writing_directives` 的 DO 示例是句式参照，DON'T 示例是禁区。如果不确定某个句子怎么写，先回看 exemplar 找到最接近的表达模式
    - **降级模式**：若 `style_exemplars` 为空或缺失（旧项目/write_then_extract 初始阶段），退化为按 `avg_sentence_length` / `dialogue_ratio` / `rhetoric_preferences` 等统计指标引导；`writing_directives` 为纯字符串数组时视为仅 directive 文本（无 do/dont）
-10. **角色语癖**：对话带角色语癖（每角色至少 1 个口头禅）
+10. **角色区分**：通过说话风格、用词层次和性格表达区分角色；有语癖定义的角色偶尔带出口头禅即可（每 3-5 章出现一次为宜，切忌每次对话都加）
 11. **反直觉细节**：每章至少 1 处"反直觉"的生活化细节（默认值，可通过 style-profile 覆盖）
 12. **场景描写精简**：场景描写 ≤ 2 句，优先用动作推进（默认值，可通过 style-profile 覆盖）
 13. **破折号限频**：破折号（——）每千字 ≤ 1 处。这是最明显的 AI 写作标志，用逗号、句号或重组句式替代
