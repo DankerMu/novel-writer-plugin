@@ -41,12 +41,18 @@ if [ ! -f "$blacklist_path" ]; then
   exit 1
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "lint-blacklist.sh: python3 is required but not found" >&2
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+_VENV_PY="${SCRIPT_DIR}/../.venv/bin/python3"
+if [ -x "$_VENV_PY" ]; then
+  PYTHON="$_VENV_PY"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON="python3"
+else
+  echo "lint-blacklist.sh: python3 not found (run: python3 -m venv .venv in plugin root)" >&2
   exit 2
 fi
 
-python3 - "$chapter_path" "$blacklist_path" <<'PY'
+"$PYTHON" - "$chapter_path" "$blacklist_path" <<'PY'
 import json
 import re
 import sys

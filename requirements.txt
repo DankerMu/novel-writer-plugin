@@ -1,0 +1,2 @@
+# novel-writer-plugin Python dependencies
+# Currently stdlib-only; add third-party packages here if needed.

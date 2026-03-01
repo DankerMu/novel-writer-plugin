@@ -9,6 +9,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Python venv
+.venv/
+
 # Claude Code
 .claude/
 .memsearch/

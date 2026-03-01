@@ -44,12 +44,18 @@ if [ ! -f "$checkpoint_path" ]; then
   exit 1
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "query-foreshadow.sh: python3 is required but not found" >&2
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+_VENV_PY="${SCRIPT_DIR}/../.venv/bin/python3"
+if [ -x "$_VENV_PY" ]; then
+  PYTHON="$_VENV_PY"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON="python3"
+else
+  echo "query-foreshadow.sh: python3 not found (run: python3 -m venv .venv in plugin root)" >&2
   exit 2
 fi
 
-python3 - "$chapter_num" <<'PY'
+"$PYTHON" - "$chapter_num" <<'PY'
 import json
 import sys
 from typing import Any, Dict, List, Optional, Set, Tuple

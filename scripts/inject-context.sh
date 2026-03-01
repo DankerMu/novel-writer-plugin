@@ -21,8 +21,11 @@ fi
 echo "=== 小说项目状态（自动注入） ==="
 cat "$CHECKPOINT"
 
+_VENV_PY="$(cd "$(dirname "$0")" && pwd)/../.venv/bin/python3"
+if [ -x "$_VENV_PY" ]; then _PY="$_VENV_PY"; else _PY="python3"; fi
+
 LAST_CH="$(
-  python3 -c "import json; print(json.load(open('$CHECKPOINT', 'r', encoding='utf-8'))['last_completed_chapter'])" 2>/dev/null \
+  "$_PY" -c "import json; print(json.load(open('$CHECKPOINT', 'r', encoding='utf-8'))['last_completed_chapter'])" 2>/dev/null \
     || jq -r '.last_completed_chapter' "$CHECKPOINT" 2>/dev/null \
     || true
 )"

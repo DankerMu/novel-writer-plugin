@@ -31,17 +31,23 @@ if [ ! -f "$chapter_path" ]; then
   exit 1
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "run-ner.sh: python3 is required but not found" >&2
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+_VENV_PY="${SCRIPT_DIR}/../.venv/bin/python3"
+if [ -x "$_VENV_PY" ]; then
+  PYTHON="$_VENV_PY"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON="python3"
+else
+  echo "run-ner.sh: python3 not found (run: python3 -m venv .venv in plugin root)" >&2
   exit 2
 fi
 
-if ! python3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)" 2>/dev/null; then
+if ! "$PYTHON" -c "import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)" 2>/dev/null; then
   echo "run-ner.sh: python3 >= 3.7 is required" >&2
   exit 2
 fi
 
-python3 - "$chapter_path" <<'PY'
+"$PYTHON" - "$chapter_path" <<'PY'
 import json
 import re
 import sys

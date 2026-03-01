@@ -76,11 +76,16 @@ if [ ! -f "$summary_b" ]; then
   exit 1
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "compare-regression-runs.sh: python3 is required but not found" >&2
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+_VENV_PY="${SCRIPT_DIR}/../.venv/bin/python3"
+if [ -x "$_VENV_PY" ]; then
+  PYTHON="$_VENV_PY"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON="python3"
+else
+  echo "compare-regression-runs.sh: python3 not found (run: python3 -m venv .venv in plugin root)" >&2
   exit 1
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-python3 "$SCRIPT_DIR/lib/compare_regression_runs.py" "$summary_a" "$summary_b" "$out_path"
+"$PYTHON" "$SCRIPT_DIR/lib/compare_regression_runs.py" "$summary_a" "$summary_b" "$out_path"
 

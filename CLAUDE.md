@@ -12,6 +12,14 @@ Claude Code plugin for Chinese web novel (网文) multi-agent collaborative writ
 
 CI runs on push via `.github/workflows/docs-ci.yml` (markdownlint + lychee + manifest validation).
 
+## Python Environment
+
+All `scripts/*.sh` use a project-local venv (`.venv/`) for Python isolation. Setup:
+
+
+
+Scripts auto-resolve `${SCRIPT_DIR}/../.venv/bin/python3`, falling back to system `python3` if venv is absent. Currently stdlib-only (no third-party deps).
+
 ## Architecture
 
 ### 4-Layer Spec Hierarchy (Spec-Driven Writing)
