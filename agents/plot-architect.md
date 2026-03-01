@@ -167,7 +167,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - `setup` 与其他类型**互斥**（铺垫章不应同时标注爽点；若章节在铺垫中包含小爽点，选择主要爽点类型而非 setup）
 - 每章 1-2 个类型为宜（过多说明章节焦点不集中）
 - `excitement_note`（可选字符串）：当枚举无法精确描述时补充说明
-- 未来扩展保留（M6 提议新增 `underdog_rise`/`tension_build`/`chemistry_spark`）：QualityJudge 遇到未知枚举值时 WARNING 而非 crash
+- 未来扩展保留（M6 提议新增 `underdog_rise`/`tension_build`/`chemistry_spark`）：新增枚举值时**必须同步更新** `eval/schema/chapter-contract.l3.schema.json` 的 enum 列表，否则 schema 校验将拒绝新值
 
 # Format
 

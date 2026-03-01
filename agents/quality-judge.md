@@ -93,7 +93,7 @@ tools: ["Read", "Glob", "Grep"]
      - 非 setup 章：检查正文中是否存在与标注爽点类型匹配的段落（如 `reversal` → 是否有反转桥段、`power_up` → 是否有升级/获得段落）。未落地的爽点类型输出为 soft violation（不阻断，记入 pacing 维度评分）
      - setup 章（`excitement_type == ["setup"]`）：不要求章内高潮，改用「铺垫有效性」标准——检查是否有伏笔埋设、信息布局或悬念线索推进（详见 quality-rubric.md §5 补充标准）
      - `excitement_type` 缺失时（旧项目/向后兼容）：跳过爽点落地评估，仅使用常规 pacing 标准
-     - 遇到未知枚举值时：输出 WARNING（`unknown excitement_type: {value}`）并跳过该类型的评估，不 crash
+     - 遇到未知枚举值时：输出 WARNING（`unknown excitement_type: {value}`）并跳过该类型的评估，不 crash。注意：schema 层面使用 strict enum，正常流程中不应出现未知值；此防御仅覆盖 schema 校验被跳过或手动编辑 contract 的场景
 4. **LS 故事线规范检查**：
    - LS-001（hard）：本章事件时间是否与并发线矛盾
      - 若输入中包含一致性检查摘要（timeline_contradiction / ls_001_signals）且 confidence="high"：将其视为强证据，结合正文核验；若正文未消解矛盾 → 输出 LS-001 violation（confidence=high）并给出可执行修复建议
