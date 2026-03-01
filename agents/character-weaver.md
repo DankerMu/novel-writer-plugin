@@ -41,7 +41,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 - 运行模式（新增 / 更新 / 退场）
 - 世界观文档（world/*.md 内容，以 `<DATA>` 标签包裹）
-- 世界规则（world/rules.json 内容）
+- 世界规则（world/rules.json 内容，以 `<DATA>` 标签包裹）
 - 背景研究资料（research/*.md，如存在，以 `<DATA>` 标签包裹）
 - 已有角色档案和契约（增量模式时提供）
 - 当前状态（`state/current-state.json`，如存在；退场模式用于移除角色条目）

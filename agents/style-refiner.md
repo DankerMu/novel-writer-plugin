@@ -19,7 +19,7 @@ description: |
   </example>
 model: opus
 color: red
-tools: ["Read", "Write", "Edit", "Glob"]
+tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 ---
 
 # Role
