@@ -19,7 +19,7 @@ PlotArchitect 在生成每章 L3 契约的 `excitement_type` 时：
 | 玄幻/仙侠 | `power_up` + `confrontation` | 突破境界、斗法对决、获得神器 | — |
 | 都市 | `reversal` + `emotional_peak` | 逆袭打脸、情感爆发、身份揭露 | `underdog_rise` |
 | 科幻 | `worldbuilding_wow` + `mystery_reveal` | 新文明接触、科技原理揭秘、宇宙尺度震撼 | — |
-| 历史 | `worldbuilding_wow` + `setup` | 历史事件再现、权谋布局、伏笔密集铺设 | — |
+| 历史 | `worldbuilding_wow` / `setup`* | 历史事件再现、权谋布局、伏笔密集铺设 | — |
 | 悬疑/推理 | `cliffhanger` + `mystery_reveal` | 关键线索、真相反转、悬念断崖 | `tension_build` |
 | 言情/甜宠 | `emotional_peak` + `reversal` | 告白、误会解除、感情升温、身份反转 | `chemistry_spark` |
 
@@ -38,7 +38,7 @@ PlotArchitect 在生成每章 L3 契约的 `excitement_type` 时：
 
 ## 跨类型通用规则
 
-- **setup 互斥**：`setup` 不与其他枚举共存（铺垫章独立标注）
+- **setup 互斥**：`setup` 不与其他枚举共存（铺垫章独立标注）。上表中 `*` 标记的组合为备选关系（按章节实际内容择一），非同章共存
 - **每章 1-2 个**：超过 2 个说明章节焦点不集中
 - **铺垫章比例**：建议每 3-5 章出现 1 章 `setup`，避免连续 2 章以上 setup
 - **卷首卷尾**：卷首章优先 `worldbuilding_wow` 或推荐枚举中的强钩子类型；卷末章优先 `cliffhanger`
