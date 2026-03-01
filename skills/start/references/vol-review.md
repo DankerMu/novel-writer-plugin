@@ -32,7 +32,7 @@
      - 基于 schedule 的 `secondary_min_appearance`（如能解析 every_N）对 secondary 线给出“疑似休眠”提示
      - convergence_events 达成率：检查 involved_storylines 是否都在 event.range 内出现；未达成则列 missing + 偏差提示
      - 落盘：写入 `volumes/vol-{V:02d}/storyline-rhythm.json`
-   - 同步 latest（便于 `/novel:continue` 与 `/novel:status` 快速展示）：
+   - 同步 latest（便于 `/novel:continue` 与 `/novel:dashboard` 快速展示）：
      - 创建目录（幂等）：`mkdir -p logs/foreshadowing logs/storylines`
      - 覆盖写入：`logs/foreshadowing/latest.json`、`logs/storylines/broken-bridges-latest.json`、`logs/storylines/rhythm-latest.json`
 4. 写入 `volumes/vol-{V:02d}/review.md`（在回顾中增加以下小节）：

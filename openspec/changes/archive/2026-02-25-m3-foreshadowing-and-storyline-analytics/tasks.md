@@ -19,7 +19,7 @@
 
 - [x] 4.1 接入触发点：每 10 章定期检查 + 卷末回顾（通过 `/novel:start` 路由）
 - [x] 4.2 `foreshadowing_tasks` 组装：优先脚本 `scripts/query-foreshadow.sh`，缺失则规则过滤
-- [x] 4.3 `/novel:status` 输出伏笔与故事线摘要（未回收数量、超期 short 伏笔、休眠线提示）
+- [x] 4.3 `/novel:dashboard` 输出伏笔与故事线摘要（未回收数量、超期 short 伏笔、休眠线提示）
 
 ## References
 

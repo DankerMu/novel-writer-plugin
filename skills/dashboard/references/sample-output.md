@@ -1,4 +1,4 @@
-# Status Skill 输出示例
+# Dashboard Skill 输出示例
 
 ## 场景 1：正常进度（已写 25 章）
 

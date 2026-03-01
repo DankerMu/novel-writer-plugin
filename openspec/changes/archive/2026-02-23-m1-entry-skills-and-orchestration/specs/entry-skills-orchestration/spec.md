@@ -42,15 +42,15 @@ AskUserQuestion SHALL only be invoked inside `/novel:start`. Sub-agents (Task) a
 - **WHEN** the user runs `/novel:continue` while `orchestrator_state != "WRITING"`
 - **THEN** the command stops and instructs the user to run `/novel:start` to complete initialization or volume planning
 
-### Requirement: `/novel:status` SHALL be read-only and summarize key metrics
-`/novel:status` SHALL only use read-only tools and SHALL display, at minimum:
+### Requirement: `/novel:dashboard` SHALL be read-only and summarize key metrics
+`/novel:dashboard` SHALL only use read-only tools and SHALL display, at minimum:
 - Progress (volume/chapter)
 - Score aggregates (overall mean + recent trend)
 - Foreshadowing counts (active/resolved/overdue where applicable)
 - Basic cost/time aggregates from `logs/` when available (null-safe)
 
 #### Scenario: Status runs without mutating project
-- **WHEN** the user runs `/novel:status`
+- **WHEN** the user runs `/novel:dashboard`
 - **THEN** the command reads required files and produces a formatted report without writing any files
 
 ### Requirement: File-to-agent injection SHALL use `<DATA>` delimiter

@@ -1,10 +1,10 @@
 ---
-name: status
+name: dashboard
 description: >
   This skill should be used when the user wants to check novel project status, progress,
   quality scores, foreshadowing tracking, or cost statistics.
   Triggered by: "项目进度", "当前状态", "评分趋势", "伏笔追踪", "成本统计",
-  "how many chapters", "quality score", "show project dashboard", /novel:status.
+  "how many chapters", "quality score", "show project dashboard", /novel:dashboard.
   Read-only — does not modify any files or trigger state transitions.
 ---
 

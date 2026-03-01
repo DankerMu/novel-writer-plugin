@@ -45,7 +45,7 @@ Skill → 状态映射：
 
 - `/novel:start`：负责 `INIT`/`QUICK_START`/`VOL_PLANNING`/`VOL_REVIEW` 的交互与状态推进；在 `WRITING`/`CHAPTER_REWRITE`/`ERROR_RETRY` 下提供路由与推荐入口
 - `/novel:continue`：负责 `WRITING`/`CHAPTER_REWRITE`（含门控与修订循环）
-- `/novel:status`：任意状态只读展示，不触发转移
+- `/novel:dashboard`：任意状态只读展示，不触发转移
 
 ### Step 1: 状态检测
 
@@ -580,18 +580,18 @@ Ch {X}: {字数}字 {分数} {状态} | Ch {X+1}: {字数}字 {分数} {状态} 
 
 ---
 
-### 3.3 `/novel:status` — 只读状态展示
+### 3.3 `/novel:dashboard` — 只读状态展示
 
-## 文件路径：`skills/status/SKILL.md`
+## 文件路径：`skills/dashboard/SKILL.md`
 
 ````markdown
 ---
-name: status
+name: dashboard
 description: >
   This skill should be used when the user wants to check novel project status, progress,
   quality scores, foreshadowing tracking, or cost statistics.
   Triggered by: "项目进度", "当前状态", "评分趋势", "伏笔追踪", "成本统计",
-  "how many chapters", "quality score", "show project dashboard", /novel:status.
+  "how many chapters", "quality score", "show project dashboard", /novel:dashboard.
   Read-only — does not modify any files or trigger state transitions.
 ---
 

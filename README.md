@@ -42,7 +42,7 @@ claude --plugin-dir ~/cc-novel-writer
 |------|------|
 | `/novel:start` | 从创作纲领（brief）冷启动一个新项目 |
 | `/novel:continue` | 续写下一章 / 推进到下一卷 |
-| `/novel:status` | 查看当前项目进度、状态与统计 |
+| `/novel:dashboard` | 查看当前项目进度、状态与统计 |
 
 **30 秒体验**：执行 `/novel:start`，按提示填写题材、主角和核心冲突，系统自动创建项目结构并试写 3 章。详见 [快速起步指南](docs/user/quick-start.md)。
 
@@ -133,9 +133,9 @@ agents/                        8 个 Agent 定义
   summarizer.md
   world-builder.md
 skills/
-  start/SKILL.md               /novel:start 冷启动
-  continue/SKILL.md            /novel:continue 续写
-  status/SKILL.md              /novel:status 状态
+  start/SKILL.md              /novel:start 冷启动
+  continue/SKILL.md           /novel:continue 续写
+  dashboard/SKILL.md          /novel:dashboard 状态
   novel-writing/               共享方法论知识库
     SKILL.md
     references/

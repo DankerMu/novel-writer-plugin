@@ -13,7 +13,7 @@ State SHALL be persisted in `.checkpoint.json.orchestrator_state`.
 The system SHALL route work based on the Skill entrypoint:
 - `/novel:start` SHALL handle state-aware routing for `INIT`, `QUICK_START`, `VOL_PLANNING`, `VOL_REVIEW`
 - `/novel:continue` SHALL handle `WRITING` and `CHAPTER_REWRITE` (including gate + revision loop)
-- `/novel:status` SHALL be read-only and SHALL NOT trigger state transitions
+- `/novel:dashboard` SHALL be read-only and SHALL NOT trigger state transitions
 
 #### Scenario: Continue blocked outside WRITING
 - **WHEN** the user runs `/novel:continue` while `orchestrator_state` is neither `"WRITING"` nor `"CHAPTER_REWRITE"`

@@ -22,7 +22,7 @@
 
 ## Impact
 
-- 影响范围：定期检查（每 10 章）、卷末回顾、`/novel:status` 伏笔与故事线汇总展示、可选确定性脚本扩展点
+- 影响范围：定期检查（每 10 章）、卷末回顾、`/novel:dashboard` 伏笔与故事线汇总展示、可选确定性脚本扩展点
 - 依赖关系：依赖 `staging/state/*-delta.json` 中的 `foreshadow` ops、`storylines/*` 与 `volumes/vol-*/storyline-schedule.json`、`summaries/*` 的 `storyline_id`
 - 兼容性：新增报告与索引；不改变章节正文/摘要的主格式
 

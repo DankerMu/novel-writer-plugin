@@ -193,7 +193,7 @@
 |----|------|---------|------|
 | DR-018 | Plugin API 格式 | commands/ vs skills/ 区分，agent 需 frontmatter | [查看](../../v4/dr/dr-018-plugin-api.md) |
 | DR-019 | Haiku Summarizer | 升级为 Sonnet，成本 +$0.02/章，避免误差累积 | [查看](../../v4/dr/dr-019-haiku-summarizer.md) |
-| DR-020 | 单主命令 UX | 三命令混合模式：/novel:start + /novel:continue + /novel:status | [查看](../../v4/dr/dr-020-single-command-ux.md) |
+| DR-020 | 单主命令 UX | 三命令混合模式：/novel:start + /novel:continue + /novel:dashboard | [查看](../../v4/dr/dr-020-single-command-ux.md) |
 
 #### v5 调研（多线叙事）
 

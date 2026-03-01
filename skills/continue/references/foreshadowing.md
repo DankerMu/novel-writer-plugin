@@ -117,7 +117,7 @@
    - 不要悄悄吞掉：输出明确错误与修复建议；
    - 但**尽量避免阻断整章 commit**：可降级为“跳过本章 foreshadow 合并并写入 warning”，保证章节与 state 合并仍可完成。
 
-## 4) Overdue（超期）判定（用于 `/novel:status` 与回顾报告）
+## 4) Overdue（超期）判定（用于 `/novel:dashboard` 与回顾报告）
 
 - 仅对 `scope == "short"` 且 `status != "resolved"` 的条目做超期提示。
 - 若存在 `target_resolve_range = [start, end]` 且 `last_completed_chapter > end`：标记为 **超期**。
