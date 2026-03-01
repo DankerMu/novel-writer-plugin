@@ -66,6 +66,7 @@ tools: ["Read", "Glob", "Grep"]
 - `paths.storyline_schedule` → 本卷故事线调度（可选）
 - `paths.cross_references` → Summarizer 串线检测输出
 - `paths.platform_guide` → 平台写作指南（可选，M5.2 注入路径；M6.2 启用后用于平台加权评分）
+- `paths.recent_summaries[]` → 近 2 章摘要（可选；章节 ≤ 003 且有 platform_guide 时由编排器注入，供平台硬门回溯判定。Ch001 为空数组，Ch002 仅含 Ch001 摘要，Ch003 含 Ch001+002 摘要；路径不存在时跳过）
 - `paths.quality_rubric` → 8 维度评分标准
 
 > **读取优先级**：先读 `chapter_draft`（评估对象），再读 `chapter_contract` + `quality_rubric`（评估标准），最后读其余参照文件。
@@ -101,23 +102,6 @@ tools: ["Read", "Glob", "Grep"]
      - 若 confidence="medium/low"：仅提示，不应直接触发 hard gate（仍可输出为 violation_suspected/violation 且 confidence 降级）
    - LS-002~004（soft）：报告但不阻断（切线锚点、交汇铺垫、休眠线记忆重建）
    - LS-005（M1/M2 soft → M3 hard）：非交汇事件章中，Summarizer 标记 `leak_risk: high` 的跨线实体泄漏。M1/M2 阶段报告但不阻断；M3 升级为 hard 强制修正
-5. **平台硬门检查**（章节 001-003 且 `paths.platform_guide` 存在时）：
-   - 从 `paths.platform_guide` 读取平台标识，按以下规则执行硬门检查：
-   - **番茄小说**：
-     - Ch001: 主角在前 200 字内登场并面临冲突
-     - Ch001-003: 每章末尾有明确悬念钩子
-     - Ch003: 前 3 章内至少出现一次反转/打脸/升级事件（可回溯前两章判断）
-   - **起点中文网**：
-     - Ch003: 前 3 章建立世界观基础框架
-     - Ch003: immersion 维度评分 ≥ 3.5（依赖 Track 2 评分结果，先完成 Track 2 再判定此门）
-   - **晋江文学城**：
-     - Ch001-002: 主角人设通过行为（非旁白）展现
-     - Ch001-003: 至少一个 CP lead 登场
-     - Ch001-002: 情感基调建立
-     - Overall: style_naturalness 维度评分 ≥ 3.5（依赖 Track 2 评分结果）
-   - **无 platform_guide 或章节 > 003**：跳过全部硬门，仅使用标准质量门控（向后兼容）
-   - 硬门失败时：`platform_hard_gates` 中对应条目 `status = "fail"`，并附带平台特定的修改建议（`fix_suggestion`）
-   - 任一硬门 fail → 强制 `recommendation = "revise"`，不受 overall score 影响
 
 输出：
 ```json
@@ -165,6 +149,36 @@ tools: ["Read", "Glob", "Grep"]
 7. **关键章双裁判**（由入口 Skill 控制）：卷首章、卷尾章、故事线交汇事件章由入口 Skill 使用 Opus 模型发起第二次 QualityJudge 调用进行复核（普通章保持 Sonnet 单裁判控成本）。双裁判取两者较低分作为最终分。QualityJudge 自身不切换模型，模型选择由入口 Skill 的 Task(model=opus) 参数控制
 8. **黑名单动态更新建议（M3）**：当你发现正文中存在“AI 高频用语”且不在当前黑名单中，并且其出现频次足以影响自然度评分时，你必须输出 `anti_ai.blacklist_update_suggestions[]`（见 Format）。新增候选必须提供 evidence（频次/例句），避免把角色语癖、专有名词或作者风格高频词误判为 AI 用语。
 
+## Platform Hard Gates（平台硬门，Track 2 之后执行）
+
+> **执行顺序**：Track 1 (L1-L3+LS) → Track 2 (评分) → 平台硬门 (引用 Track 2 评分结果) → 门控决策。平台硬门依赖 Track 2 的评分输出，必须在 Track 2 完成后执行。
+
+**触发条件**：章节 001-003 且 `paths.platform_guide` 存在时执行；否则跳过（`platform_hard_gates` 输出为空数组 `[]`）。
+
+从 `paths.platform_guide` 读取平台标识，从 `paths.recent_summaries[]` 读取前章摘要（供回溯判定），按以下规则执行硬门检查：
+
+**番茄小说**：
+- Ch001: 主角在前 200 字内登场并面临冲突
+- Ch001-003: 每章末尾有明确悬念钩子
+- Ch003: 前 3 章内至少出现一次反转/打脸/升级事件（回溯 `paths.recent_summaries[]` 判断；若前章摘要不可用则标注 `status: "skipped", detail: "前章摘要不可用，无法回溯判定"`）
+
+**起点中文网**：
+- Ch003: 前 3 章建立世界观基础框架
+- Ch003: immersion 维度评分 ≥ 3.5（引用 Track 2 结果）
+
+**晋江文学城**：
+- Ch001-002: 主角人设通过行为（非旁白）展现
+- Ch001-003: 至少一个 CP lead 登场
+- Ch001-002: 情感基调建立
+- Ch001-003: style_naturalness 维度评分 ≥ 3.5（引用 Track 2 结果）
+
+**输出规则**：
+- 硬门失败时：`platform_hard_gates` 中对应条目 `status = "fail"`，并附带平台特定的修改建议（`fix_suggestion`）
+- 任一硬门 fail → 强制 `recommendation = "revise"`，不受 overall score 影响
+- `gate_id` 命名约定：`{platform}_{chNNN}_{check_name}`（如 `fanqie_ch001_protagonist`、`qidian_ch003_immersion`、`jinjiang_ch002_emotional_tone`）
+
+**与 L3 genre-specific criteria 的关系**：平台硬门与 L3 章节契约中的 genre-specific criteria 可能存在重叠（如番茄 Ch001 主角登场）。当同一要求同时出现在两处时，平台硬门为权威标准（更严格），L3 检查结果以硬门为准，不重复输出违约。
+
 # 门控决策逻辑
 
 > **注意**：QualityJudge 输出的 `contract_verification.has_violations` 包含**所有** confidence 级别的违规。入口 Skill（`/novel:continue`）在做 `gate_decision` 时仅以 `confidence="high"` 为准。两者语义不同：QualityJudge 提供完整信息供审计，入口 Skill 做保守决策。
@@ -199,7 +213,7 @@ else:
     "l3_checks": [],
     "ls_checks": [],
     "platform_hard_gates": [],
-    "has_violations": false,
+    "has_violations": false,                  // 仅统计 L1/L2/L3/LS 检查中的 violation，不含 platform_hard_gates 的 fail（平台硬门由独立谓词判定）
     "has_warnings": false,
     "violation_details": []
   },
@@ -251,7 +265,8 @@ else:
 
 - **无章节契约（试写阶段）**：前 3 章无 L3 契约，跳过 Track 1 的 L3 检查
 - **无平台（向后兼容）**：`paths.platform_guide` 缺失或章节号 > 003 时，`platform_hard_gates` 输出为空数组 `[]`，门控逻辑跳过硬门检查
-- **平台硬门依赖 Track 2 评分**：起点 immersion ≥ 3.5 和晋江 style_naturalness ≥ 3.5 需先完成 Track 2 评分再判定；执行顺序为 Track 1 (L1-L4+LS) → Track 2 (评分) → 平台硬门 (引用评分结果) → 门控决策
+- **平台硬门依赖 Track 2 评分**：起点 immersion ≥ 3.5 和晋江 style_naturalness ≥ 3.5 需先完成 Track 2 评分再判定；执行顺序为 Track 1 (L1-L3+LS) → Track 2 (评分) → 平台硬门 (引用评分结果) → 门控决策
+- **单平台限制**：当前仅支持单平台硬门检查；多平台同时发布场景需在 `style-profile.json` 中选择主要目标平台
 - **无故事线规范（M1 早期）**：M1 早期可能无 storyline-spec.json，跳过 LS 检查
 - **关键章双裁判模式**：卷首/卷尾/交汇事件章由入口 Skill 使用 Task(model=opus) 发起第二次调用并取较低分，QualityJudge 自身按正常流程执行即可
 - **lint-blacklist 缺失**：若未提供 lint 统计，你仍需给出黑名单命中率与例句，但需标注为估计值；若提供则以其为准

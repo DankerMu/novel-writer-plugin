@@ -221,6 +221,7 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 - 根据 Step 2.4 裁剪规则确定 `character_contracts[]` 和 `character_profiles[]` 的文件路径列表
 - 根据 Step 2.5 注入策略确定 `storyline_memory` / `adjacent_memories[]` 的路径（过滤 dormant 线）
 - 确定 `recent_summaries[]`（近 3 章摘要路径，按时间倒序）
+- **QualityJudge `recent_summaries[]`（条件注入）**：当 chapter ≤ 3 且 platform_guide 存在时，注入近 2 章摘要路径供平台硬门回溯判定（Ch001 为空数组，Ch002 仅含 Ch001 摘要，Ch003 含 Ch001+002 摘要；路径指向文件不存在时跳过该条目）；章节 > 3 或无 platform_guide 时不注入此字段
 - 其余路径为固定模式（如 `style-profile.json`、`ai-blacklist.json`）
 - **平台指南条件加载**：读取 `style-profile.json` 的 `platform` 字段（缺失或 null 则跳过）。若 `platform` 非空，计算路径 `templates/platforms/{platform}.md`：文件存在则加入 `manifest.paths.platform_guide`（ChapterWriter + QualityJudge 均注入）；文件不存在则输出 WARNING（「平台指南 {platform}.md 不存在，跳过」）并继续（不阻断流水线）
 
@@ -303,12 +304,14 @@ for chapter_num in range(start, start + remaining_N):
 
   5. 质量门控决策（Gate Decision Engine）:
      门控决策（详见 `references/gate-decision.md`）：
-       - overall ≥ 4.0 且无 high-confidence violation → pass
+       - high-confidence violation → revise（强制修订）
+       - 平台硬门任一 fail（章节 001-003 且有 platform_guide）→ revise（强制修订）
+       - overall ≥ 4.0 且无上述硬门失败 → pass
        - overall ≥ 3.5 → polish（StyleRefiner 二次润色）
        - overall ≥ 3.0 → revise（ChapterWriter Opus 修订，最多 2 轮）
        - overall ≥ 2.0 → review（暂停，通知用户审核）
        - overall < 2.0 → rewrite（强制重写，暂停）
-       - 修订上限 2 次后 overall ≥ 3.0 → force_passed
+       - 修订上限 2 次后 overall ≥ 3.0 且无 high violation 且无平台硬门 fail → force_passed
 
   6. 事务提交（staging → 正式目录）:
      - 移动 staging/chapters/chapter-{C:03d}.md → chapters/chapter-{C:03d}.md

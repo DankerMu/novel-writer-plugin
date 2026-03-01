@@ -140,7 +140,7 @@ quality_judge_manifest = {
     chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.json",
     world_rules: "world/rules.json",                                  # 可选
     prev_summary: "summaries/chapter-{C-1:03d}-summary.md",           # 可选（首章无）
-    recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 可选（章节 ≤ 003 且 platform_guide 存在时注入近 2 章摘要，供平台硬门回溯判定）
+    recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 可选（章节 ≤ 003 且 platform_guide 存在时注入，供平台硬门回溯判定；按可用性降级：Ch001 为空数组，Ch002 仅含 Ch001，Ch003 含 Ch001+002；路径不存在时跳过该条目）
     character_profiles: ["characters/active/{slug}.md", ...],          # 裁剪后选取（叙述档案）
     character_contracts: ["staging/context/characters/{slug}.json", ...], # canon_status 预过滤后的 staging 副本（L2 结构化契约）
     storyline_spec: "storylines/storyline-spec.json",                  # 可选
