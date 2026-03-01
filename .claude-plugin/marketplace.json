@@ -8,7 +8,7 @@
   },
   "metadata": {
     "description": "中文网文多 Agent 协作创作系统 — 卷制滚动工作流 + 去 AI 化输出",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "plugins": [
     {

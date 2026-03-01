@@ -12,7 +12,7 @@
       "properties": {
         "contract_verification": {
           "type": "object",
-          "required": ["l1_checks", "l2_checks", "l3_checks", "ls_checks", "platform_hard_gates", "has_violations"],
+          "required": ["l1_checks", "l2_checks", "l3_checks", "ls_checks", "platform_hard_gates", "has_violations", "has_warnings"],
           "properties": {
             "l1_checks": { "type": "array" },
             "l2_checks": { "type": "array" },
@@ -103,7 +103,7 @@
           "type": "object",
           "required": ["decision"],
           "properties": {
-            "decision": { "type": "string" },
+            "decision": { "enum": ["pass", "polish", "revise", "pause_for_user", "pause_for_user_force_rewrite"] },
             "revisions": { "type": "integer", "minimum": 0 },
             "force_passed": { "type": "boolean" }
           }
