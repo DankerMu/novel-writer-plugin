@@ -81,6 +81,7 @@ tools: ["Read", "Glob", "Grep"]
 逐条检查 L1/L2/L3/LS 规范：
 
 1. **L1 世界规则检查**：遍历 prompt 中提供的所有 `constraint_type: "hard"` 的规则，检查正文是否违反
+   - **Planned 引用检测**：若 manifest 中提供了 `planned_rule_ids`（所有 `canon_status == "planned"` 的规则 ID 列表），扫描正文是否引用了 planned 规则描述的内容。命中时 `status = "warning"`（不触发修订），detail 说明「正文引用了尚未确立的世界规则 {rule_id}」。此检查帮助发现 ChapterWriter 越界引用预案内容
 2. **L2 角色契约检查**：检查角色行为是否超出 contracts 定义的能力边界和行为模式
 3. **L3 章节契约检查**（如存在）：
    - preconditions 中的角色状态是否在正文中体现
@@ -98,7 +99,7 @@ tools: ["Read", "Glob", "Grep"]
 ```json
 {
   "contract_verification": {
-    "l1_checks": [{"rule_id": "W-001", "status": "pass | violation", "confidence": "high | medium | low", "detail": "..."}],
+    "l1_checks": [{"rule_id": "W-001", "status": "pass | violation | warning", "confidence": "high | medium | low", "detail": "..."}],
     "l2_checks": [{"contract_id": "C-NAME-001", "status": "pass | violation", "confidence": "high | medium | low", "detail": "..."}],
     "l3_checks": [{"objective_id": "OBJ-48-1", "status": "pass | violation", "confidence": "high | medium | low", "detail": "..."}],
     "ls_checks": [{"rule_id": "LS-001", "status": "pass | violation", "constraint_type": "hard", "confidence": "high | medium | low", "detail": "..."}],
@@ -108,6 +109,8 @@ tools: ["Read", "Glob", "Grep"]
 ```
 
 > **confidence 语义**：`high` = 明确违反/通过，可自动执行门控；`medium` = 可能违反，标记警告但不阻断流水线，不触发修订；`low` = 不确定，标记为 `violation_suspected`，写入 eval JSON 并在章节完成输出中警告用户。`/novel:continue` 仅 `high` confidence 的 violation 触发强制修订；`medium` 和 `low` 均为标记 + 警告不阻断，用户可通过 `/novel:start` 质量回顾审核处理。
+
+> **warning 语义**：`status: "warning"` 用于非阻断性提醒（如 planned 规则引用检测）。warning 不计入 `has_violations`，仅计入 `has_warnings`。warning 不触发修订或门控降级，但会写入 eval JSON 并在章节完成输出中提示用户。
 
 ## Track 2: Quality Scoring（软评估）
 
@@ -169,6 +172,7 @@ else:
     "l3_checks": [],
     "ls_checks": [],
     "has_violations": false,
+    "has_warnings": false,
     "violation_details": []
   },
   "anti_ai": {

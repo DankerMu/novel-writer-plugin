@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorldRules",
+  "description": "L1 world rules with canon_status for distinguishing established facts from planned content.",
+  "type": "object",
+  "required": ["rules"],
+  "properties": {
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rule" }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "required": ["id", "category", "rule", "constraint_type"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^W-\\d{3}$" },
+        "category": { "type": "string", "enum": ["magic_system", "geography", "social", "physics"] },
+        "rule": { "type": "string" },
+        "constraint_type": { "type": "string", "enum": ["hard", "soft"] },
+        "canon_status": {
+          "type": "string",
+          "enum": ["established", "planned"],
+          "default": "established"
+        },
+        "exceptions": { "type": "array", "items": { "type": "string" } },
+        "introduced_chapter": { "type": ["integer", "null"] },
+        "last_verified": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

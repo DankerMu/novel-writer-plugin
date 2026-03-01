@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CharacterContract",
+  "description": "L2 character contract with abilities, known_facts, relationships supporting canon_status.",
+  "type": "object",
+  "required": ["id", "display_name"],
+  "properties": {
+    "id": { "type": "string" },
+    "display_name": { "type": "string" },
+    "abilities": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ability" },
+      "default": []
+    },
+    "known_facts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/known_fact" },
+      "default": []
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationship" },
+      "default": []
+    },
+    "contracts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/contract" }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "canon_status": {
+      "type": "string",
+      "enum": ["established", "planned"],
+      "default": "established"
+    },
+    "ability": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "canon_status": { "$ref": "#/$defs/canon_status" }
+      },
+      "additionalProperties": false
+    },
+    "known_fact": {
+      "type": "object",
+      "required": ["fact"],
+      "properties": {
+        "fact": { "type": "string" },
+        "canon_status": { "$ref": "#/$defs/canon_status" }
+      },
+      "additionalProperties": false
+    },
+    "relationship": {
+      "type": "object",
+      "required": ["target", "type"],
+      "properties": {
+        "target": { "type": "string" },
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "canon_status": { "$ref": "#/$defs/canon_status" }
+      },
+      "additionalProperties": false
+    },
+    "contract": {
+      "type": "object",
+      "required": ["id", "type", "rule"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["capability", "personality", "relationship", "speech"] },
+        "rule": { "type": "string" },
+        "valid_from_chapter": { "type": ["integer", "null"] },
+        "valid_until": { "type": ["integer", "null"] },
+        "exceptions": { "type": "array", "items": { "type": "string" } },
+        "update_requires": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -92,6 +92,15 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 {
   "id": "lin-feng",
   "display_name": "林枫",
+  "abilities": [
+    {"name": "火系法术", "description": "可释放中阶火球术", "canon_status": "established"}
+  ],
+  "known_facts": [
+    {"fact": "林枫是青云宗外门弟子", "canon_status": "established"}
+  ],
+  "relationships": [
+    {"target": "su-yao", "type": "ally", "description": "同门师姐", "canon_status": "established"}
+  ],
   "contracts": [
     {
       "id": "C-LIN-FENG-001",
@@ -108,6 +117,12 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 **契约变更协议**：角色能力/性格变化必须通过 PlotArchitect 在大纲中预先标注 → CharacterWeaver 更新契约 → 章节实现 → 验收确认。
 
+**canon_status 语义**：`abilities[]`、`known_facts[]`、`relationships[]` 中每个条目可含可选 `canon_status` 字段：
+- `"established"` — 已在正文中叙事确立的事实（缺失时默认为此值，向后兼容）
+- `"planned"` — 卷规划预案，尚未在正文中展现
+
+编排器在 context 组装阶段预过滤 planned 条目（仅注入 established 给 ChapterWriter）；例外：章节契约 `preconditions.character_states` 引用的 planned 条目保留并标记 `introducing: true`，表示本章将首次展现该内容。仅编排器 commit 阶段可基于 Summarizer canon_hints 将 planned 升级为 established，Agent 不可手动修改此字段。`abilities`/`known_facts`/`relationships` 数组缺失时视为空数组。
+
 # Format
 
 输出以下文件：
@@ -115,7 +130,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 > 路径均以 `write_prefix` 作为前缀（默认 `write_prefix=""`）。
 
 1. `{write_prefix}characters/active/{character_id}.md` — 角色叙述性档案（背景、性格、外貌、语癖；文件名为 slug ID）
-2. `{write_prefix}characters/active/{character_id}.json` — 角色结构化数据（含 `id`/`display_name`/`contracts[]`；文件名为 slug ID）
+2. `{write_prefix}characters/active/{character_id}.json` — 角色结构化数据（含 `id`/`display_name`/`abilities[]`/`known_facts[]`/`relationships[]`/`contracts[]`；文件名为 slug ID）
 3. `{write_prefix}characters/relationships.json` — 关系图更新
 4. `{write_prefix}characters/changelog.md` — 变更记录（追加一条）
 

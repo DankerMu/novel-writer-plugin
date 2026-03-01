@@ -31,7 +31,7 @@ chapter_writer_manifest = {
   },
   concurrent_state: {str: str},         # 其他活跃线一句话状态
   transition_hint: obj | null,          # 切线过渡
-  hard_rules_list: [str],              # L1 禁止项列表（已格式化）
+  hard_rules_list: [str],              # L1 禁止项列表（已格式化；仅 established + INTRODUCING 标记的 planned）
   foreshadowing_tasks: [obj],          # 本章伏笔任务子集
   ai_blacklist_top10: [str],           # 有效黑名单前 10 词
   style_drift_directives: [str] | null, # 漂移纠偏指令（active 时注入）
@@ -47,7 +47,7 @@ chapter_writer_manifest = {
     recent_summaries: ["summaries/chapter-{C-1:03d}-summary.md", ...], # 近 3 章
     storyline_memory: "storylines/{storyline_id}/memory.md",           # 可选
     adjacent_memories: ["storylines/{adj_id}/memory.md", ...],         # 可选
-    character_contracts: ["characters/active/{slug}.json", ...],       # 裁剪后选取
+    character_contracts: ["characters/active/{slug}.json", ...],       # 裁剪后选取（canon_status 预过滤后的 staging 副本）
     project_brief: "brief.md",
     writing_methodology: "skills/novel-writing/references/style-guide.md",  # 可选
   }
@@ -91,6 +91,8 @@ summarizer_manifest = {
 }
 ```
 
+> **canon_hints 输出**：Summarizer 在 delta.json 顶层输出 `canon_hints` 字段（`[{type, hint, confidence, evidence}]`），供编排器 commit 阶段做 canon_status 升级。缺失时视为空数组。
+
 ---
 
 ## StyleRefiner manifest
@@ -124,6 +126,7 @@ quality_judge_manifest = {
   volume: int,
   chapter_outline_block: str,
   hard_rules_list: [str],
+  planned_rule_ids: [str],                    # 所有 canon_status=="planned" 的规则 ID（供 planned 引用检测）
   blacklist_lint: obj | null,                    # scripts/lint-blacklist.sh 输出
   ner_entities: obj | null,                      # scripts/run-ner.sh 输出
   continuity_report_summary: obj | null,         # logs/continuity/latest.json 裁剪
@@ -137,7 +140,7 @@ quality_judge_manifest = {
     world_rules: "world/rules.json",                                  # 可选
     prev_summary: "summaries/chapter-{C-1:03d}-summary.md",           # 可选（首章无）
     character_profiles: ["characters/active/{slug}.md", ...],          # 裁剪后选取（叙述档案）
-    character_contracts: ["characters/active/{slug}.json", ...],       # 裁剪后选取（L2 结构化契约）
+    character_contracts: ["characters/active/{slug}.json", ...],       # 裁剪后选取（canon_status 预过滤后的 staging 副本）（L2 结构化契约）
     storyline_spec: "storylines/storyline-spec.json",                  # 可选
     storyline_schedule: "volumes/vol-{V:02d}/storyline-schedule.json", # 可选
     cross_references: "staging/state/chapter-{C:03d}-crossref.json",
