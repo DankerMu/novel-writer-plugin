@@ -47,6 +47,7 @@
      - `foreshadowing.json`：在已有条目基础上扩展（新增 + 更新 target_resolve_range），不删除已有条目
      - `storyline-schedule.json`：在已有调度基础上扩展（新增 chapter range 覆盖、convergence_events），不删除已有 active_storylines
      - `new-characters.json`：正常输出（扫描 plan_start..plan_end 中引用但未注册的角色）
+   - **继承模式下的额外校验**：`outline.md` 中 `1..last_completed_chapter` 范围的 `### 第 N 章` 区块仍然存在（确保 PlotArchitect 未误删已有章节）
 4. 规划产物校验（对 `staging/` 下的产物执行；失败则停止并给出修复建议，禁止"缺文件继续写"导致断链）：
    - `outline.md` 可解析：可用 `/^### 第 (\\d+) 章/` 找到章节区块，且连续覆盖 `plan_start..plan_end`（不允许跳章，否则下游契约缺失会导致流水线崩溃）
    - 每个章节区块包含固定 key 行：`Storyline/POV/Location/Conflict/Arc/Foreshadowing/StateChanges/TransitionHint`

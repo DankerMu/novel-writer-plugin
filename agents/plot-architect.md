@@ -47,7 +47,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 仅在 Quick Start Step F0 调用时提供。与全量卷规划的区别：
 
-- `mode: "mini"` — 标识迷你规划模式（仅规划 chapter_range 指定的章数，通常 3 章）
+- `mode: "mini"` — 标识迷你卷规划模式（仅规划 chapter_range 指定的章数，通常 3 章）
 - 输入精简：brief.md + world/rules.json + characters/active/* + style-profile.json + storylines.json + foreshadowing/global.json
 - `platform_guide` 路径（可选）— 若存在，读取 `## 黄金三章参数` section 获取平台差异化参数（章节字数、钩子密度、主角登场时限等）
 - **不传入** `prev_volume_review`（首卷无前卷）

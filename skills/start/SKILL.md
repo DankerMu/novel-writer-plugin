@@ -346,7 +346,7 @@ Skill → 状态映射：
     - Track 1（Contract Verification）：完整执行 L1/L2/L3/LS 检查（Step F0 已生成 L3 contracts，不再跳过）
     - Track 2（Quality Scoring）：8 维度评分
 
-    **第 1 章启用 Double-Judge**（关键章规则）：
+    **第 1 章启用双裁判**（关键章规则）：
     - 第 1 章为卷首章（`chapter_num == chapter_start == 1`），按 `/novel:continue` Step 3.4 关键章规则：
       - Sonnet 主评（primary_eval）+ Opus 副评（secondary_eval, Task(subagent_type="quality-judge", model="opus")）
       - `overall_final = min(primary_eval.overall, secondary_eval.overall)`
@@ -375,7 +375,7 @@ Skill → 状态映射：
 
 ##### Step G: 展示结果 + 明确下一步
 
-12. 展示试写结果摘要：3 章标题 + 字数 + QualityJudge 评分（第 1 章标注 Double-Judge 结果）+ 门控决策 + 修订次数
+12. 展示试写结果摘要：3 章标题 + 字数 + QualityJudge 评分（第 1 章标注双裁判结果）+ 门控决策 + 修订次数
 13. **若 Step B 选择了 `write_then_extract`**：此时派发 StyleAnalyzer 从试写 3 章**提取并填充** `style-profile.json` 的分析字段（`avg_sentence_length`、`dialogue_ratio`、`rhetoric_preferences` 等），`source_type` 保持 `"write_then_extract"` 不变
 14. 使用 AskUserQuestion 给出明确下一步选项：
 
@@ -394,6 +394,9 @@ Skill → 状态映射：
     - 选项 3（重新试写）：保持 `orchestrator_state = "QUICK_START"`，`quick_start_step = "E"`，清除以下产物后回到 Step F0：
       - `staging/` 下所有试写产物
       - `chapters/chapter-00{1,2,3}.md`、`summaries/chapter-00{1,2,3}-summary.md`、`evaluations/chapter-00{1,2,3}-eval.json`
+      - `logs/chapter-00{1,2,3}-log.json`
+      - `state/chapter-00{1,2,3}-crossref.json`
+      - `storylines/*/memory.md`（仅清除试写期间创建的 memory 文件）
       - `volumes/vol-01/` 下的 outline.md、chapter-contracts/、foreshadowing.json、storyline-schedule.json（Step F0 产物）
       - `state/current-state.json` 中 `state_version` 回退到 0
       - `foreshadowing/global.json` 清除试写章写入的条目
