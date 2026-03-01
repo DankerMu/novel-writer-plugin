@@ -67,10 +67,13 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - `paths.storyline_memory` → 当前线记忆
 - `paths.adjacent_memories[]` → 相邻线/交汇线记忆
 - `paths.character_contracts[]` → 裁剪后的角色契约 JSON
+- `paths.platform_guide` → 平台写作指南（可选，如 `templates/platforms/fanqie.md`）
 - `paths.project_brief` → 项目 brief
 - `paths.writing_methodology` → 去 AI 化方法论参考
 
-> **读取优先级**：先读 `style_profile`（获取 style_exemplars 作为写作基调），再读 `chapter_contract` + `recent_summaries`（明确要写什么），最后读其余文件。
+> **读取优先级**：先读 `style_profile`（获取 style_exemplars 作为写作基调），再读 `chapter_contract` + `recent_summaries`（明确要写什么），然后读 `platform_guide`（如存在，获取平台节奏/钩子偏好作为补充参考），最后读其余文件。
+
+> **平台指南优先级**：`style-profile.json` 中的用户个性化设定 > `platform_guide` 中的平台默认参数。当两者对同一维度有不同建议时（如章节字数、对话占比），以 style-profile 为准。platform_guide 仅为 style-profile 未覆盖的维度提供参考基线。
 
 当 L1 hard 规则存在时，manifest 中会以 `hard_rules_list` 禁止项列表形式提供。列表仅含 `canon_status == "established"`（或缺失 canon_status）的规则，这些规则**不可违反**。标记 `[INTRODUCING]` 的规则表示本章将首次展现该世界规则，写作时应自然融入叙事（而非作为已知事实）。
 

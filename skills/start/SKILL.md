@@ -196,6 +196,19 @@ Skill → 状态映射：
 - 选项 3 → `source_type: "template"`，展示预置模板列表让用户选择，存入 `style_template_id`
 - 选项 4 → `source_type: "write_then_extract"`（先跳过 StyleAnalyzer，试写后回填）
 
+**平台偏好采集**（在 Step B 内完成，不延迟到后续步骤）：
+
+风格来源选择完成后，使用 AskUserQuestion 询问目标平台：
+
+
+
+- 选项 1 → `platform = "fanqie"`
+- 选项 2 → `platform = "qidian"`
+- 选项 3 → `platform = "jinjiang"`
+- 选项 4 / Other → `platform = null`（用户可输入自定义平台标识，如 `"zongheng"`，系统将尝试加载 `templates/platforms/{platform}.md`）
+
+`platform` 值在 Step C 写入 `style-profile.json` 的 `platform` 字段。
+
 > 关键：每条路径的补充信息必须在 Step B 内收齐，不得延迟到 Step E 再问。Step E 仅执行 StyleAnalyzer 派发，不再与用户交互。
 
 ##### Step B.5: Brief 交互完善（1-2 轮交互）

@@ -48,6 +48,7 @@ chapter_writer_manifest = {
     storyline_memory: "storylines/{storyline_id}/memory.md",           # 可选
     adjacent_memories: ["storylines/{adj_id}/memory.md", ...],         # 可选
     character_contracts: ["staging/context/characters/{slug}.json", ...], # canon_status 预过滤后的 staging 副本
+    platform_guide: "templates/platforms/{platform}.md",                  # 可选（M5.2；style-profile.platform 非空且文件存在时加载）
     project_brief: "brief.md",
     writing_methodology: "skills/novel-writing/references/style-guide.md",  # 可选
   }
