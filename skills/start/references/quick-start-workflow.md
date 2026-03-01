@@ -21,7 +21,13 @@
 - **触发条件**：题材 ∈ {历史, 科幻, 军事} 或主角/冲突描述中涉及专业领域（医学、法律、古代制度等）
 - **触发时**：使用 AskUserQuestion 提示：
 
+```
+本题材建议先补充背景资料以提高世界观设定质量。
 
+选项：
+1. 直接开始 (Recommended) — 基于通用知识快速构建，后续可补充
+2. 先做背景研究 — 调用 doc-workflow 深度研究后再建世界观
+```
 
 - 选项 2 时：提示用户执行 `/doc-workflow`（或等效的 deep-research 流程），完成后再回来 `/novel:start` 继续
 - **不触发时**（玄幻、都市、悬疑等通用题材）：跳过此步，直接进入 Step B
@@ -30,7 +36,13 @@
 
 使用 AskUserQuestion 询问风格来源（2-4 选项）：
 
-
+```
+选项：
+1. 提供原创样本 (Recommended) — 粘贴 1-3 章自己写的文字
+2. 指定参考作者 — 输入网文作者名，系统分析其公开风格
+3. 使用预置模板 — 从内置风格模板中选择
+4. 先写后提 — 跳过风格设定，试写 3 章后再提取
+```
 
 根据用户选择，设置 `source_type` 并**立即收集该路径所需信息**：
 - 选项 1 → `source_type: "original"`，追问用户粘贴 1-3 章样本文本（存入临时变量，Step E 传给 StyleAnalyzer）
@@ -42,7 +54,13 @@
 
 风格来源选择完成后，使用 AskUserQuestion 询问目标平台：
 
-
+```
+目标发布平台：
+1. 番茄小说 (Recommended) — 免费短章快节奏
+2. 起点中文网 — 付费长章体系
+3. 晋江文学城 — 女性向，文笔要求高
+4. 跳过 — 不指定平台
+```
 
 - 选项 1 → `platform = "fanqie"`
 - 选项 2 → `platform = "qidian"`
@@ -71,7 +89,21 @@
    - **节奏**（快节奏爽文 / 慢热型 / 张弛交替 / Other）
 
 3. **展示预填 brief 预览**，询问用户确认或修改：
+   ```
+   以下是创作纲领预览（未填字段将由系统智能补全）：
 
+   - 书名：{已填或"待生成"}
+   - 题材：{genre}
+   - 主角：{protagonist_identity}
+   - 核心冲突：{core_conflict}
+   - 基调：{tone}
+   - 节奏：{pacing}
+   - 风格来源：{style_source}
+
+   选项：
+   1. 确认，继续 (Recommended) — 系统补全其余字段
+   2. 我要修改 — 告诉我要改什么
+   ```
    选项 2 时进入自由输入修改轮，用户可补充书名、目标字数、读者画像等任意字段。
 
 > Brief 是整个创作流水线的基础输入。未经用户确认的 brief 不得传入后续 Agent。
@@ -97,7 +129,14 @@
 5. 使用 Task 派发 CharacterWeaver Agent 创建主角和核心配角（≤3 个角色）
 6. WorldBuilder 协助初始化 `storylines/storylines.json`（默认仅 1 条 `type:main_arc` 主线，不创建额外故事线）
 6.5. **研究资料建议检查**：若 WorldBuilder 输出了 `world/research-suggestions.json`，展示建议列表并提示：
+   ```
+   WorldBuilder 建议补充以下背景资料以提高设定质量：
+   - {topic}（{priority}）：{reason}
 
+   选项：
+   1. 继续 (Recommended) — 先用当前设定，后续可补充
+   2. 暂停去做研究 — 使用 doc-workflow 补充资料后再回来
+   ```
    选项 2 时提示用户执行研究流程，完成后 `/novel:start` 回来继续（checkpoint 已保存进度）
 7. 更新 `.checkpoint.json`：`quick_start_step = "D"`
 
@@ -179,7 +218,14 @@
 13. **若 Step B 选择了 `write_then_extract`**：此时派发 StyleAnalyzer 从试写 3 章**提取并填充** `style-profile.json` 的分析字段（`avg_sentence_length`、`dialogue_ratio`、`rhetoric_preferences` 等），`source_type` 保持 `"write_then_extract"` 不变
 14. 使用 AskUserQuestion 给出明确下一步选项：
 
+```
+试写完成！3 章评分均值：{avg_score}/5.0
 
+选项：
+1. 进入卷规划 (Recommended) — 规划第 1 卷大纲，正式开始创作
+2. 调整风格设定 — 重新提供样本或修改风格参数
+3. 重新试写 — 清除试写结果，重新生成 3 章
+```
 
 15. **根据用户选择分支**：
     - 选项 1（进入卷规划）：写入 `.checkpoint.json`（`current_volume = 1, last_completed_chapter = 3, orchestrator_state = "VOL_PLANNING"`），删除 `quick_start_step` 字段
