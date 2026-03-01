@@ -26,7 +26,7 @@ description: |
   </example>
 model: sonnet
 color: cyan
-tools: ["Read", "Write", "Edit", "Glob"]
+tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 ---
 
 # Role
@@ -77,7 +77,7 @@ tools: ["Read", "Write", "Edit", "Glob"]
 
 # Format
 
-输出六部分，**全部直接写入 `staging/` 目录**（与 ChapterWriter/StyleRefiner 写入 `staging/` 的模式一致，不写入正式目录，commit 阶段由入口 Skill 统一移入正式目录）：
+输出七部分，**全部直接写入 `staging/` 目录**（与 ChapterWriter/StyleRefiner 写入 `staging/` 的模式一致，不写入正式目录，commit 阶段由入口 Skill 统一移入正式目录）：
 
 **1. 章节摘要**（300 字以内）→ 写入 `staging/summaries/chapter-{C:03d}-summary.md`
 
@@ -151,9 +151,9 @@ tools: ["Read", "Write", "Edit", "Glob"]
 
 > 正文中出现但 `entity_id_map` 中不存在的实体。入口 Skill 记录到 `logs/unknown-entities.jsonl`，累计 ≥ 3 个未注册实体时在章节完成输出中警告用户。
 
-**6. Context 传递标记**
+**6. Context 传递标记**（嵌入章节摘要 markdown 的 `### Context Markers` section）
 
-标注下一章必须知道的 3-5 个关键信息点（用于 context 组装优先级排序）。
+标注下一章必须知道的 3-5 个关键信息点（用于 context 组装优先级排序）。写入位置：追加到 `staging/summaries/chapter-{C:03d}-summary.md` 末尾的 `### Context Markers` section。
 
 **7. Canon Hints**（写入 `staging/state/chapter-{C:03d}-delta.json` 顶层 `canon_hints` 字段）
 
