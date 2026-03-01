@@ -43,6 +43,7 @@
 - brief.md（来自 Step A/B.5）
 - world/rules.json（来自 Step D）
 - characters/active/（来自 Step D）
+- style-profile.json（来自 Step E）— 风格锚定，PlotArchitect 据此感知慢热/快节奏偏好
 - platform_guide（来自 M5.2 convention）— 提供平台差异化参数
 - 无 prev volume review（首卷无前卷）
 - PlotArchitect 仅输出 3 章 outline + 3 个 L3 contracts + foreshadowing（初始化）+ storyline-schedule（简化）
@@ -108,7 +109,7 @@
 | character | 0.8 | 1.0 | **1.6** | 晋江核心卖点 |
 | emotional_impact | **1.5** | 0.8 | **1.5** | 番茄爽感+晋江情感 |
 | style_naturalness | 0.5 | 0.8 | 1.0 | 番茄对文笔容忍度高 |
-| foreshadowing | 1.0 | 1.0 | 0.8 | 各平台接近 |
+| foreshadowing | 1.0 | 1.0 | 0.8 | 晋江略低（情感驱动优先于伏笔） |
 | plot_logic | 0.8 | **1.3** | 0.8 | 起点设定党需求 |
 | immersion | **1.5** | 0.8 | 1.1 | 番茄代入感驱动留存 |
 | storyline_coherence | 0.8 | **1.5** | 0.8 | 起点世界观一致性 |
@@ -119,7 +120,11 @@
 
 ### 6. overall_final 加权计算
 
-
+```
+overall_weighted = Σ(score_i × weight_i) / Σ(weight_i)
+overall_raw      = Σ(score_i) / 8
+overall_final    = platform 存在时取 overall_weighted，否则取 overall_raw
+```
 
 这样 overall_final 仍然在 1-5 分制内，与现有门控阈值兼容，不需要改 gate decision 逻辑。
 

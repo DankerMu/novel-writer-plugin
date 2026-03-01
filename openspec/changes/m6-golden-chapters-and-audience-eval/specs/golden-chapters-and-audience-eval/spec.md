@@ -237,6 +237,16 @@ Each `templates/platforms/{platform}.md` SHALL include a `## 黄金三章参数`
 - WHEN PlotArchitect reads the platform guide during Step F0
 - THEN it SHALL use: chapter_word_count=2000-2300, hook_density=每300字, protagonist_timing=200字内含冲突
 
+**Scenario: Qidian golden chapter parameters**
+- GIVEN `templates/platforms/qidian.md` contains `## 黄金三章参数`
+- WHEN PlotArchitect reads the platform guide during Step F0
+- THEN it SHALL use: chapter_word_count=3000-4000, hook_density=每1000字, protagonist_timing=1000字内
+
+**Scenario: Jinjiang golden chapter parameters**
+- GIVEN `templates/platforms/jinjiang.md` contains `## 黄金三章参数`
+- WHEN PlotArchitect reads the platform guide during Step F0
+- THEN it SHALL use: chapter_word_count=3000-4000, hook_density=每1500字, protagonist_timing=第1章内, cp_interaction=前3章内必须
+
 #### Requirement: QualityJudge manifest SHALL support optional platform_guide
 
 The QualityJudge manifest SHALL accept an optional `paths.platform_guide` field. When present, QualityJudge SHALL read the evaluation weight section and apply weighted scoring.
