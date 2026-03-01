@@ -40,7 +40,8 @@
       "properties": {
         "name": { "type": "string" },
         "description": { "type": "string" },
-        "canon_status": { "$ref": "#/$defs/canon_status" }
+        "canon_status": { "$ref": "#/$defs/canon_status" },
+        "introducing": { "type": "boolean" }
       },
       "additionalProperties": false
     },
@@ -49,7 +50,8 @@
       "required": ["fact"],
       "properties": {
         "fact": { "type": "string" },
-        "canon_status": { "$ref": "#/$defs/canon_status" }
+        "canon_status": { "$ref": "#/$defs/canon_status" },
+        "introducing": { "type": "boolean" }
       },
       "additionalProperties": false
     },
@@ -60,7 +62,8 @@
         "target": { "type": "string" },
         "type": { "type": "string" },
         "description": { "type": "string" },
-        "canon_status": { "$ref": "#/$defs/canon_status" }
+        "canon_status": { "$ref": "#/$defs/canon_status" },
+        "introducing": { "type": "boolean" }
       },
       "additionalProperties": false
     },

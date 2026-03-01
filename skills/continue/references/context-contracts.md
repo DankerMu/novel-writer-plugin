@@ -47,7 +47,7 @@ chapter_writer_manifest = {
     recent_summaries: ["summaries/chapter-{C-1:03d}-summary.md", ...], # 近 3 章
     storyline_memory: "storylines/{storyline_id}/memory.md",           # 可选
     adjacent_memories: ["storylines/{adj_id}/memory.md", ...],         # 可选
-    character_contracts: ["characters/active/{slug}.json", ...],       # 裁剪后选取（canon_status 预过滤后的 staging 副本）
+    character_contracts: ["staging/context/characters/{slug}.json", ...], # canon_status 预过滤后的 staging 副本
     project_brief: "brief.md",
     writing_methodology: "skills/novel-writing/references/style-guide.md",  # 可选
   }
@@ -140,7 +140,7 @@ quality_judge_manifest = {
     world_rules: "world/rules.json",                                  # 可选
     prev_summary: "summaries/chapter-{C-1:03d}-summary.md",           # 可选（首章无）
     character_profiles: ["characters/active/{slug}.md", ...],          # 裁剪后选取（叙述档案）
-    character_contracts: ["characters/active/{slug}.json", ...],       # 裁剪后选取（canon_status 预过滤后的 staging 副本）（L2 结构化契约）
+    character_contracts: ["staging/context/characters/{slug}.json", ...], # canon_status 预过滤后的 staging 副本（L2 结构化契约）
     storyline_spec: "storylines/storyline-spec.json",                  # 可选
     storyline_schedule: "volumes/vol-{V:02d}/storyline-schedule.json", # 可选
     cross_references: "staging/state/chapter-{C:03d}-crossref.json",
