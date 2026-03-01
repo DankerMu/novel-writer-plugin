@@ -65,6 +65,15 @@ def assemble_context(agent_type, chapter_num, volume):
             "recent_summaries": read_last_n("summaries/", n=3),
             "current_state": read("state/current-state.json"),
             "foreshadowing_tasks": get_chapter_foreshadowing(chapter_num),
+            # M5.1: canon_status filtering
+            "hard_rules_list": filter_rules("world/rules.json",
+                constraint_type="hard",
+                canon_status__in=["established", None]),  # planned excluded
+            "character_contracts": filter_character_canon(
+                characters, chapter_contract),  # planned entries removed, introducing marked
+            # M5.2: platform guide conditional loading
+            "platform_guide": load_if_exists(
+                f"templates/platforms/{style_profile.platform}.md") if style_profile.platform else None,
         }
 
     elif agent_type == "QualityJudge":
@@ -75,6 +84,11 @@ def assemble_context(agent_type, chapter_num, volume):
             "prev_summary": read_last_n("summaries/", n=1),
             "storyline_spec": read("storylines/storyline-spec.json"),
             "storyline_schedule": read(f"volumes/vol-{volume:02d}/storyline-schedule.json"),
+            # M5.1: planned rule IDs for reference detection
+            "planned_rule_ids": get_planned_rule_ids("world/rules.json"),
+            # M5.2: platform guide for weighted scoring (M6.2)
+            "platform_guide": load_if_exists(
+                f"templates/platforms/{style_profile.platform}.md") if style_profile.platform else None,
         }
 
     elif agent_type == "PlotArchitect":

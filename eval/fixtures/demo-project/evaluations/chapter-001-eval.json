@@ -21,7 +21,8 @@
           "detail": "Synthetic violation for fixture"
         }
       ],
-      "has_violations": true
+      "has_violations": true,
+      "has_warnings": false
     },
     "scores": {
       "plot_logic": { "score": 3, "weight": 0.18, "reason": "fixture", "evidence": "fixture" },

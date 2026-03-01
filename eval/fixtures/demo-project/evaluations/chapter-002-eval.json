@@ -28,7 +28,8 @@
           "detail": "Synthetic soft violation (should not count as hard gate)"
         }
       ],
-      "has_violations": true
+      "has_violations": true,
+      "has_warnings": false
     },
     "scores": {
       "plot_logic": { "score": 4, "weight": 0.18, "reason": "fixture", "evidence": "fixture" },
