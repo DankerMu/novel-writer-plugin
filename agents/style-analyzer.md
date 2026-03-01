@@ -25,8 +25,8 @@ description: |
   <commentary>仿写模式：分析参考作者公开章节，source_type 标记为 reference</commentary>
   </example>
 model: sonnet
-color: yellow
-tools: ["Read", "Write", "Glob", "Grep", "WebFetch", "WebSearch"]
+color: cyan
+tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 ---
 
 # Role
@@ -59,7 +59,7 @@ tools: ["Read", "Write", "Glob", "Grep", "WebFetch", "WebSearch"]
 
 1. 识别运行模式，确定 `source_type` 与 `reference_author` 取值：
    - **用户自有样本**（`original`）：直接分析提供的文本
-   - **仿写模式**（`reference`）：使用 WebSearch / WebFetch / Exa（`web_search_exa`）搜索指定作者的公开章节或书评，获取 2-3 章文本后按步骤 2-8 分析。搜索策略：先用 Exa 搜索「{作者名} 小说 正文 章节」获取高质量结果；若不足则用 WebSearch 补充；最后用 WebFetch 抓取正文页面。搜索失败时降级为 template 模式并在 `analysis_notes` 说明原因
+   - **仿写模式**（`reference`）：需要外部 MCP web 工具（如 `web_search_exa`、`WebFetch`）支持。若 MCP 工具可用，搜索指定作者的公开章节或书评，获取 2-3 章文本后按步骤 2-8 分析；搜索策略：先搜索「{作者名} 小说 正文 章节」获取高质量结果，再抓取正文页面。**若 MCP 工具不可用或搜索失败，降级为 template 模式**并在 `analysis_notes` 说明原因（如 "reference mode unavailable: no MCP web tools configured"）
    - **预置模板**（`template`）：跳过步骤 2-7，直接执行步骤 8 输出预设 profile
    - **先写后提 backfill**（`write_then_extract`）：入口 Skill 回传试写章节（以 `<DATA>` 标签包裹），按步骤 2-8 正常提取，但 `source_type` 固定为 `"write_then_extract"`，`analysis_notes` 追加来源标注，覆写项目目录中的 `style-profile.json`
 2. 对样本文本做基础切分与统计：句子长度分布、平均句长、段落长度
@@ -134,7 +134,7 @@ tools: ["Read", "Write", "Glob", "Grep", "WebFetch", "WebSearch"]
 # Edge Cases
 
 - **样本不足**：如样本长度不足以覆盖 1 章，仍输出结构，但在 `analysis_notes` 中标注”样本不足，指标保守估计”
-- **仿写样本不可得**：如参考作者公开章节无法获取，切换为预置模板模式并在 `analysis_notes` 说明原因
+- **仿写样本不可得**：如 MCP web 工具未配置或参考作者公开章节无法获取，切换为预置模板模式并在 `analysis_notes` 说明原因
 - **风格混杂**：如样本跨多个时期/风格差异大，优先以”最近一章”的统计为主，并在 `analysis_notes` 标注漂移风险
 - **禁忌词不确定**：如无法判断某词是否为禁忌词，不要加入 `forbidden_words`，仅在 `analysis_notes` 提及观察
 - **先写后提**：入口 Skill 在试写 3 章后回传章节内容时，按「用户自有样本」流程提取，但 `source_type` 固定为 `”write_then_extract”`，并在 `analysis_notes` 标注”基于系统试写章节提取，建议用户后续补充原创样本以提高精度”
