@@ -46,7 +46,7 @@ ChapterWriter 收到 hard 规则时会以禁止项注入：违反即自动拒绝
 - 关系约束（敌友关系不可突变）
 - 成长轨迹（从 A 到 B 需要什么条件）
 
-**结构化数组**（M5.1）：角色 JSON 新增 `abilities[]`、`known_facts[]`、`relationships[]` 数组，每个条目含可选 `canon_status`（`established`/`planned`），编排器预过滤 planned 条目后传给 ChapterWriter。缺失时视为空数组。
+**结构化数组**（M5.1）：角色 JSON 新增 `abilities[]`、`known_facts[]`、`relationships[]` 数组，每个条目含可选 `canon_status`（`established`/`planned`），编排器预过滤 planned 条目后传给 ChapterWriter。例外：章节契约 `preconditions.character_states` 引用的 planned 条目保留并标记 `introducing: true`，表示本章将首次展现。缺失时视为空数组。
 
 角色退场有三重保护：活跃伏笔检查 → 故事线依赖检查 → 用户确认。
 
