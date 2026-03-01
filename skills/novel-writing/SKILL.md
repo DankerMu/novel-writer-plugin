@@ -1,5 +1,6 @@
 ---
 name: novel-writing
+is_user_facing: false
 description: >
   小说创作共享方法论知识库（内部引用，非用户直接调用）。
   包含卷制滚动工作流、Spec-Driven Writing 四层规范体系、多线叙事管理、去 AI 化四层策略、8 维度质量评分标准。
@@ -73,8 +74,7 @@ description: >
 | 情感冲击 | 8% |
 | 故事线连贯 | 8% |
 
-门控：≥4.0 通过，3.5-3.9 二次润色，3.0-3.4 自动修订，2.0-2.9 人工审核，<2.0 强制重写。有 contract violation（confidence=high，含 LS hard）时无条件强制修订。注：LS-005（跨线实体泄漏）在 M1/M2 阶段为 soft（报告不阻断），M3 升级为 hard。
-<!-- TODO: M3 完成后将 LS-005 直接标记为 hard 并删除此临时说明 -->
+门控：≥4.0 通过，3.5-3.9 二次润色，3.0-3.4 自动修订，2.0-2.9 暂停用户审核，<2.0 暂停建议重写。有 contract violation（confidence=high，含 LS hard）时无条件强制修订。平台硬门任一 fail 时强制修订。LS-005（跨线实体泄漏）为 hard constraint。
 
 ## Context 管理
 

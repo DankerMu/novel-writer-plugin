@@ -1,5 +1,6 @@
 ---
 name: start
+is_user_facing: true
 description: >
   This skill is the main entry point for the novel creation system. It should be used when the user
   wants to create a new novel project, plan a new volume, review volume quality, update world settings,
