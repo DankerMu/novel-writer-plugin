@@ -11,7 +11,7 @@
 ## Goals / Non-Goals
 
 **Goals:**
-- 明确并固化 `/novel:start`、`/novel:continue`、`/novel:status` 的输入/输出、读写边界与错误处理
+- 明确并固化 `/novel:start`、`/novel:continue`、`/novel:dashboard` 的输入/输出、读写边界与错误处理
 - 固化“最小可运行项目”初始化规则（目录 + 核心 JSON）
 - 约束交互与工具权限（AskUserQuestion 仅主入口；status 只读）
 
@@ -24,7 +24,7 @@
 
 1. **三命令混合模式**
    - `/novel:start` 作为状态感知路由器，尽量减少交互轮次（合并问题、2-4 选项）。
-   - `/novel:continue` 与 `/novel:status` 作为高频快捷命令，减少认知负担。
+   - `/novel:continue` 与 `/novel:dashboard` 作为高频快捷命令，减少认知负担。
 
 2. **AskUserQuestion 边界硬约束**
    - 仅 `/novel:start` 可向用户提问；Agents 只返回结构化建议（JSON），由 `/novel:start` 展示并让用户决策。

@@ -10,7 +10,7 @@
   - `m1-world-rules-and-storylines`
   - `m1-chapter-pipeline-agents`
   - `m2-orchestrator-state-machine`
-- 已存在可执行的入口 Skills：`/novel:start`、`/novel:continue`、`/novel:status`
+- 已存在可执行的入口 Skills：`/novel:start`、`/novel:continue`、`/novel:dashboard`
 - 卷规划输出（来自 `m2-volume-planning-and-contract-propagation`）可用：`volumes/vol-{V:02d}/outline.md`、`storyline-schedule.json`（用于 `chapter_end` 与交汇事件判定）
 
 ### Scenario A: INIT → QUICK_START → VOL_PLANNING

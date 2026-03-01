@@ -14,9 +14,9 @@
 - [x] 2.3 实现参数 `N` 解析与边界（默认 1，建议上限 5）
 - [x] 2.4 定义流水线调用顺序与 staging 输出契约（依赖 `m1-chapter-pipeline-agents`）
 
-## 3. `/novel:status` (Read-only Status)
+## 3. `/novel:dashboard` (Read-only Status)
 
-- [x] 3.1 编写 `skills/status/SKILL.md` frontmatter（只读：Read/Glob/Grep）
+- [x] 3.1 编写 `skills/dashboard/SKILL.md` frontmatter（只读：Read/Glob/Grep）
 - [x] 3.2 定义状态汇总指标：章节数/字数估算/均分趋势/伏笔统计/成本耗时（字段缺失时的降级策略）
 
 ## 4. Cross-cutting Constraints

@@ -3,7 +3,7 @@
 Orchestrator 是逻辑抽象，实际分布在 3 个入口 Skills 中：
 - `/novel:start`：负责 INIT/QUICK_START/VOL_PLANNING/VOL_REVIEW 的交互与状态推进
 - `/novel:continue`：负责 WRITING 循环（含门控与修订）
-- `/novel:status`：只读，不触发转移
+- `/novel:dashboard`：只读，不触发转移
 
 系统原则为“无状态冷启动”：每次运行通过读取文件状态恢复，不依赖会话历史。
 

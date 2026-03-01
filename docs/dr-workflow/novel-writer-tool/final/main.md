@@ -27,7 +27,7 @@
 | 文件 | 内容 | 行数 |
 |------|------|------|
 | [spec/01-overview.md](spec/01-overview.md) | 文件清单（20 个）+ 开发顺序 + plugin.json + Hooks 配置 | ~125 |
-| [spec/02-skills.md](spec/02-skills.md) | 3 个入口 Skill 完整定义（/novel:start、/novel:continue、/novel:status） | ~322 |
+| [spec/02-skills.md](spec/02-skills.md) | 3 个入口 Skill 完整定义（/novel:start、/novel:continue、/novel:dashboard） | ~322 |
 | [spec/03-agents.md](spec/03-agents.md) | Agent 通用约束 + 8 个 Agent 索引（链接到独立文件） | ~20 |
 | [spec/04-quality.md](spec/04-quality.md) | 核心方法论 SKILL.md + 去 AI 化规则详解 + 8 维度评分标准 | ~348 |
 | [spec/05-templates.md](spec/05-templates.md) | 3 个模板（brief-template + ai-blacklist + style-profile-template） | ~178 |

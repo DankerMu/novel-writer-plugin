@@ -42,7 +42,7 @@ including unresolved items, their scope/status, and risk flags (e.g., overdue sh
 
 #### Scenario: Overdue short-scope items are highlighted
 - **WHEN** a `short` scope item passes its `target_resolve_range[1]` without being `resolved`
-- **THEN** the report marks it as overdue and surfaces it in `/novel:status` or review output
+- **THEN** the report marks it as overdue and surfaces it in `/novel:dashboard` or review output
 
 ### Requirement: The system SHALL provide storyline rhythm analytics
 The system SHALL compute storyline rhythm analytics using `summaries/*` storyline_id and `storyline-schedule.json`, including:

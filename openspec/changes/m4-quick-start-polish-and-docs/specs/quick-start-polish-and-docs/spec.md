@@ -36,7 +36,7 @@ The repository SHALL include user documentation covering:
 
 #### Scenario: Docs cover quick start and core commands
 - **WHEN** a new user reads the docs
-- **THEN** they can run `/novel:start`, `/novel:continue`, and `/novel:status` successfully and understand the next-step flow
+- **THEN** they can run `/novel:start`, `/novel:continue`, and `/novel:dashboard` successfully and understand the next-step flow
 
 ## References
 

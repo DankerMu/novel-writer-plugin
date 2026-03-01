@@ -179,7 +179,7 @@ novel-project/
 }
 ```
 
-> 伏笔状态：`planted`（埋设）→ `advanced`（推进，可多次）→ `resolved`（回收）。`scope` 标记伏笔层级：`short`（卷内，3-10 章回收）、`medium`（跨 1-3 卷回收）、`long`（全书级，无固定回收期限，每 1-2 卷至少 advanced 一次保持活性）。`target_resolve_range` 为建议回收章节范围，`short` scope 超过上限未回收的伏笔在 `/novel:status` 中标记为"超期"，`long` scope 伏笔不触发超期警告。commit 阶段从 foreshadow ops 提取更新：`planted` → 新增条目，`advanced` → 追加 history + 更新 status/last_updated_chapter，`resolved` → 更新 status。
+> 伏笔状态：`planted`（埋设）→ `advanced`（推进，可多次）→ `resolved`（回收）。`scope` 标记伏笔层级：`short`（卷内，3-10 章回收）、`medium`（跨 1-3 卷回收）、`long`（全书级，无固定回收期限，每 1-2 卷至少 advanced 一次保持活性）。`target_resolve_range` 为建议回收章节范围，`short` scope 超过上限未回收的伏笔在 `/novel:dashboard` 中标记为"超期"，`long` scope 伏笔不触发超期警告。commit 阶段从 foreshadow ops 提取更新：`planted` → 新增条目，`advanced` → 追加 history + 更新 status/last_updated_chapter，`resolved` → 更新 status。
 
 **风格指纹** (`style-profile.json`):
 ```json
@@ -246,6 +246,6 @@ novel-project/
 
 > `judges` 字段（M3 新增）：记录门控裁判详情。关键章（卷首/卷尾/交汇事件章）额外包含 `secondary` 子对象（`{"model": "opus", "overall": 3.8}`），`overall_final = min(primary.overall, secondary.overall)`，`used` 标记实际采用的裁判。普通章仅含 `primary`。`force_passed`（M3 新增）：修订次数耗尽后强制通过时为 `true`。
 >
-> 每章流水线完成后由入口 Skill 写入 `logs/chapter-N-log.json`。用于调试（定位哪个阶段耗时异常）、质量回顾（门控决策 + 修订次数统计）。`/novel:status` 可读取汇总展示。
+> 每章流水线完成后由入口 Skill 写入 `logs/chapter-N-log.json`。用于调试（定位哪个阶段耗时异常）、质量回顾（门控决策 + 修订次数统计）。`/novel:dashboard` 可读取汇总展示。
 >
 > **降级说明**：Claude Code Task 工具不暴露 token 用量和成本。`input_tokens`、`output_tokens`、`total_cost_usd` 字段当无法获取时写入 `null`。`model` 和 `duration_ms`（通过计时差值计算）始终可用。未来若 Claude Code 开放 token 用量 API，可无缝填充这些字段。

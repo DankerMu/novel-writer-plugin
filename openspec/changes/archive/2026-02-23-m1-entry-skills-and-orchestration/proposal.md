@@ -7,7 +7,7 @@
 - 定义并实现 3 个入口 Skills 的行为与边界：
   - `/novel:start`：状态检测 → 推荐下一步 → AskUserQuestion → 派发对应 Agent/流程
   - `/novel:continue [N]`：高频续写循环（调度 ChapterWriter→…→QualityJudge），默认 1 章
-  - `/novel:status`：只读状态展示（进度、评分、伏笔、成本/耗时）
+  - `/novel:dashboard`：只读状态展示（进度、评分、伏笔、成本/耗时）
 - 明确交互边界：AskUserQuestion 仅允许在 `/novel:start` 中调用，子代理/Agents 禁止直接向用户提问
 - 固化项目初始化的“最小可运行文件集”（checkpoint/state/global foreshadow/storyline spec 等）与目录创建规则
 
@@ -23,7 +23,7 @@
 
 ## Impact
 
-- 影响范围：`skills/start|continue|status/SKILL.md` 的提示词/流程与其读写文件契约（不涉及 Agents 的具体 prompt 内容）
+- 影响范围：`skills/start|continue|dashboard/SKILL.md` 的提示词/流程与其读写文件契约（不涉及 Agents 的具体 prompt 内容）
 - 依赖关系：依赖 `m1-plugin-skeleton` 提供的插件骨架；依赖 `m1-chapter-pipeline-agents` 与其他 agent changes 才能完成端到端试写
 - 兼容性：新增能力；不改变现有 API（仓库尚无实现）
 

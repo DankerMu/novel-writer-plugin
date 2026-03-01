@@ -15,7 +15,7 @@
 
 ### 2.1 交付格式
 
-本产品以 **Claude Code Plugin** 形式交付（plugin name: `novel`），包含 4 个技能（Skills）和 8 个专业 Agent。其中 3 个技能为用户入口（`/novel:start`、`/novel:continue`、`/novel:status`），1 个为共享知识库。Plugin skills 遵循官方命名空间规则 `/{plugin-name}:{skill-name}`。[DR-018](../../v4/dr/dr-018-plugin-api.md) [DR-020](../../v4/dr/dr-020-single-command-ux.md)
+本产品以 **Claude Code Plugin** 形式交付（plugin name: `novel`），包含 4 个技能（Skills）和 8 个专业 Agent。其中 3 个技能为用户入口（`/novel:start`、`/novel:continue`、`/novel:dashboard`），1 个为共享知识库。Plugin skills 遵循官方命名空间规则 `/{plugin-name}:{skill-name}`。[DR-018](../../v4/dr/dr-018-plugin-api.md) [DR-020](../../v4/dr/dr-020-single-command-ux.md)
 
 ```
 cc-novel-writer/
@@ -27,7 +27,7 @@ cc-novel-writer/
 │   ├── continue/
 │   │   └── SKILL.md                   # /novel:continue  续写下一章（高频快捷）
 │   ├── status/
-│   │   └── SKILL.md                   # /novel:status    只读状态查看
+│   │   └── SKILL.md                   # /novel:dashboard    只读状态查看
 │   └── novel-writing/                 # 共享知识库（Claude 按需自动加载）
 │       ├── SKILL.md                   # 核心方法论 + 风格指南
 │       └── references/
@@ -60,7 +60,7 @@ cc-novel-writer/
 |------|------|---------|
 | `/novel:start` | 状态感知交互入口 | 读 checkpoint → 推荐下一步 → AskUserQuestion → Task 派发 agent |
 | `/novel:continue [N]` | 续写 N 章（默认 1） | 读 checkpoint → ChapterWriter → Summarizer → StyleRefiner → QualityJudge → 更新 checkpoint |
-| `/novel:status` | 只读状态查看 | 展示进度、评分均值、伏笔状态 |
+| `/novel:dashboard` | 只读状态查看 | 展示进度、评分均值、伏笔状态 |
 
 **`/novel:start` 入口逻辑**：
 ```
@@ -91,11 +91,11 @@ model: sonnet
 
 ### 2.3 架构原则
 
-- **Skills = 入口 + 调度**：`/novel:start` 做状态感知路由，`/novel:continue` 和 `/novel:status` 为高频快捷命令，均以 Skills 实现（支持 supporting files + progressive disclosure）。Plugin name 采用短名 `novel`，遵循 `/{plugin}:{skill}` 命名空间规则
+- **Skills = 入口 + 调度**：`/novel:start` 做状态感知路由，`/novel:continue` 和 `/novel:dashboard` 为高频快捷命令，均以 Skills 实现（支持 supporting files + progressive disclosure）。Plugin name 采用短名 `novel`，遵循 `/{plugin}:{skill}` 命名空间规则
 - **Agents = 专业化执行**：每个 agent 有独立的 prompt 模板和 tools 权限，需包含 name/description/model/color/tools frontmatter
 - **Skill = 共享知识**：`novel-writing` skill 提供去 AI 化规则、质量评分标准等共享上下文，Claude 按需自动加载
 - **Checkpoint 是衔接点**：skills 之间通过 `.checkpoint.json` 传递状态，支持冷启动
-- **Orchestrator 是逻辑抽象**：Section 8 定义的状态机是逻辑设计，实际由 3 个入口 skill 分布实现（`/novel:start` 覆盖 INIT/QUICK_START/VOL_PLANNING/VOL_REVIEW，`/novel:continue` 覆盖 WRITING 循环，`/novel:status` 只读），见 Section 8.2 映射表
+- **Orchestrator 是逻辑抽象**：Section 8 定义的状态机是逻辑设计，实际由 3 个入口 skill 分布实现（`/novel:start` 覆盖 INIT/QUICK_START/VOL_PLANNING/VOL_REVIEW，`/novel:continue` 覆盖 WRITING 循环，`/novel:dashboard` 只读），见 Section 8.2 映射表
 - **插件资源路径**：插件安装后会被复制到缓存目录（`~/.claude/plugins/cache`），所有对插件内部文件（templates/、references/）的引用必须通过 `${CLAUDE_PLUGIN_ROOT}` 环境变量解析，禁止写死相对路径。项目运行时数据写入用户项目目录（稳定位置），插件自身文件为只读源
 - **Hooks 增强可靠性**：Plugin 通过 `hooks/hooks.json` 注册事件钩子。M2 起启用 SessionStart hook（自动注入 checkpoint + 最近摘要）和 PreToolUse hook（路径审计，拦截 chapter pipeline 子代理写入非 `staging/` 的操作）。M3+ 可扩展 PostToolUse 做 schema 校验（需外部脚本）
 - **确定性工具演进路线**：MVP 阶段所有操作通过 Claude 原生工具（Read/Write/Grep/Glob）+ Bash 完成。当 LLM 精度不足时（如 NER、黑名单统计），通过 Bash 调用 CLI 脚本补充确定性能力。MCP 是此路径的包装升级（结构化接口 + 自动发现），作为 M4+ 可选优化，不作为核心依赖
@@ -135,7 +135,7 @@ Claude: Vol 2 已完成 51 章。推荐：规划新卷。
        [NER 一致性检查 + 伏笔盘点 + 风格漂移报告]
 
 查看状态：
-> /novel:status
+> /novel:dashboard
 Claude: Vol 2, Ch 51/50(超出), 总15万字, 均分3.7, 未回收伏笔3个
 ```
 

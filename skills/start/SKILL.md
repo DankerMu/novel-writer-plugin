@@ -38,7 +38,7 @@ Skill → 状态映射：
 
 - `/novel:start`：负责 `INIT`/`QUICK_START`/`VOL_PLANNING`/`VOL_REVIEW` 的交互与状态推进；在 `WRITING`/`CHAPTER_REWRITE`/`ERROR_RETRY` 下提供路由与推荐入口
 - `/novel:continue`：负责 `WRITING`/`CHAPTER_REWRITE`（含门控与修订循环）
-- `/novel:status`：任意状态只读展示，不触发转移
+- `/novel:dashboard`：任意状态只读展示，不触发转移
 
 ### Step 1: 状态检测
 
@@ -368,4 +368,4 @@ Skill → 状态映射：
 - 单次 `/novel:start` **每个动作**（创建项目、规划卷、回顾等）建议 ≤5 个 AskUserQuestion；若用户从创建流程直接进入卷规划，轮次计数重置
 - 推荐项始终标记 `(Recommended)`
 - 所有用户交互使用中文
-- 「查看帮助」选项：输出插件核心命令列表（`/novel:start`、`/novel:continue`、`/novel:status`）+ 用户文档路径（`docs/user/quick-start.md`）
+- 「查看帮助」选项：输出插件核心命令列表（`/novel:start`、`/novel:continue`、`/novel:dashboard`）+ 用户文档路径（`docs/user/quick-start.md`）
