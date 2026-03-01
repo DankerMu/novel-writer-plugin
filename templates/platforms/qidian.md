@@ -57,6 +57,21 @@
 - 段首多样性：连续段落开头词性应交替（名词/动词/副词），避免每段都以对话引号开头
 - 避免「说完又说」：场人物关系清晰时让角色自行开口，只在情节/人物变化剧烈时辅以动作描写
 
+## 评估权重（QualityJudge 乘数）
+
+> 乘数格式：默认 1.0，范围 [0.5, 2.0]。QualityJudge 读取后按 `overall_weighted = Σ(score_i × multiplier_i) / Σ(multiplier_i)` 计算加权综合分（乘数即权重，不叠加 base_weight）。
+
+| 维度 | 乘数 | 理由 |
+|------|------|------|
+| pacing | 1.0 | 万字一爽点节奏标准，默认权重已足够 |
+| character | 1.0 | 角色功能性定位，标准权重 |
+| emotional_impact | 0.8 | 情感线权重低于番茄和晋江 |
+| style_naturalness | 0.8 | 文笔要求中等 |
+| foreshadowing | 1.0 | 长线伏笔是起点读者的重要记忆点 |
+| plot_logic | 1.3 | 设定党核心需求，体系自洽是起点铁律 |
+| immersion | 1.2 | 「以战代练」设定沉浸感是起点核心体验 |
+| storyline_coherence | 1.2 | 多线叙事连贯性适度加权（worldbuilding consistency 待 M7 独立维度） |
+
 ## 黄金三章参数
 
 - 章节字数：3000-3500 字/章

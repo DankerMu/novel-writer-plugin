@@ -154,4 +154,24 @@ quality_judge_manifest = {
 
 ---
 
+## QualityJudge 返回值契约
+
+QualityJudge 为只读 Agent，不写文件。其返回的结构化 JSON 由编排器消费并写入 `staging/evaluations/chapter-{C:03d}-eval.json`。
+
+关键返回字段：
+- `contract_verification` — Track 1 合规检查结果（l1/l2/l3/ls_checks + platform_hard_gates + has_violations）
+- `scores` — Track 2 八维度评分（各含 score/weight/reason/evidence）
+- `overall_raw` — base-weight 加权均值（始终输出）
+- `overall_weighted` — 平台加权均值（有 platform_guide 且含评估权重时输出，否则 null）
+- `platform_weights` — 应用的平台乘数（有平台时输出，否则 null）
+- `overall` — 门控决策使用值（= overall_weighted 或 overall_raw）
+- `recommendation` — QualityJudge 建议（pass/polish/revise/review/rewrite）
+- `required_fixes` — 修订指令列表（recommendation 为 revise/review/rewrite 时输出）
+
+**编排器写入 eval JSON 的映射**：
+- `eval_used` = QualityJudge 原始输出（primary 或 secondary 中 overall 更低的一次）
+- `metadata.judges.overall_final` = 编排器计算值（普通章 = primary.overall；关键章 = min(primary.overall, secondary.overall)）
+
+---
+
 另见：`continuity-checks.md`（NER schema + 一致性报告 schema + LS-001 结构化输入约定）。

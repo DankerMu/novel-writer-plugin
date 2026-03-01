@@ -52,6 +52,21 @@
 - 每段对话 ≤ 5 轮交互，避免话痨
 - 内心独白计入对话占比，但应克制使用
 
+## 评估权重（QualityJudge 乘数）
+
+> 乘数格式：默认 1.0，范围 [0.5, 2.0]。QualityJudge 读取后按 `overall_weighted = Σ(score_i × multiplier_i) / Σ(multiplier_i)` 计算加权综合分（乘数即权重，不叠加 base_weight）。
+
+| 维度 | 乘数 | 理由 |
+|------|------|------|
+| pacing | 1.5 | 番茄完读率由节奏决定，快节奏是核心竞争力 |
+| character | 0.8 | 角色深度要求低于起点/晋江 |
+| emotional_impact | 1.5 | 爽感驱动留存，情绪波动直接关联付费转化 |
+| style_naturalness | 0.7 | 番茄读者对文笔容忍度较高，但需守住反 AI 底线 |
+| foreshadowing | 1.0 | 标准权重 |
+| plot_logic | 0.8 | 逻辑自洽要求低于起点 |
+| immersion | 1.5 | 代入感驱动留存，沉浸体验是关键 |
+| storyline_coherence | 0.8 | 多线叙事复杂度需求低 |
+
 ## 黄金三章参数
 
 - 章节字数：3000-3500 字/章

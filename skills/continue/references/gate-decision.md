@@ -10,6 +10,8 @@
 
 ## 固化门控决策函数（输出 gate_decision）
 
+> `overall_final` 来源：QualityJudge 输出 `overall`（有 platform_guide 且含评估权重时为 `overall_weighted`，否则为 `overall_raw`）；关键章双裁判取 `min(primary.overall, secondary.overall)`。
+
 ```
 if has_high_confidence_violation:
   gate_decision = "revise"
@@ -52,5 +54,5 @@ else:
 - 写入 staging/evaluations/chapter-{C:03d}-eval.json：
   - 内容：eval_used（普通章=primary_eval；关键章=overall 更低的一次）+ metadata
   - metadata 至少包含：
-    - judges: {primary:{model,overall}, secondary?:{model,overall}, used, overall_final}
+    - judges: {primary:{model,overall,overall_raw,overall_weighted?}, secondary?:{model,overall,overall_raw,overall_weighted?}, used, overall_final}
     - gate: {decision: gate_decision, revisions: revision_count, force_passed: bool}

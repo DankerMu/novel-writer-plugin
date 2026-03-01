@@ -65,6 +65,21 @@
 - 避免单人连续发言 > 3 句后无打断（应切入动作/表情/环境）
 - 禁忌：水对话（对剧情无用的闲聊）、借角色之口说教/输出价值观
 
+## 评估权重（QualityJudge 乘数）
+
+> 乘数格式：默认 1.0，范围 [0.5, 2.0]。QualityJudge 读取后按 `overall_weighted = Σ(score_i × multiplier_i) / Σ(multiplier_i)` 计算加权综合分（乘数即权重，不叠加 base_weight）。
+
+| 维度 | 乘数 | 理由 |
+|------|------|------|
+| pacing | 0.8 | 晋江读者容忍慢热，节奏权重适度降低 |
+| character | 1.6 | 角色魅力是晋江核心竞争力，人设即卖点 |
+| emotional_impact | 1.5 | 情感冲击驱动追读，CP 化学反应是关键 |
+| style_naturalness | 1.0 | 晋江读者对文笔有底线要求 |
+| foreshadowing | 0.8 | 伏笔权重略低，感情线进展优先 |
+| plot_logic | 0.8 | 逻辑要求低于起点，情感驱动优先于设定驱动 |
+| immersion | 1.1 | 代入感需求略高于标准 |
+| storyline_coherence | 0.8 | 多线复杂度需求低，聚焦主 CP 线 |
+
 ## 黄金三章参数
 
 - 章节字数：3000-4000 字/章

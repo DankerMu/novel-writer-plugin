@@ -284,7 +284,7 @@ for chapter_num in range(start, start + remaining_N):
          - 若退出码为 0 且 stdout 为合法 JSON → 记为 `blacklist_lint_json`，写入 quality_judge_manifest.blacklist_lint
        - 若脚本不存在/失败/输出非 JSON → `blacklist_lint_json = null`，不得阻断流水线（回退 LLM 估计）
      输入: quality_judge_manifest（inline 计算值 + 文件路径；cross_references 来自 staging/state/chapter-{C:03d}-crossref.json）
-     返回: 结构化 eval JSON（QualityJudge 只读，不落盘）
+     返回: 结构化 eval JSON（QualityJudge 只读，不落盘；含 overall_raw + overall_weighted（有 platform_guide 且含评估权重时）+ overall（= overall_weighted 或 overall_raw）+ platform_weights）
      关键章双裁判:
        - 关键章判定：
          - 卷首章：chapter_num == chapter_start
@@ -295,7 +295,7 @@ for chapter_num in range(start, start + remaining_N):
          - overall_final = min(primary_eval.overall, secondary_eval.overall)
          - has_high_confidence_violation = high_violation(primary_eval) OR high_violation(secondary_eval)
          - eval_used = overall 更低的一次（primary/secondary；若相等，优先使用 secondary_eval——更强模型的判断）
-       - 记录：primary/secondary 的 model + overall + eval_used + overall_final（写入 eval metadata 与 logs，便于回溯差异与成本）
+       - 记录：primary/secondary 的 model + overall + overall_raw + overall_weighted + eval_used + overall_final（写入 eval metadata 与 logs，便于回溯差异与成本）
      普通章：
        - overall_final = primary_eval.overall
        - has_high_confidence_violation = high_violation(primary_eval)
@@ -355,7 +355,7 @@ for chapter_num in range(start, start + remaining_N):
        - 风格漂移检测（每 5 章）：StyleAnalyzer 提取 metrics → 与基线对比 → 漂移则写入 style-drift.json / 回归则清除 / 超时(>15章)则 stale_timeout
 
   7. 输出本章结果:
-     > 第 {C} 章已生成（{word_count} 字），评分 {overall_final}/5.0，门控 {gate_decision}，修订 {revision_count} 次 {pass_icon}
+     > 第 {C} 章已生成（{word_count} 字），评分 {overall_final}/5.0{有 platform 时追加「（{platform_display_name}适配分 {overall_weighted}）」}，门控 {gate_decision}，修订 {revision_count} 次 {pass_icon}
 ```
 
 ### Step 4: 定期检查触发

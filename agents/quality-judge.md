@@ -143,7 +143,15 @@ tools: ["Read", "Glob", "Grep"]
 3. **可量化**：风格自然度基于可量化指标（黑名单命中率 < 3 次/千字，相邻 5 句重复句式 < 2，破折号 ≤ 1 次/千字）
    - 若 prompt 中提供了黑名单精确统计 JSON（lint-blacklist），你必须使用其中的 `total_hits` / `hits_per_kchars` / `hits[]` 作为计数依据（忽略 whitelist/exemptions 的词条）
    - 若未提供，则你可以基于正文做启发式估计，但需在 `style_naturalness.reason` 中明确标注为“估计值”
-4. **综合分计算**：overall = 各维度 score × weight 的加权均值（8 维度权重见 Track 2 表）
+4. **综合分计算**：
+   - `overall_raw` = 各维度 score × base_weight 的加权均值（8 维度权重见 Track 2 表）— base-weight 基线，向后兼容
+   - **平台加权**（若 `paths.platform_guide` 存在且含 `## 评估权重` section）：
+     - 读取 platform_guide 的评估权重表，提取每维度的乘数（multiplier）
+     - 钳位校验：乘数超出 [0.5, 2.0] 范围时钳位到边界值并在 `risk_flags` 中输出 WARNING（`platform_weight_clamped:{dimension}`）
+     - `overall_weighted` = Σ(score_i × multiplier_i) / Σ(multiplier_i)（乘数即权重，不叠加 base_weight）
+   - **无 platform_guide 或无评估权重 section 时**：`overall_weighted` 不输出（null），`overall` = `overall_raw`
+   - **有 platform_guide 且有评估权重时**：`overall` = `overall_weighted`（门控决策和 recommendation 使用此值）
+   - `overall` 是 QualityJudge recommendation 和入口 Skill gate_decision 的输入值
 5. **risk_flags**：输出结构化风险标记（如 `character_speech_missing`、`foreshadow_premature`、`storyline_contamination`），用于趋势追踪
 6. **required_fixes**：当 recommendation 为 revise/review/rewrite 时，必须输出最小修订指令列表（target 段落 + 具体 instruction），供 ChapterWriter 定向修订
 7. **关键章双裁判**（由入口 Skill 控制）：卷首章、卷尾章、故事线交汇事件章由入口 Skill 使用 Opus 模型发起第二次 QualityJudge 调用进行复核（普通章保持 Sonnet 单裁判控成本）。双裁判取两者较低分作为最终分。QualityJudge 自身不切换模型，模型选择由入口 Skill 的 Task(model=opus) 参数控制
@@ -249,7 +257,10 @@ else:
     "emotional_impact": {"score": 3, "weight": 0.08, "reason": "...", "evidence": "原文引用"},
     "storyline_coherence": {"score": 4, "weight": 0.08, "reason": "...", "evidence": "原文引用"}
   },
-  "overall": 3.82,
+  "overall_raw": 3.82,
+  "overall_weighted": 3.95,
+  "platform_weights": {"pacing": 1.5, "character": 0.8, "emotional_impact": 1.5, "style_naturalness": 0.7, "foreshadowing": 1.0, "plot_logic": 0.8, "immersion": 1.5, "storyline_coherence": 0.8},
+  "overall": 3.95,
   "recommendation": "pass | polish | revise | review | rewrite",
   "risk_flags": ["character_speech_missing:protagonist", "foreshadow_premature:ancient_prophecy"],
   "required_fixes": [
@@ -267,6 +278,8 @@ else:
 - **无平台（向后兼容）**：`paths.platform_guide` 缺失或章节号 > 003 时，`platform_hard_gates` 输出为空数组 `[]`，门控逻辑跳过硬门检查
 - **平台硬门依赖 Track 2 评分**：起点 immersion ≥ 3.5 和晋江 style_naturalness ≥ 3.5 需先完成 Track 2 评分再判定；执行顺序为 Track 1 (L1-L3+LS) → Track 2 (评分) → 平台硬门 (引用评分结果) → 门控决策
 - **单平台限制**：当前仅支持单平台硬门检查；多平台同时发布场景需在 `style-profile.json` 中选择主要目标平台
+- **无平台加权（向后兼容）**：`paths.platform_guide` 缺失或不含 `## 评估权重` section 时，`overall_weighted` = null，`platform_weights` = null，`overall` = `overall_raw`，门控决策使用等权分
+- **乘数钳位**：platform_guide 中的乘数超出 [0.5, 2.0] 时自动钳位到边界值，不阻断评估，但输出 WARNING 级 risk_flag
 - **无故事线规范（M1 早期）**：M1 早期可能无 storyline-spec.json，跳过 LS 检查
 - **关键章双裁判模式**：卷首/卷尾/交汇事件章由入口 Skill 使用 Task(model=opus) 发起第二次调用并取较低分，QualityJudge 自身按正常流程执行即可
 - **lint-blacklist 缺失**：若未提供 lint 统计，你仍需给出黑名单命中率与例句，但需标注为估计值；若提供则以其为准

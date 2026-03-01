@@ -49,7 +49,10 @@ description: >
 
 | 指标 | 来源文件 | JSON 路径 |
 |------|---------|----------|
-| 综合评分 | `evaluations/chapter-*-eval.json` | `.overall_final` |
+| 综合评分 | `evaluations/chapter-*-eval.json` | `.metadata.judges.overall_final`（或顶层 `.overall_final` 若存在） |
+| 等权均分 | `evaluations/chapter-*-eval.json` | `.eval_used.overall_raw` |
+| 平台适配分 | `evaluations/chapter-*-eval.json` | `.eval_used.overall_weighted`（null 则跳过） |
+| 平台标识 | `style-profile.json` | `.platform`（用于生成动态标签） |
 | 门控决策 | `logs/chapter-*-log.json` | `.gate_decision` |
 | 修订次数 | `logs/chapter-*-log.json` | `.revisions` |
 | 强制通过 | `logs/chapter-*-log.json` | `.force_passed` |
@@ -61,7 +64,8 @@ description: >
 ```
 - 总章节数
 - 总字数（估算：章节文件大小）
-- 评分均值（overall 字段平均）
+- 评分均值（overall_final 字段平均）
+- 平台适配分均值（overall_weighted 字段平均，仅当 style-profile.json 含 platform 时展示；标签格式「{platform_display_name}适配分」，其中 platform_display_name 从 platform 字段动态生成：fanqie→番茄、qidian→起点、jinjiang→晋江，其余直接使用原始值）
 - 评分趋势（最近 10 章 vs 全局均值）
 - 各维度均值
 - 未回收伏笔数量和列表（planted/advanced）
@@ -98,6 +102,7 @@ description: >
 
 质量评分：
   均值：{avg}/5.0（近10章：{recent_avg}/5.0）
+  {platform_display_name}适配分：{weighted_avg}/5.0（仅当有 platform 时展示）
   最高：Ch {best_ch} — {best_score}
   最低：Ch {worst_ch} — {worst_score}
 
