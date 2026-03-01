@@ -303,8 +303,10 @@ Skill → 状态映射：
 
 9b. **Genre × Platform 组合检查**（非阻塞）：
    - 从 `brief.md` 读取 `genre`，从 `style-profile.json` 读取 `platform` 字段，若 `platform` 非空则检查 `templates/platforms/{platform}.md` 是否存在
-   - 无效组合（如 genre=纯爱BL + platform=番茄）→ 输出 WARNING 到用户但不阻塞流程
-   - 少见组合（如 genre=硬科幻 + platform=晋江）→ 输出 WARNING 建议确认目标受众
+   - 按以下 WARNING 表检查（参考 `skills/novel-writing/references/golden-chapter-criteria.md` § Genre × Platform 无效/少见组合）：
+     - 无效组合：`纯爱BL + 番茄` → WARNING "纯爱BL 在番茄平台不可发布，请确认平台选择"
+     - 少见组合：`硬科幻 + 晋江` / `硬核玄幻 + 晋江` / `言情 + 起点` → WARNING 建议确认目标受众
+   - WARNING 输出到用户但不阻塞流程
    - 无 platform_guide → 跳过此检查
 
 9c. **组装 PlotArchitect mini context**：

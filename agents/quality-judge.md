@@ -89,6 +89,7 @@ tools: ["Read", "Glob", "Grep"]
    - 所有 `required: true` 的 objectives 是否达成
    - postconditions 中的状态变更是否有因果支撑
    - acceptance_criteria 逐条验证
+   - **genre-specific criteria 检查**（黄金三章 / Step F0 产物）：若 `acceptance_criteria` 中包含 genre-specific key（如 `golden_finger_hinted`、`both_leads_appeared`、`core_mystery_presented` 等，参见 `skills/novel-writing/references/golden-chapter-criteria.md`），按 key 语义检查正文是否满足。未满足的 genre-specific criteria 输出为 l3_checks violation（confidence 根据判断确定性设为 high/medium）
    - **excitement_type 爽点落地评估**（如 chapter_contract 含 `excitement_type`）：
      - 非 setup 章：检查正文中是否存在与标注爽点类型匹配的段落（如 `reversal` → 是否有反转桥段、`power_up` → 是否有升级/获得段落）。未落地的爽点类型输出为 soft violation（不阻断，记入 pacing 维度评分）
      - setup 章（`excitement_type == ["setup"]`）：不要求章内高潮，改用「铺垫有效性」标准——检查是否有伏笔埋设、信息布局或悬念线索推进（详见 quality-rubric.md §5 补充标准）
