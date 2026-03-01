@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Chapter Evaluation Output",
+  "description": "QualityJudge evaluation output written to evaluations/chapter-{C:03d}-eval.json",
+  "type": "object",
+  "required": ["chapter", "eval_used", "metadata"],
+  "properties": {
+    "chapter": { "type": "integer", "minimum": 1 },
+    "eval_used": {
+      "type": "object",
+      "required": ["contract_verification", "scores", "overall_raw", "overall", "recommendation"],
+      "properties": {
+        "contract_verification": {
+          "type": "object",
+          "required": ["l1_checks", "l2_checks", "l3_checks", "ls_checks", "platform_hard_gates", "has_violations"],
+          "properties": {
+            "l1_checks": { "type": "array" },
+            "l2_checks": { "type": "array" },
+            "l3_checks": { "type": "array" },
+            "ls_checks": { "type": "array" },
+            "platform_hard_gates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["gate_id", "status", "detail"],
+                "properties": {
+                  "gate_id": { "type": "string", "pattern": "^[a-z]+_ch\\d{3}_" },
+                  "status": { "enum": ["pass", "fail", "skipped"] },
+                  "detail": { "type": "string" },
+                  "fix_suggestion": { "type": ["string", "null"] }
+                }
+              }
+            },
+            "has_violations": { "type": "boolean" },
+            "has_warnings": { "type": "boolean" }
+          }
+        },
+        "scores": {
+          "type": "object",
+          "required": ["plot_logic", "character", "immersion", "foreshadowing", "pacing", "style_naturalness", "emotional_impact", "storyline_coherence"],
+          "additionalProperties": {
+            "type": "object",
+            "required": ["score", "weight", "reason", "evidence"],
+            "properties": {
+              "score": { "type": "number", "minimum": 1, "maximum": 5 },
+              "weight": { "type": "number" },
+              "reason": { "type": "string" },
+              "evidence": { "type": "string" }
+            }
+          }
+        },
+        "overall_raw": { "type": "number", "minimum": 1, "maximum": 5 },
+        "overall_weighted": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+        "platform_weights": {
+          "type": ["object", "null"],
+          "properties": {
+            "pacing": { "type": "number" },
+            "character": { "type": "number" },
+            "immersion": { "type": "number" },
+            "foreshadowing": { "type": "number" },
+            "plot_logic": { "type": "number" },
+            "style_naturalness": { "type": "number" },
+            "emotional_impact": { "type": "number" },
+            "storyline_coherence": { "type": "number" }
+          }
+        },
+        "overall": { "type": "number", "minimum": 1, "maximum": 5 },
+        "recommendation": { "enum": ["pass", "polish", "revise", "review", "rewrite"] }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["judges", "gate"],
+      "properties": {
+        "judges": {
+          "type": "object",
+          "required": ["primary", "overall_final"],
+          "properties": {
+            "primary": {
+              "type": "object",
+              "required": ["model", "overall", "overall_raw"],
+              "properties": {
+                "model": { "type": "string" },
+                "overall": { "type": "number" },
+                "overall_raw": { "type": "number" },
+                "overall_weighted": { "type": ["number", "null"] }
+              }
+            },
+            "secondary": {
+              "type": "object",
+              "properties": {
+                "model": { "type": "string" },
+                "overall": { "type": "number" },
+                "overall_raw": { "type": "number" },
+                "overall_weighted": { "type": ["number", "null"] }
+              }
+            },
+            "used": { "type": "string", "enum": ["primary", "secondary"] },
+            "overall_final": { "type": "number", "minimum": 1, "maximum": 5 }
+          }
+        },
+        "gate": {
+          "type": "object",
+          "required": ["decision"],
+          "properties": {
+            "decision": { "type": "string" },
+            "revisions": { "type": "integer", "minimum": 0 },
+            "force_passed": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}

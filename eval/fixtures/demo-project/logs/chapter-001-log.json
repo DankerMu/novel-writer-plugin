@@ -8,6 +8,5 @@
   "gate_decision": "revise",
   "revisions": 1,
   "force_passed": false,
-  "judges": { "primary": { "model": "sonnet", "overall": 3.2 }, "used": "primary", "overall_final": 3.2 }
+  "judges": { "primary": { "model": "sonnet", "overall": 3.2, "overall_raw": 3.2, "overall_weighted": 3.2 }, "used": "primary", "overall_final": 3.2 }
 }
-

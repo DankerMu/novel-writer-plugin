@@ -123,7 +123,32 @@
 
 ## 综合分计算
 
-```
+**基础综合分（overall_raw）**：
+
+
+**平台加权综合分（overall_weighted）**：
+
+当 `paths.platform_guide` 存在且含 `## 评估权重` section 时，QualityJudge 读取平台乘数（multiplier_i），按直接公式计算：
+
+
+
+乘数即权重（从等权基准 1/8 推导），不叠加 base_weight。范围 [0.5, 2.0]，超出时钳位。
+
+无平台时 `overall = overall_raw`；有平台时 `overall = overall_weighted`。门控决策使用 `overall`。
+
+## 平台硬门（章节 001-003）
+
+当 `paths.platform_guide` 存在且章节 ≤ 003 时，Track 2 评分完成后执行平台特定硬门检查：
+
+| 平台 | 硬门示例 |
+|------|----------|
+| 番茄小说 | Ch001 主角 200 字内登场并面临冲突；每章末悬念钩子；Ch003 前至少一次反转 |
+| 起点中文网 | Ch003 世界观框架建立；immersion ≥ 3.5 |
+| 晋江文学城 | 主角人设行为展现；CP lead 登场；style_naturalness ≥ 3.5 |
+
+任一硬门 fail → 强制 revise，不受 overall score 影响。无平台或章节 > 003 时跳过。
+
+详见 `agents/quality-judge.md` § Platform Hard Gates。```
 overall = plot_logic × 0.18
         + character × 0.18
         + immersion × 0.15
@@ -139,7 +164,8 @@ overall = plot_logic × 0.18
 | 综合分范围 | 合规状态 | 行动 |
 |-----------|---------|------|
 | 任意 | 有 high-confidence violation | 强制修订（无论分数多高；仅 confidence="high" 触发，medium/low 记录警告不阻断） |
-| 4.0-5.0 | 无 violation | 直接通过 |
+| 任意 | 平台硬门任一 fail（Ch001-003 + platform_guide） | 强制修订（不受 overall 影响） |
+| 4.0-5.0 | 无 violation 且无硬门 fail | 直接通过 |
 | 3.5-3.9 | 无 violation | StyleRefiner 二次润色后通过 |
 | 3.0-3.4 | 无 violation | ChapterWriter（Opus）自动修订 |
 | 2.0-2.9 | 无 violation | 通知用户，人工审核决定重写范围 |
