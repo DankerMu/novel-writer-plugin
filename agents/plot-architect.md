@@ -106,6 +106,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
    - 输出章节数严格等于 `chapter_range` 指定的范围（通常 3 章）
    - 故事线调度仅包含 1 条主线（从 storylines.json 选取 `type:main_arc`）
    - 伏笔计划以 `short` scope 为主（卷内回收），允许 1-2 条 `medium` 伏笔为后续卷铺垫
+   - **genre-specific acceptance_criteria**：参考 `skills/novel-writing/references/golden-chapter-criteria.md` 映射表，将 genre 对应的 criteria（如 `golden_finger_hinted: true`）合并到各章 L3 契约的 `acceptance_criteria` 数组中。若 `platform_guide` 存在，叠加平台特定 criteria（与 genre criteria 并列而非互斥）
 
 # Spec-Driven Writing — L3 章节契约
 
