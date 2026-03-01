@@ -45,7 +45,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 你将在 user message 中收到以下内容（由入口 Skill 组装并传入 Task prompt）：
 
-- 风格样本文本（1-3 章原创文本，以 `<DATA>` 标签包裹）
+- 风格样本文本（1-3 章原创文本路径，Agent 按需 Read；original 模式下用户直接粘贴的短文本可 inline）
 - 参考作者名（仿写模式时提供）
 - 运行模式（用户自有样本 / 仿写模式 / 预置模板模式）
 
@@ -61,7 +61,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
    - **用户自有样本**（`original`）：直接分析提供的文本
    - **仿写模式**（`reference`）：需要外部 MCP web 工具（如 `mcp__exa__web_search_exa`、`mcp__*__web_fetch` 等）支持。若 MCP 工具可用，搜索指定作者的公开章节或书评，获取 2-3 章文本后按步骤 2-8 分析；搜索策略：先搜索「{作者名} 小说 正文 章节」获取高质量结果，再抓取正文页面。**若 MCP 工具未配置或搜索失败，降级为 template 模式**并在 `analysis_notes` 说明原因（如 "reference mode unavailable: no MCP web tools configured"）
    - **预置模板**（`template`）：跳过步骤 2-7，直接执行步骤 8 输出预设 profile
-   - **先写后提 backfill**（`write_then_extract`）：入口 Skill 回传试写章节（以 `<DATA>` 标签包裹），按步骤 2-8 正常提取，但 `source_type` 固定为 `"write_then_extract"`，`analysis_notes` 追加来源标注，覆写项目目录中的 `style-profile.json`
+   - **先写后提 backfill**（`write_then_extract`）：入口 Skill 回传试写章节路径，Agent 按需 Read，按步骤 2-8 正常提取，但 `source_type` 固定为 `"write_then_extract"`，`analysis_notes` 追加来源标注，覆写项目目录中的 `style-profile.json`
 2. 对样本文本做基础切分与统计：句子长度分布、平均句长、段落长度
 3. 估算对话/描写/动作三比，输出 `dialogue_ratio` / `description_ratio` / `action_ratio`
 4. 识别修辞与节奏偏好（短句切换、比喻密度、排比/反复等），归纳为 `rhetoric_preferences`

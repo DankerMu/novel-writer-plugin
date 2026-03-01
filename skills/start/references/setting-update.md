@@ -3,7 +3,7 @@
 1. 使用 AskUserQuestion 确认更新类型（世界观/新增角色/更新角色/退场角色/关系）
 2. 变更前快照（用于 Spec 传播差异分析，确定性）：
    - 世界观更新：
-     - Read `world/*.md`（如存在，以 `<DATA type="world_doc" ...>` 注入）
+     - Read `world/*.md`（传入路径列表，WorldBuilder 按需 Read）
      - Read `world/rules.json`（如存在）
    - 角色更新：Read 目标角色的 `characters/active/*.json`（如存在）
    - 退场角色（用于退场保护检查）：
