@@ -45,10 +45,10 @@
 ```
 
 根据用户选择，设置 `source_type` 并**立即收集该路径所需信息**：
-- 选项 1 → `source_type: "original"`，追问用户粘贴 1-3 章样本文本（存入临时变量，Step E 传给 StyleAnalyzer）
+- 选项 1 → `source_type: "original"`，追问用户粘贴 1-3 章样本文本（存入临时变量，Step E 传给 WorldBuilder 风格提取模式）
 - 选项 2 → `source_type: "reference"`，追问用户输入参考作者名（如"远瞳"、"猫腻"），存入 `reference_author` 变量
 - 选项 3 → `source_type: "template"`，展示预置模板列表让用户选择，存入 `style_template_id`
-- 选项 4 → `source_type: "write_then_extract"`（先跳过 StyleAnalyzer，试写后回填）
+- 选项 4 → `source_type: "write_then_extract"`（先跳过风格提取，试写后回填）
 
 **平台偏好采集**（在 Step B 内完成，不延迟到后续步骤）：
 
@@ -70,7 +70,7 @@
 
 `platform` 值在 Step C 写入 `style-profile.json` 的 `platform` 字段。
 
-> 关键：每条路径的补充信息必须在 Step B 内收齐，不得延迟到 Step E 再问。Step E 仅执行 StyleAnalyzer 派发，不再与用户交互。
+> 关键：每条路径的补充信息必须在 Step B 内收齐，不得延迟到 Step E 再问。Step E 仅执行风格提取派发，不再与用户交互。
 
 ##### Step B.5: Brief 交互完善（1-2 轮交互）
 
@@ -113,7 +113,7 @@
 1. 创建项目目录结构（参考 `docs/dr-workflow/novel-writer-tool/final/prd/09-data.md` §9.1）
 2. 从 `${CLAUDE_PLUGIN_ROOT}/templates/` 复制模板文件到项目目录（至少生成以下文件）：
    - `brief.md`：从 `brief-template.md` 复制并用用户输入填充占位符
-   - `style-profile.json`：从 `style-profile-template.json` 复制（后续由 StyleAnalyzer 填充）。若 Step B 采集了 `platform` 值（非 null），立即写入 `style-profile.json` 的 `platform` 字段
+   - `style-profile.json`：从 `style-profile-template.json` 复制（后续由 WorldBuilder 风格提取模式填充）。若 Step B 采集了 `platform` 值（非 null），立即写入 `style-profile.json` 的 `platform` 字段
    - `ai-blacklist.json`：从 `ai-blacklist.json` 复制
 3. **初始化最小可运行文件**（模板复制后立即创建，确保后续 Agent 可正常读取）：
    - `.checkpoint.json`：`{"last_completed_chapter": 0, "current_volume": 0, "orchestrator_state": "QUICK_START", "pipeline_stage": null, "inflight_chapter": null, "quick_start_step": "C", "revision_count": 0, "pending_actions": [], "last_checkpoint_time": "<now>"}`
@@ -126,7 +126,7 @@
 ##### Step D: 世界观 + 角色 + 故事线
 
 4. 使用 Task 派发 WorldBuilder Agent（**轻量模式**）：仅输出 ≤3 条核心 L1 hard 规则 + 精简叙述文档
-5. 使用 Task 派发 CharacterWeaver Agent 创建主角和核心配角（≤3 个角色）
+5. 使用 Task 派发 WorldBuilder Agent（**角色创建模式**）创建主角和核心配角（≤3 个角色）
 6. WorldBuilder 协助初始化 `storylines/storylines.json`（默认仅 1 条 `type:main_arc` 主线，不创建额外故事线）
 6.5. **研究资料建议检查**：若 WorldBuilder 输出了 `world/research-suggestions.json`，展示建议列表并提示：
    ```
@@ -143,9 +143,9 @@
 ##### Step E: 风格提取（或跳过）
 
 8. **按 Step B 选择的路径执行**（所需信息已在 Step B 收集完毕，此处**不再与用户交互**，直接派发 Agent）：
-   - `original`：用 Step B 收集的样本文本 → 派发 StyleAnalyzer（原创分析模式）
-   - `reference`：用 Step B 收集的 `reference_author` → 派发 StyleAnalyzer（仿写模式）
-   - `template`：用 Step B 收集的 `style_template_id` → 派发 StyleAnalyzer（模板模式）
+   - `original`：用 Step B 收集的样本文本 → 派发 WorldBuilder（风格提取模式）
+   - `reference`：用 Step B 收集的 `reference_author` → 派发 WorldBuilder（风格提取-仿写模式）
+   - `template`：用 Step B 收集的 `style_template_id` → 派发 WorldBuilder（风格提取-模板模式）
    - `write_then_extract`：跳过此步，使用默认 style-profile（`source_type: "write_then_extract"`，`writing_directives` 为空，统计字段为 null）。ChapterWriter 遇到 null 字段时应基于 brief 中的题材使用体裁默认值（如玄幻：`avg_sentence_length: 18, dialogue_ratio: 0.35, narrative_voice: "第三人称限制"`）
 9. 更新 `.checkpoint.json`：`quick_start_step = "E"`
 
@@ -197,7 +197,7 @@
 
 ##### Step F: 黄金三章试写（完整 pipeline）
 
-10. 使用 Task 逐章派发完整流水线（共 3 章），**复用 `/novel:continue` Step 2-3 的完整流水线**（ChapterWriter → Summarizer → StyleRefiner → QualityJudge → 质量门控）。
+10. 使用 Task 逐章派发完整流水线（共 3 章），**复用 `/novel:continue` Step 2-3 的完整流水线**（ChapterWriter(含润色) → Summarizer → QualityJudge(含读者评估) → 质量门控）。
 
     > Step F0 已生成 outline + L3 contracts + storyline-schedule + foreshadowing，本步骤使用与 `/novel:continue` 完全一致的完整流水线。
 
@@ -215,7 +215,7 @@
 ##### Step G: 展示结果 + 明确下一步
 
 12. 展示试写结果摘要：3 章标题 + 字数 + QualityJudge 评分（第 1 章标注双裁判结果）+ 门控决策 + 修订次数{有 platform 时附带平台适配分 `overall_weighted`}
-13. **若 Step B 选择了 `write_then_extract`**：此时派发 StyleAnalyzer 从试写 3 章**提取并填充** `style-profile.json` 的分析字段（`avg_sentence_length`、`dialogue_ratio`、`rhetoric_preferences` 等），`source_type` 保持 `"write_then_extract"` 不变
+13. **若 Step B 选择了 `write_then_extract`**：此时派发 WorldBuilder（风格提取模式）从试写 3 章**提取并填充** `style-profile.json` 的分析字段（`avg_sentence_length`、`dialogue_ratio`、`rhetoric_preferences` 等），`source_type` 保持 `"write_then_extract"` 不变
 14. 使用 AskUserQuestion 给出明确下一步选项：
 
 ```

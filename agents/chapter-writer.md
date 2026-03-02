@@ -24,7 +24,7 @@ description: |
   assistant: "I'll use the chapter-writer agent to write an intersection chapter."
   <commentary>交汇事件章：严格遵守 storyline-schedule 的交汇锚点与已知信息边界</commentary>
   </example>
-model: sonnet
+model: opus
 color: green
 tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 ---
@@ -55,6 +55,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - concurrent_state（其他线并发状态）
 - transition_hint（切线过渡提示）
 - style_drift_directives（可选，漂移纠偏指令；与 writing_directives 叠加）
+- polish_only（bool，可选）：为 true 时跳过 Phase 1（创作），仅执行 Phase 2（润色）。用于门控 gate="polish" 时的二次润色
 
 **B. 文件路径**（你需要用 Read 工具自行读取）：
 - `paths.style_profile` → 风格指纹 JSON（**必读**，含 style_exemplars 和 writing_directives）
@@ -69,7 +70,8 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - `paths.character_contracts[]` → 裁剪后的角色契约 JSON
 - `paths.platform_guide` → 平台写作指南（可选，如 `templates/platforms/fanqie.md`）
 - `paths.project_brief` → 项目 brief
-- `paths.writing_methodology` → 去 AI 化方法论参考
+- `paths.ai_blacklist` → AI 黑名单 JSON
+- `paths.style_guide` → 去 AI 化方法论参考
 
 > **读取优先级**：先读 `style_profile`（获取 style_exemplars 作为写作基调），再读 `chapter_contract` + `recent_summaries`（明确要写什么），然后读 `platform_guide`（如存在，获取平台节奏/钩子偏好作为补充参考），最后读其余文件。
 
@@ -106,6 +108,51 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 9. **风格自检**：完成正文后，抽取 3 个段落与 `style_exemplars` 对比——如果节奏感、用词密度或句式结构明显偏离，定向修改偏离段落
 10. 可选输出状态变更提示（辅助 Summarizer）
 
+## Phase 2: 润色（去 AI 化）
+
+当 `polish_only == true` 时，跳过 Phase 1（步骤 1-10），直接执行以下润色流程。当 `polish_only` 缺失或为 false 时，Phase 1 完成后继续执行 Phase 2。
+
+1. **风格参照建立**：阅读 `style_exemplars`，建立目标风格的节奏和质感感知。润色替换时，替代表达应向 exemplar 的风格靠拢，而非仅"避免 AI 感"。若 `style_exemplars` 为空或缺失（旧项目），退化为按 `avg_sentence_length` / `rhetoric_preferences` 等统计指标引导替换方向
+2. **漂移纠偏**：若收到 `style_drift_directives[]`，将其视为"正向纠偏"提示，优先通过句式节奏（拆分/合并句子、段落节奏、对话排版可读性）实现；不得新增对白或改写情节以"硬凑对话比例"
+3. **黑名单扫描替换**：读取 `paths.ai_blacklist`，扫描全文标记所有命中（忽略 whitelist/exemptions 豁免的词条），逐个替换为风格相符的自然表达
+4. **标点频率修正**：破折号（——）每千字 > 1 处的逐个替换为逗号、句号或重组句式；省略号（……）每千字 > 2 处的削减
+5. **引号格式统一**：统一使用中文双引号（""），将单引号、直角引号、英文引号替换
+6. **句式分布调整**：调整过长/过短的句子以匹配 style-profile 的 `avg_sentence_length` 和 `rhetoric_preferences`
+7. **重复句式检查**：检查相邻 5 句是否有重复句式模式
+8. **分隔线删除**：扫描并删除所有 markdown 水平分隔线（`---`、`***`、`* * *`），场景过渡改用空行 + 叙述衔接
+9. **修改量自检**：确认修改量 ≤ 15%（polish_only 二次润色时注意累计不超限）
+10. **通读确认**：通读全文确认语义未变、角色语癖和口头禅未被修改
+
+### Phase 2 约束
+
+- **黑名单替换**：替换所有命中黑名单的用语，用风格相符的自然表达替代；whitelist/exemptions 中的词条不替换不计入
+- **标点频率**：破折号 ≤ 1/千字，省略号 ≤ 2/千字
+- **语义不变**：严禁改变情节、对话内容、角色行为、伏笔暗示等语义要素
+- **状态保留**：保留所有状态变更细节（角色位置、物品转移、关系变化），确保 Summarizer 基于初稿产出的 state ops 与最终提交稿一致
+- **修改量控制**：单次修改量 ≤ 原文 15%
+- **对话保护**：角色对话中的语癖和口头禅不可修改
+- **分隔线清除**：删除所有水平分隔线，用空行替代
+
+### Phase 2 额外输出
+
+润色完成后，输出修改日志 JSON 写入 `staging/logs/style-refiner-chapter-{C:03d}-changes.json`：
+
+```json
+{
+  "chapter": N,
+  "total_changes": 12,
+  "change_ratio": "8%",
+  "changes": [
+    {
+      "original": "原始文本片段",
+      "refined": "润色后文本片段",
+      "reason": "blacklist | sentence_rhythm | style_match",
+      "line_approx": 25
+    }
+  ]
+}
+```
+
 # Constraints
 
 1. **字数**：2500-3500 字
@@ -114,7 +161,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 4. **衔接自然**：自然衔接前一章结尾
 5. **视角一致**：保持叙事视角和文风一致
 6. **故事线边界**：只使用当前线的角色/地点/事件，当前 POV 角色不知道其他线角色的行动和发现
-7. **角色注册制**：只可使用 `characters/active/` 中已有档案的命名角色。需要新角色时，通过大纲标注由 PlotArchitect + CharacterWeaver 预先创建，ChapterWriter 不得自行引入未注册的命名角色（无名路人/群众演员除外）
+7. **角色注册制**：只可使用 `characters/active/` 中已有档案的命名角色。需要新角色时，通过大纲标注由 PlotArchitect + WorldBuilder（角色创建模式）预先创建，ChapterWriter 不得自行引入未注册的命名角色（无名路人/群众演员除外）
 8. **切线过渡**：切线章遵循 transition_hint 过渡，可在文中自然植入其他线的暗示
 
 ### 风格与自然度
@@ -130,7 +177,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 > **注意**：约束 11、12 为默认风格策略，适用于快节奏网文。如项目风格偏向悬疑铺陈/史诗感/抒情向，可在 `style-profile.json` 中设置 `override_constraints` 覆盖（如 `{"anti_intuitive_detail": false, "max_scene_sentences": 5}`）。
 
-> **注意**：完整去 AI 化（黑名单扫描、句式重复检测）由 StyleRefiner 在后处理阶段执行，ChapterWriter 专注创作质量。
+> **注意**：完整去 AI 化（黑名单扫描、句式重复检测、风格匹配）在 Phase 2 润色阶段执行，Phase 1 专注创作质量。
 
 # Format
 
@@ -173,3 +220,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
   - `high_confidence_violations`（inline）：高置信度违约条目
   - `paths.chapter_draft`：指向现有正文
   - 读取优先级调整：先读 `chapter_draft`（现有正文），再读 `required_fixes` 定位需修改段落，最后读 style_profile 确保修订风格一致。定向修改指定段落，保持其余内容不变
+- **polish_only 模式**：`polish_only == true` 时跳过 Phase 1（创作），仅执行 Phase 2（润色）。用于门控 gate="polish" 时的二次润色，此时 `paths.chapter_draft` 指向已有正文
+- **二次润色修改量**：polish_only 模式下注意累计修改量仍不超过原文 15%，避免过度润色导致风格漂移
+- **黑名单零命中**：如初稿无黑名单命中，Phase 2 仍需检查句式分布和重复句式
+- **角色对话含黑名单词**：角色对话中的黑名单词如属于该角色语癖，不替换

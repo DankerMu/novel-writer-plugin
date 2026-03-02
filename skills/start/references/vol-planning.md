@@ -75,5 +75,5 @@
      - `mv staging/volumes/vol-{V:02d}/* → volumes/vol-{V:02d}/`（幂等覆盖）
      - 清空 `staging/volumes/` 和 `staging/foreshadowing/`
    - 读取 `volumes/vol-{V:02d}/new-characters.json`：
-     - 若非空：批量调用 CharacterWeaver 创建角色档案 + L2 契约（按 `first_chapter` 升序派发 Task，便于先创建早出场角色）
+     - 若非空：批量调用 WorldBuilder（角色创建模式）创建角色档案 + L2 契约（按 `first_chapter` 升序派发 Task，便于先创建早出场角色）
    - 更新 `.checkpoint.json`（`orchestrator_state = "WRITING"`, `pipeline_stage = null`, `inflight_chapter = null`, `revision_count = 0`）

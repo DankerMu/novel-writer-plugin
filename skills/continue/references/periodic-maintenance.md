@@ -25,7 +25,7 @@
 
 - 触发条件：last_completed_chapter % 5 == 0
 - 窗口：读取最近 5 章 `chapters/chapter-{C-4..C}.md`
-- 调用 StyleAnalyzer 提取当前 metrics（仅需 avg_sentence_length / dialogue_ratio；其余字段可忽略）
+- 调用 WorldBuilder（风格漂移检测模式）提取当前 metrics（仅需 avg_sentence_length / dialogue_ratio；其余字段可忽略）
 - 与 `style-profile.json` 基线对比（相对偏移，确定性公式）：
   - 前置检查：若 `base.avg_sentence_length` 为 null/0 或 `base.dialogue_ratio` 为 null/0，跳过对应维度的漂移检测（记录日志 "baseline metric unavailable, skipping drift check"）
   - `sentence_dev = abs(curr.avg_sentence_length - base.avg_sentence_length) / base.avg_sentence_length`
@@ -38,7 +38,7 @@
   - drifts[].directive 生成规则（最多 3 条，短句可执行）：
     - 句长偏长：强调短句/动作推进/拆句
     - 句长偏短：允许适度长句与节奏变化（但仍以 style-profile 为准）
-    - 对话偏少：强调通过对话推进（交给 ChapterWriter；StyleRefiner 不得硬造新对白）
+    - 对话偏少：强调通过对话推进（交给 ChapterWriter；Phase 2 不得硬造新对白）
     - 对话偏多：加强叙述性承接与内心活动（不删对白，仅调整段落与叙述衔接）
 - recovered=true：
   - 清除纠偏：删除 `style-drift.json` 或标记 `active=false`，并写入 `cleared_at/cleared_reason="metrics_recovered"`

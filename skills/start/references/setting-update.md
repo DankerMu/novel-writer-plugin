@@ -13,19 +13,19 @@
      - Read `foreshadowing/global.json`（如存在）
      - Read `storylines/storylines.json`（如存在）
      - Read `volumes/vol-{V:02d}/storyline-schedule.json`（如存在）
-3. 使用 Task 派发 WorldBuilder 或 CharacterWeaver Agent 执行增量更新（写入变更文件 + changelog）
+3. 使用 Task 派发 WorldBuilder Agent 执行增量更新（世界观模式或角色模式，写入变更文件 + changelog）
    - 世界观更新（WorldBuilder）增量输入字段（确定性字段名）：
      - `existing_world_docs`（`world/*.md` 原文集合）
      - `existing_rules_json`（`world/rules.json`）
      - `update_request`（新增/修改需求）
      - `last_completed_chapter`（从 `.checkpoint.json.last_completed_chapter` 读取，用于更新变更规则的 `last_verified`）
-   - 退场角色（CharacterWeaver）退场保护检查（入口 Skill 必须在调用退场模式前执行；`docs/dr-workflow/novel-writer-tool/final/prd/08-orchestrator.md` §8.5）：
+   - 退场角色（WorldBuilder 角色退场模式）退场保护检查（入口 Skill 必须在调用退场模式前执行；`docs/dr-workflow/novel-writer-tool/final/prd/08-orchestrator.md` §8.5）：
      - **保护条件 A — 活跃伏笔引用**：`foreshadowing/global.json` 中 scope ∈ {`medium`,`long`} 且 status != `resolved` 的条目，若其 `description`/`history.detail` 命中角色 `slug_id` 或 `display_name` → 不可退场
      - **保护条件 B — 故事线关联**：`storylines/storylines.json` 中任意 storyline（含 dormant/planned）若 `pov_characters` 或 `relationships.bridges.shared_characters` 命中角色 → 不可退场
      - `角色关联 storylines` 的计算：从 `storylines/storylines.json` 反查出包含该角色的 storyline `id` 集合（按 `pov_characters`/`bridges.shared_characters` 匹配 `slug_id`/`display_name`）；无法可靠确定时按保守策略视为有关联并阻止退场
      - **保护条件 C — 未来交汇事件**：本卷 `storyline-schedule.json.convergence_events` 若存在未来章节范围（相对 `last_completed_chapter`），且其 `involved_storylines` 与角色关联 storylines 有交集（或 `trigger/aftermath` 文本命中角色）→ 不可退场
-     - 若触发保护：拒绝退场并解释命中证据（伏笔/故事线/交汇事件），不调用 CharacterWeaver
-   - 退场保护检查通过后，使用 Task 派发 CharacterWeaver Agent 执行退场（无需重复检查）
+     - 若触发保护：拒绝退场并解释命中证据（伏笔/故事线/交汇事件），不执行退场
+   - 退场保护检查通过后，使用 Task 派发 WorldBuilder Agent（角色退场模式）执行退场（无需重复检查）
 4. 变更后差异分析与标记（最小实现；目的：可追溯传播，避免 silent drift）：
    - 若 `world/rules.json` 发生变化：
      - 找出变更的 `rule_id` 集合（按 `id` 对齐，diff `rule`/`constraint_type`/`exceptions` 等关键字段）
