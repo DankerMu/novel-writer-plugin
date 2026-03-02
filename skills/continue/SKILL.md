@@ -304,6 +304,15 @@ for chapter_num in range(start, start + remaining_N):
        - eval_used = primary_eval
      更新 checkpoint: pipeline_stage = "judged"
 
+  4.5. AudienceEval Agent → 读者视角评估（参与门控）
+     编排器组装 audience_eval_manifest（见 `references/context-contracts.md` § AudienceEval）：
+     - inline: chapter, volume, platform（从 style-profile.json 提取，已在 Step 2.6 读取）, excitement_type（从 chapter_contract 提取，已在 Step 2.5 解析）, is_golden_chapter（chapter <= 3）
+     - paths: chapter_draft, recent_summaries（近 2 章）, style_profile, chapter_contract
+     调用: Task(subagent_type="audience-eval")
+     超时: 60 秒；失败/超时 → audience_eval_result = null，记 WARNING 到 logs，继续流水线
+     成功: 将返回 JSON 写入 staging/evaluations/chapter-{C:03d}-audience.json
+     注意: AudienceEval 不更新 pipeline_stage（中断恢复时可跳过，非关键数据）
+
   5. 质量门控决策（Gate Decision Engine）:
      门控决策（详见 `references/gate-decision.md`）：
        - high-confidence violation → revise（强制修订）
@@ -314,11 +323,17 @@ for chapter_num in range(start, start + remaining_N):
        - overall ≥ 2.0 → pause_for_user（暂停，通知用户审核）
        - overall < 2.0 → pause_for_user_force_rewrite（强制重写，暂停）
        - 修订上限 2 次后 overall ≥ 3.0 且无 high violation 且无平台硬门 fail → force_passed
+     AudienceEval 叠加（详见 `references/gate-decision.md` § AudienceEval 叠加门控）：
+       - 黄金三章（≤003）engagement < 3.0 → 至少 revise（读者体验硬门）
+       - 普通章 QJ pass + engagement < 2.5 → 降为 polish
+       - AudienceEval 失败/超时 → 仅用 QJ 门控
+       - 降级时融合 reader_feedback + suspicious_skim_paragraphs 到修订指令
 
   6. 事务提交（staging → 正式目录）:
      - 移动 staging/chapters/chapter-{C:03d}.md → chapters/chapter-{C:03d}.md
      - 移动 staging/summaries/chapter-{C:03d}-summary.md → summaries/
      - 移动 staging/evaluations/chapter-{C:03d}-eval.json → evaluations/
+     - 移动 staging/evaluations/chapter-{C:03d}-audience.json → evaluations/（若存在；AudienceEval 失败时文件不存在，跳过）
      - 移动 staging/storylines/{storyline_id}/memory.md → storylines/{storyline_id}/memory.md
      - 移动 staging/state/chapter-{C:03d}-crossref.json → state/chapter-{C:03d}-crossref.json（保留跨线泄漏审计数据）
      - 合并 state delta: 校验 ops（§10.6）→ 逐条应用 → state_version += 1 → 追加 state/changelog.jsonl
@@ -357,7 +372,7 @@ for chapter_num in range(start, start + remaining_N):
        - 风格漂移检测（每 5 章）：StyleAnalyzer 提取 metrics → 与基线对比 → 漂移则写入 style-drift.json / 回归则清除 / 超时(>15章)则 stale_timeout
 
   7. 输出本章结果:
-     > 第 {C} 章已生成（{word_count} 字），评分 {overall_final}/5.0{有 platform 时追加「（{platform_display_name}适配分 {overall_weighted}）」}，门控 {gate_decision}，修订 {revision_count} 次 {pass_icon}
+     > 第 {C} 章已生成（{word_count} 字），评分 {overall_final}/5.0{有 platform 时追加「（{platform_display_name}适配分 {overall_weighted}）」}{有 audience_eval 时追加「，读者参与度 {overall_engagement}/5.0」}，门控 {gate_decision}，修订 {revision_count} 次 {pass_icon}
 ```
 
 ### Step 4: 定期检查触发

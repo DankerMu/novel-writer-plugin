@@ -165,4 +165,17 @@
 | 2.0-2.9 | 无 violation | `review` | `pause_for_user` | 暂停，通知用户审核决定下一步 |
 | < 2.0 | 无 violation | `rewrite` | `pause_for_user_force_rewrite` | 暂停，建议全章重写（等待用户通过 `/novel:start` 决策） |
 
-**修订上限兜底**：修订 2 次后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail → `force_passed=true`，允许提交（避免无限循环）。
+**修订上限兜底**：修订 2 次后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail 且无 AudienceEval 黄金三章硬门 fail → `force_passed=true`，允许提交（避免无限循环）。
+
+## AudienceEval 读者体验门控（M7）
+
+> AudienceEval 在 QualityJudge 之后执行，输出 `overall_engagement`（1-5）。其结果**只能降级**门控决策，不能升级。AudienceEval 失败/超时时仅用 QJ 门控（优雅降级）。
+
+| 场景 | engagement 条件 | 叠加动作 |
+|------|----------------|----------|
+| 黄金三章（≤003） | < 3.0 | gate_decision 至少 revise（读者体验硬门） |
+| 普通章 QJ=pass | < 2.5 | gate_decision 降为 polish |
+| 普通章 QJ=pass | < 3.0 | WARNING 记录（不降级） |
+| AudienceEval 失败 | — | 仅用 QJ 门控 |
+
+降级时编排器将 `reader_feedback` + `suspicious_skim_paragraphs` 注入 ChapterWriter 修订指令。
