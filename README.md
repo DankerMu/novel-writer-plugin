@@ -1,6 +1,6 @@
 # novel — 中文网文多 Agent 协作创作系统
 
-Claude Code 插件，8 个 AI Agent 协作完成网文创作全流程：世界观构建 → 卷级规划 → 章节续写 → 风格润色 → 质量验收。内置去 AI 化四层策略和 Spec-Driven 规范体系，产出接近人类写手的长篇中文网络小说。
+Claude Code 插件，9 个 AI Agent 协作完成网文创作全流程：世界观构建 → 卷级规划 → 章节续写 → 风格润色 → 质量验收 → 读者体验评估。内置去 AI 化四层策略和 Spec-Driven 规范体系，产出接近人类写手的长篇中文网络小说。
 
 ## 快速开始
 
@@ -75,7 +75,7 @@ ChapterWriter → Summarizer → StyleRefiner → QualityJudge
     续写           摘要+状态       去AI润色        双轨验收
 ```
 
-### 8 Agent 协作体系
+### 9 Agent 协作体系
 
 | Agent | 模型 | 职责 |
 |-------|------|------|
@@ -87,6 +87,7 @@ ChapterWriter → Summarizer → StyleRefiner → QualityJudge
 | **StyleAnalyzer** | Sonnet | 用户样本 → 风格指纹 (`style-profile.json`) |
 | **StyleRefiner** | Opus | 去 AI 化润色（黑名单替换 + 风格匹配） |
 | **QualityJudge** | Sonnet | 双轨验收：合规检查 + 8 维度评分 |
+| **AudienceEval** | Sonnet | 读者视角：6 维度体验评分 + 跳读检测 + 情感弧线 |
 
 ### Spec-Driven 四层规范
 
@@ -123,7 +124,8 @@ ChapterWriter → Summarizer → StyleRefiner → QualityJudge
 
 ```
 .claude-plugin/plugin.json     插件入口
-agents/                        8 个 Agent 定义
+agents/                        9 个 Agent 定义
+  audience-eval.md
   chapter-writer.md
   character-weaver.md
   plot-architect.md
