@@ -48,7 +48,8 @@
 ## 人性化技法跨章追踪（每 5 章触发）
 
 - 触发条件：与风格漂移检测同步（last_completed_chapter % 5 == 0）
-- 读取近 5 章 eval JSON 的 `anti_ai.detected_humanize_techniques[]`
+- 读取近 5 章 eval JSON 的 `anti_ai.statistical_profile.detected_humanize_techniques[]`
+- 前置检查：若窗口内 ≥ 3 章 eval 缺失 `anti_ai.statistical_profile.detected_humanize_techniques` 字段（null 或不存在），跳过本周期 humanize_drought 判定（记录日志 "humanize data unavailable for majority of window, skipping"）
 - 统计 5 章内 unique technique tag 数量
 - 判定：
   - unique == 0（连续 5 章零技法）→ 输出 risk_flag `humanize_drought` WARNING

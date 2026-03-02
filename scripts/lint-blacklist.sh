@@ -187,6 +187,8 @@ def main() -> None:
     hits.sort(key=lambda x: (-int(x["count"]), str(x["word"])))
 
     # --- narration_only stats: check if hits are inside quotes ---
+    # Use masked_lines to avoid counting substrings already consumed by longer phrases
+    masked_lines = masked_text.splitlines()
     narration_only_narration_hits = 0
     narration_only_dialogue_skipped = 0
     narration_only_details: List[Dict[str, Any]] = []
@@ -195,16 +197,16 @@ def main() -> None:
         w = hit_entry["word"]
         if w not in narration_only_words:
             continue
-        for idx, line in enumerate(lines, start=1):
-            if w not in line:
+        for idx, (mline, oline) in enumerate(zip(masked_lines, lines), start=1):
+            if w not in mline:
                 continue
-            # Chinese double-quote parity: count \u201c before each occurrence
+            # Chinese double-quote parity: count \u201c before each occurrence in original line
             pos = 0
             while True:
-                found = line.find(w, pos)
+                found = mline.find(w, pos)
                 if found == -1:
                     break
-                prefix = line[:found]
+                prefix = oline[:found]
                 open_quotes = prefix.count("\u201c")
                 close_quotes = prefix.count("\u201d")
                 in_dialogue = (open_quotes > close_quotes)
@@ -213,7 +215,7 @@ def main() -> None:
                 else:
                     narration_only_narration_hits += 1
                     if len(narration_only_details) < 10:
-                        snippet = line.strip()
+                        snippet = oline.strip()
                         if len(snippet) > 160:
                             snippet = snippet[:160] + "\u2026"
                         narration_only_details.append(
