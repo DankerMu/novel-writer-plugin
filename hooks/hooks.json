@@ -1,10 +1,15 @@
 {
-  "description": "Novel writer: SessionStart context injection + PreToolUse staging path audit",
+  "description": "Novel writer: venv bootstrap + SessionStart context injection + PreToolUse staging path audit",
   "hooks": {
     "SessionStart": [
       {
         "matcher": "*",
         "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x \"${CLAUDE_PLUGIN_ROOT}/.venv/bin/python3\" ] || python3 -m venv \"${CLAUDE_PLUGIN_ROOT}/.venv\"",
+            "timeout": 10
+          },
           {
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/inject-context.sh",
