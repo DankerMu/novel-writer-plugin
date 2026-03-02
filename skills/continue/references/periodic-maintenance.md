@@ -3,7 +3,7 @@
 ## AI 黑名单动态维护（不阻断）
 
 - 从 eval_used.anti_ai.blacklist_update_suggestions[] 读取新增候选（必须包含：phrase + count_in_chapter + examples）
-- 增长上限检查：若 `words[]` 长度 >= 80，跳过自动追加，仅记录到 `update_log[]`（source="auto_skipped_cap"），并在 `/novel:start` 质量回顾中提示用户审核黑名单规模
+- 增长上限检查：若 `words[]` 长度 >= 120，跳过自动追加，仅记录到 `update_log[]`（source="auto_skipped_cap"），并在 `/novel:start` 质量回顾中提示用户审核黑名单规模
 - 自动追加门槛（保守，避免误伤）：
   - `confidence in {medium, high}` 且 `count_in_chapter >= 3` -> 才允许自动追加
   - 其余仅记录为"候选建议"，不自动写入（可在 `/novel:start` 质量回顾中提示用户手动处理）
@@ -44,3 +44,17 @@
   - 清除纠偏：删除 `style-drift.json` 或标记 `active=false`，并写入 `cleared_at/cleared_reason="metrics_recovered"`
 - 超时清除：若当前章 - `style-drift.json.detected_chapter` > 15（即纠偏指令已注入超过 15 章仍未回归），自动标记 `active=false`，`cleared_reason="stale_timeout"`
 - 其余情况：保持现状（不新增、不清除），避免频繁抖动
+
+## 人性化技法跨章追踪（每 5 章触发）
+
+- 触发条件：与风格漂移检测同步（last_completed_chapter % 5 == 0）
+- 读取近 5 章 eval JSON 的 `anti_ai.statistical_profile.detected_humanize_techniques[]`
+- 前置检查：若窗口内 ≥ 3 章 eval 缺失 `anti_ai.statistical_profile.detected_humanize_techniques` 字段（null 或不存在），跳过本周期 humanize_drought 判定（记录日志 "humanize data unavailable for majority of window, skipping"）
+- 统计 5 章内 unique technique tag 数量
+- 判定：
+  - unique == 0（连续 5 章零技法）→ 输出 risk_flag `humanize_drought` WARNING
+  - unique > 0 → 正常，不做干预
+- humanize_drought 处理：
+  - 将提示注入下章 `style_drift_directives`："近 5 章未使用任何人性化技法（style-guide §2.9），在合适场景中自然融入"
+  - 仅注入一次，下个 5 章周期重新评估
+- 注意：不设最低配额——humanize_drought 仅为温和提醒，不阻断流水线

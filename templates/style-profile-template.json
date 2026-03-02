@@ -16,6 +16,21 @@
   "sentence_length_range": [null, null],
   "_sentence_length_range_comment": "[最短句, 最长句]，如 [8, 35]",
 
+  "sentence_length_std_dev": null,
+  "_sentence_length_std_dev_comment": "句长标准差（字）。人类范围 8-18，AI 特征 < 6。由 WorldBuilder Mode 7 提取",
+
+  "paragraph_length_cv": null,
+  "_paragraph_length_cv_comment": "段落长度变异系数（std_dev / mean）。人类范围 0.4-1.2，AI 特征 < 0.3",
+
+  "emotional_volatility": null,
+  "_emotional_volatility_comment": "情感波动性（high/medium/low）。high = 有突变和矛盾，low = 单弧线平滑推进",
+
+  "register_mixing": null,
+  "_register_mixing_comment": "语域混合程度（high/medium/low）。high = 同章自然波动，low = 全文统一腔调",
+
+  "vocabulary_richness": null,
+  "_vocabulary_richness_comment": "词汇丰富度（high/medium/low）。high = 修饰词少复现，low = 高频复用缓缓微微等",
+
   "dialogue_ratio": null,
   "_dialogue_ratio_comment": "对话占全文比例，如 0.4 表示 40%",
 

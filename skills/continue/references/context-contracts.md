@@ -52,6 +52,7 @@ chapter_writer_manifest = {
     project_brief: "brief.md",
     ai_blacklist: "ai-blacklist.json",                                        # Phase 2 润色用
     style_guide: "skills/novel-writing/references/style-guide.md",              # Phase 2 润色参考
+    quality_rubric: "skills/novel-writing/references/quality-rubric.md",          # Phase 2 评分标准参考（含 §6 七指标）
   }
 }
 ```
@@ -113,6 +114,7 @@ quality_judge_manifest = {
   platform: str | null,                          # 从 style-profile.json 提取（fanqie | qidian | jinjiang | null）
   excitement_type: [str] | null,                 # 从 chapter_contract 提取（可选）
   is_golden_chapter: bool,                       # chapter <= 3
+  narration_only_lint: obj | null,                  # lint-blacklist.sh 的 narration_only_stats 输出
 
   # ── paths ──
   paths: {
