@@ -322,10 +322,11 @@ for chapter_num in range(start, start + remaining_N):
        - overall ≥ 3.0 → revise（ChapterWriter Opus 修订，最多 2 轮）
        - overall ≥ 2.0 → pause_for_user（暂停，通知用户审核）
        - overall < 2.0 → pause_for_user_force_rewrite（强制重写，暂停）
-       - 修订上限 2 次后 overall ≥ 3.0 且无 high violation 且无平台硬门 fail → force_passed
-     AudienceEval 叠加（详见 `references/gate-decision.md` § AudienceEval 叠加门控）：
+       - 修订上限 2 次后 overall ≥ 3.0 且无 high violation 且无平台硬门 fail 且无 AudienceEval 黄金三章硬门 fail → force_passed
+     AudienceEval 叠加（只降级不升级；详见 `references/gate-decision.md` § AudienceEval 叠加门控）：
        - 黄金三章（≤003）engagement < 3.0 → 至少 revise（读者体验硬门）
        - 普通章 QJ pass + engagement < 2.5 → 降为 polish
+       - 普通章 QJ pass + 2.5 ≤ engagement < 3.0 → WARNING 记录（不降级）
        - AudienceEval 失败/超时 → 仅用 QJ 门控
        - 降级时融合 reader_feedback + suspicious_skim_paragraphs 到修订指令
 
@@ -394,7 +395,7 @@ Ch {X}: {字数}字 {分数} {状态} | Ch {X+1}: {字数}字 {分数} {状态} 
 
 ## 约束
 
-- 每章严格按 ChapterWriter → Summarizer → StyleRefiner → QualityJudge 顺序
+- 每章严格按 ChapterWriter → Summarizer → StyleRefiner → QualityJudge → AudienceEval 顺序
 - 质量不达标时自动修订最多 2 次
 - 写入使用 staging → commit 事务模式（详见 Step 2-6）
 - **Agent 写入边界**：所有 Agent（ChapterWriter/Summarizer/StyleRefiner）仅写入 `staging/` 目录，正式目录（`chapters/`、`summaries/`、`state/`、`storylines/`、`evaluations/`）由入口 Skill 在 commit 阶段操作。QualityJudge 为只读，不写入任何文件

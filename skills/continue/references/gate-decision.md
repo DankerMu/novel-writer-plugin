@@ -65,6 +65,8 @@ else:
 
 
 
+
+
 **max_severity 优先级**：`pause_for_user_force_rewrite` > `pause_for_user` > `revise` > `polish` > `pass`。
 
 **修订指令融合**：当 AudienceEval 触发降级（engagement 不足导致 gate_decision 从 pass 变为 polish/revise）时，编排器将以下内容追加到 ChapterWriter 修订 manifest 的 `required_fixes`：
