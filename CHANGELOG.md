@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.9.0
+
+### M7：AudienceEval 读者视角评估
+
+1. **AudienceEval Agent** — 第 9 个 Agent，以第一人称读者视角评估章节吸引力；4 套平台 persona（番茄碎片阅读者/起点付费追更者/晋江情感投入者/通用普通读者）
+2. **6 维度读者评分** — continue_reading / hook_effectiveness / skip_urge / confusion / empathy / freshness，权重因平台而异
+3. **跳读检测** — 标注 1-3 个最可能被读者跳过的段落（severity: high/medium）
+4. **情感弧线** — 逐段采样情绪强度，分类弧线形状（V型/上升型/下降型/W型/平坦型等）
+5. **平台信号** — 番茄（读完率/三日留存/追更冲动）、起点（首订/均订/月票）、晋江（留评/CP感/营养液）+ 第一人称一句话读后感
+6. **参与门控** — 黄金三章 engagement<3.0 → revise；普通章 pass+engagement<2.5 → polish；失败降级到仅 QJ 门控
+7. **Dashboard 读者参与度** — 新增读者参与度区块（6 维度均值、跳读警告、弧线分布、平台信号趋势、读后感）
+
+### 其他
+
+8. **Python venv 隔离** — 所有 scripts/*.sh 优先使用 .venv/bin/python3，fallback 系统 python3
+
 ## v1.8.0
 
 ### M5：上下文质量增强
