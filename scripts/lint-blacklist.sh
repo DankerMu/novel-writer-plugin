@@ -125,6 +125,14 @@ def main() -> None:
 
     whitelist = _get_whitelist_words(blacklist)
 
+    # Extract narration_only words from categories
+    narration_only_words: Set[str] = set()
+    categories = blacklist.get("categories", {})
+    for _cat_key, cat_val in categories.items():
+        if isinstance(cat_val, dict) and cat_val.get("narration_only"):
+            for w in _as_str_list(cat_val.get("words", [])):
+                narration_only_words.add(w)
+
     effective_words = [w.strip() for w in words if isinstance(w, str) and w.strip() and w.strip() not in whitelist]
     effective_words = list(dict.fromkeys(effective_words))  # dedup preserving order
 
@@ -178,6 +186,48 @@ def main() -> None:
 
     hits.sort(key=lambda x: (-int(x["count"]), str(x["word"])))
 
+    # --- narration_only stats: check if hits are inside quotes ---
+    narration_only_narration_hits = 0
+    narration_only_dialogue_skipped = 0
+    narration_only_details: List[Dict[str, Any]] = []
+
+    for hit_entry in hits:
+        w = hit_entry["word"]
+        if w not in narration_only_words:
+            continue
+        for idx, line in enumerate(lines, start=1):
+            if w not in line:
+                continue
+            # Chinese double-quote parity: count \u201c before each occurrence
+            pos = 0
+            while True:
+                found = line.find(w, pos)
+                if found == -1:
+                    break
+                prefix = line[:found]
+                open_quotes = prefix.count("\u201c")
+                close_quotes = prefix.count("\u201d")
+                in_dialogue = (open_quotes > close_quotes)
+                if in_dialogue:
+                    narration_only_dialogue_skipped += 1
+                else:
+                    narration_only_narration_hits += 1
+                    if len(narration_only_details) < 10:
+                        snippet = line.strip()
+                        if len(snippet) > 160:
+                            snippet = snippet[:160] + "\u2026"
+                        narration_only_details.append(
+                            {"word": w, "line": idx, "in_dialogue": in_dialogue, "snippet": snippet}
+                        )
+                pos = found + len(w)
+
+    narration_only_stats: Dict[str, Any] = {
+        "narration_only_narration_hits": narration_only_narration_hits,
+        "narration_only_dialogue_skipped": narration_only_dialogue_skipped,
+        "narration_only_per_kchars": round(narration_only_narration_hits / (non_ws_chars / 1000.0), 3) if non_ws_chars > 0 else 0.0,
+        "details": narration_only_details,
+    }
+
     hits_per_kchars = 0.0
     if non_ws_chars > 0:
         hits_per_kchars = total_hits / (non_ws_chars / 1000.0)
@@ -192,6 +242,7 @@ def main() -> None:
         "total_hits": total_hits,
         "hits_per_kchars": round(hits_per_kchars, 3),
         "hits": hits,
+        "narration_only_stats": narration_only_stats,
     }
 
     sys.stdout.write(json.dumps(out, ensure_ascii=False) + "\n")

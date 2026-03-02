@@ -65,7 +65,47 @@
           }
         },
         "overall": { "type": "number", "minimum": 1, "maximum": 5 },
-        "recommendation": { "enum": ["pass", "polish", "revise", "review", "rewrite"] }
+        "recommendation": { "enum": ["pass", "polish", "revise", "review", "rewrite"] },
+        "anti_ai": {
+          "type": ["object", "null"],
+          "properties": {
+            "blacklist_hits": {
+              "type": "object",
+              "properties": {
+                "total_hits": { "type": "integer" },
+                "hits_per_kchars": { "type": "number" },
+                "top_hits": { "type": "array" },
+                "narration_connector_hits": { "type": "integer" },
+                "narration_connector_examples": { "type": "array", "items": { "type": "string" } }
+              }
+            },
+            "punctuation_overuse": {
+              "type": "object",
+              "properties": {
+                "em_dash_count": { "type": "integer" },
+                "em_dash_per_kchars": { "type": "number" },
+                "ellipsis_count": { "type": "integer" },
+                "ellipsis_per_kchars": { "type": "number" }
+              }
+            },
+            "statistical_profile": {
+              "type": ["object", "null"],
+              "properties": {
+                "sentence_length_std_dev": { "type": ["number", "null"] },
+                "sentence_length_target_range": { "type": ["array", "null"], "items": { "type": "number" } },
+                "sentence_length_in_range": { "type": ["boolean", "null"] },
+                "paragraph_length_cv": { "type": ["number", "null"] },
+                "narration_connector_density": { "type": ["number", "null"] },
+                "modifier_repeat_max": { "type": ["integer", "null"] },
+                "detected_humanize_techniques": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            },
+            "blacklist_update_suggestions": { "type": "array" }
+          }
+        }
       }
     },
     "metadata": {

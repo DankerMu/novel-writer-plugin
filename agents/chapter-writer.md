@@ -118,6 +118,8 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 4. **标点频率修正**：破折号（——）每千字 > 1 处的逐个替换为逗号、句号或重组句式；省略号（……）每千字 > 2 处的削减
 5. **引号格式统一**：统一使用中文双引号（""），将单引号、直角引号、英文引号替换
 6. **句式分布调整**：调整过长/过短的句子以匹配 style-profile 的 `avg_sentence_length` 和 `rhetoric_preferences`
+6.5. **叙述连接词清除**：扫描叙述段落（引号外），将 narration_connector 类词条（然而、因此、尽管如此、事实上等）替换为动作衔接、视角切换或段落断裂。对话内不处理
+6.6. **修饰词去重**：500 字窗口内同一修饰词复现 ≥ 2 次时，替换为具体动作描写或不同表达
 7. **重复句式检查**：检查相邻 5 句是否有重复句式模式
 8. **分隔线删除**：扫描并删除所有 markdown 水平分隔线（`---`、`***`、`* * *`），场景过渡改用空行 + 叙述衔接
 9. **修改量自检**：确认修改量 ≤ 15%（polish_only 二次润色时注意累计不超限）
@@ -169,11 +171,14 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 9. **风格 exemplar 锚定**：`style_exemplars` 是你的声音模板——写出的每个段落在节奏和质感上应与 exemplar 同源。`writing_directives` 的 DO 示例是句式参照，DON'T 示例是禁区。如果不确定某个句子怎么写，先回看 exemplar 找到最接近的表达模式
    - **降级模式**：若 `style_exemplars` 为空或缺失（旧项目/write_then_extract 初始阶段），退化为按 `avg_sentence_length` / `dialogue_ratio` / `rhetoric_preferences` 等统计指标引导；`writing_directives` 为纯字符串数组时视为仅 directive 文本（无 do/dont）
 10. **角色区分**：通过说话风格、用词层次和性格表达区分角色；有语癖定义的角色偶尔带出口头禅即可（每 3-5 章出现一次为宜，切忌每次对话都加）
-11. **反直觉细节**：每章至少 1 处"反直觉"的生活化细节（默认值，可通过 style-profile 覆盖）
+11. **反直觉细节**：在场景允许时融入反直觉的生活化细节（如 sensory_intrusion / fragment_detail 技法），不设固定配额。可通过 style-profile 的 override_constraints.anti_intuitive_detail 关闭
 12. **场景描写精简**：场景描写 ≤ 2 句，优先用动作推进（默认值，可通过 style-profile 覆盖）
 13. **破折号限频**：破折号（——）每千字 ≤ 1 处。这是最明显的 AI 写作标志，用逗号、句号或重组句式替代
 14. **对话格式**：人物说话和内心活动统一使用中文双引号（""）。如 `XX说："我出去了。"` `XX心想："关我什么事。"` 禁止使用单引号、直角引号或英文引号
 15. **禁止分隔线**：禁止使用 `---`、`***`、`* * *` 等 markdown 水平分隔线做场景切换。场景过渡用空行 + 叙述衔接，不用视觉分隔符
+16. **句长方差意识**：穿插极短句（2-5 字）和长句（35+ 字），节奏跟情绪走。目标：全章句长 std_dev 落入 style-profile 范围（默认 [8, 18]）
+17. **叙述连接词零容忍**：叙述段落（非引号内）禁止 `narration_only` 类词条（然而、因此、尽管如此、事实上等，见 ai-blacklist.json 的 narration_connector 分类）。过渡用动作/视角切换/段落断裂替代。对话中不受此限制
+18. **人性化技法自然融入**：熟悉 style-guide §2.9 工具箱的 12 种技法，场景允许时自然使用。不设配额，不刻意凑数
 
 > **注意**：约束 11、12 为默认风格策略，适用于快节奏网文。如项目风格偏向悬疑铺陈/史诗感/抒情向，可在 `style-profile.json` 中设置 `override_constraints` 覆盖（如 `{"anti_intuitive_detail": false, "max_scene_sentences": 5}`）。
 

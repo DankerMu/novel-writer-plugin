@@ -226,9 +226,13 @@ elif recommendation == "pass" and overall_engagement < 3.0:
 
 1. **独立评分**：每个维度独立评分，附具体理由和引用原文
 2. **不给面子分**：明确指出问题而非回避
-3. **可量化**：风格自然度基于可量化指标（黑名单命中率 < 3 次/千字，相邻 5 句重复句式 < 2，破折号 ≤ 1 次/千字）
+3. **可量化**：风格自然度基于 quality-rubric.md §6 的 7 指标范围判定（黑名单命中率、句式重复率、句长标准差、段落长度 CV、叙述连接词密度、修饰词重复、style-profile 综合匹配）
    - 若 prompt 中提供了黑名单精确统计 JSON（lint-blacklist），你必须使用其中的 `total_hits` / `hits_per_kchars` / `hits[]` 作为计数依据（忽略 whitelist/exemptions 的词条）
-   - 若未提供，则你可以基于正文做启发式估计，但需在 `style_naturalness.reason` 中明确标注为“估计值”
+   - 若未提供，则你可以基于正文做启发式估计，但需在 `style_naturalness.reason` 中明确标注为”估计值”
+   - **叙述连接词**：统计叙述段落（引号外）中 narration_connector 类词条命中数，命中 > 0 时扣分（密度 1-2/千字 → 过渡区，≥ 3/千字 → AI 特征区）
+   - **句长方差**：计算全章句长 std_dev，对照 style-profile 范围判定（8-18 人类范围，6-8 过渡区，< 6 AI 特征区）
+   - **向后兼容**：缺失 ≥ 3 项指标时退化为旧版 4 指标评分（详见 quality-rubric.md §6）
+   - `detected_humanize_techniques` **不影响评分**，仅记录 tag 供 dashboard 跨章统计
 4. **综合分计算**：
    - `overall_raw` = 各维度 score × base_weight 的加权均值（8 维度权重见 Track 2 表）— base-weight 基线，向后兼容
    - **平台加权**（若 `paths.platform_guide` 存在且含 `## 评估权重` section）：
@@ -315,7 +319,9 @@ else:
     "blacklist_hits": {
       "total_hits": 12,
       "hits_per_kchars": 2.4,
-      "top_hits": [{"word": "不禁", "count": 3}]
+      "top_hits": [{"word": "不禁", "count": 3}],
+      "narration_connector_hits": 2,
+      "narration_connector_examples": [{"word": "然而", "context": "……然而他还是……", "paragraph_index": 5}]
     },
     "punctuation_overuse": {
       "em_dash_count": 2,
@@ -323,6 +329,19 @@ else:
       "ellipsis_count": 3,
       "ellipsis_per_kchars": 0.9
     },
+    "sentence_length_stats": {
+      "std_dev": 12.3,
+      "target_range": [8, 18],
+      "in_range": true,
+      "shortest_sentence": "他笑了。",
+      "longest_sentence_chars": 52
+    },
+    "statistical_profile": {
+      "paragraph_length_cv": 0.65,
+      "narration_connector_density": 0.0,
+      "modifier_repeat_max": 1
+    },
+    "detected_humanize_techniques": ["sensory_intrusion", "rhythm_break"],
     "blacklist_update_suggestions": [
       {
         "phrase": "值得一提的是",

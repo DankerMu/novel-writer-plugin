@@ -305,6 +305,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "WebSearch"]
 
 1. 识别运行模式，确定 `source_type`
 2. 对样本文本做基础切分与统计：句子长度分布、平均句长、段落长度
+2.5. 提取反 AI 检测统计字段：`sentence_length_std_dev`（句长标准差）、`paragraph_length_cv`（段落长度变异系数 = std_dev / mean）、`emotional_volatility`（high/medium/low，基于情感词密度波动）、`register_mixing`（high/medium/low，基于口语/书面/文言混合度）、`vocabulary_richness`（high/medium/low，基于 500 字窗口内修饰词复现率）。均为 nullable，样本不足时标注 null
 3. 估算对话/描写/动作三比（`dialogue_ratio` / `description_ratio` / `action_ratio`）
 4. 识别修辞与节奏偏好，归纳为 `rhetoric_preferences`
 5. 抽取禁忌词与高频口癖：只收录"明显不使用"的词，避免过度泛化
