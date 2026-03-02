@@ -1,5 +1,27 @@
 # Changelog
 
+## v2.0.0
+
+### 架构：9 Agent → 5 Agent 整合
+
+1. **WorldBuilder 吸收 CharacterWeaver + StyleAnalyzer** — Mode 4-6（角色创建/更新/退场）+ Mode 7-8（风格提取/漂移检测）合并为 WorldBuilder 的 8 种运行模式
+2. **ChapterWriter 吸收 StyleRefiner** — Phase 2 润色内化到 ChapterWriter，省去一次独立 Agent 调用
+3. **QualityJudge 吸收 AudienceEval** — Track 3 读者参与度评估内化到 QualityJudge 的三轨验收流程
+4. **3 步流水线** — 单章流水线从 CW→SR→Sum→AE→QJ 简化为 CW→Sum→QJ
+5. **全 Agent Opus 统一** — 5 个 Agent 均使用 opus 模型
+
+### 反朱雀统计特征检测（Anti-AI Detection Upgrade）
+
+6. **7 指标风格自然度评分** — 从旧版 4 指标（黑名单+句式重复+破折号+匹配度）升级为 7 指标三区范围判定（新增句长标准差、段落长度 CV、叙述连接词密度、修饰词重复），含向后兼容退化
+7. **统计分布目标（§2.8）** — 6 维度统计参照（句长方差、段落长度变异、词汇多样性、叙述连接词、语域混合、情感弧线），ChapterWriter 内隐参照
+8. **人性化技法工具箱（§2.9）** — 12 种技法随机采样（thought_interrupt / sensory_intrusion / self_correction / emotion_whiplash 等），零配额设计
+9. **黑名单扩展** — 45→82 词，新增 3 个分类（narration_connector 仅叙述禁/对话允、paragraph_opener、smooth_transition），增长上限 80→120
+10. **style-profile 统计字段** — 新增 sentence_length_std_dev / paragraph_length_cv / emotional_volatility / register_mixing / vocabulary_richness（均 nullable）
+11. **lint-blacklist.sh narration_only 感知** — 中文引号奇偶校验区分对话内/外命中，输出 narration_only_stats
+12. **ChapterWriter C16-C18** — 句长方差意识 + 叙述连接词零容忍 + 人性化技法自然融入；Phase 2 新增步骤 6.5（连接词清除）+ 6.6（修饰词去重）
+13. **QualityJudge 扩展输出** — anti_ai 新增 sentence_length_stats + statistical_profile + detected_humanize_techniques（不影响评分，供 dashboard 跨章统计）
+14. **人性化技法跨章追踪** — 每 5 章检测 humanize_drought，含旧 eval 数据可用性前置检查
+
 ## v1.9.0
 
 ### M7：AudienceEval 读者视角评估
