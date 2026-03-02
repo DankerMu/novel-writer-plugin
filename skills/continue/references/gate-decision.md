@@ -56,3 +56,21 @@ else:
   - metadata 至少包含：
     - judges: {primary:{model,overall,overall_raw,overall_weighted?}, secondary?:{model,overall,overall_raw,overall_weighted?}, used, overall_final}
     - gate: {decision: gate_decision, revisions: revision_count, force_passed: bool}
+
+## AudienceEval 叠加门控
+
+> AudienceEval（M7）在 QualityJudge 之后执行，输出 `overall_engagement`（1-5）。其结果**只能降级**门控决策，不能升级。
+
+**输入**：`audience_eval_result`（AudienceEval 返回的 JSON，或 null 表示失败/超时）。
+
+
+
+
+
+**max_severity 优先级**：`pause_for_user_force_rewrite` > `pause_for_user` > `revise` > `polish` > `pass`。
+
+**修订指令融合**：当 AudienceEval 触发降级（engagement 不足导致 gate_decision 从 pass 变为 polish/revise）时，编排器将以下内容追加到 ChapterWriter 修订 manifest 的 `required_fixes`：
+- `audience_eval_result.reader_feedback`（读后感，作为修订方向参考）
+- `audience_eval_result.suspicious_skim_paragraphs`（跳读段落，作为定向优化目标）
+
+**force_passed 兜底扩展**：修订 2 次后的 force_passed 条件追加 `且无 AudienceEval 黄金三章硬门 fail`（即黄金三章 engagement < 3.0 不允许 force_passed，必须暂停等用户决策）。
