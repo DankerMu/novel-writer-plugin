@@ -52,7 +52,75 @@
     "overall_weighted": 3.0,
     "platform_weights": { "pacing": 1.5, "character": 0.8, "emotional_impact": 1.5, "style_naturalness": 0.7, "foreshadowing": 1.0, "plot_logic": 0.8, "immersion": 1.5, "storyline_coherence": 0.8 },
     "overall": 3.0,
-    "recommendation": "revise"
+    "recommendation": "revise",
+    "risk_flags": ["foreshadow_premature:ancient_prophecy"],
+    "required_fixes": [
+      {"target": "paragraph_7", "instruction": "章末缺少悬念钩子，需添加"}
+    ],
+    "issues": ["章末悬念不足", "LS-001 时间线矛盾"],
+    "strengths": ["主角 200 字内登场"],
+    "anti_ai": {
+      "blacklist_hits": {
+        "total_hits": 5,
+        "hits_per_kchars": 1.8,
+        "top_hits": [{"word": "不禁", "count": 2}],
+        "narration_connector_hits": 1,
+        "narration_connector_examples": [{"word": "然而", "context": "然而他还是转身离开了", "paragraph_index": 3}]
+      },
+      "punctuation_overuse": {
+        "em_dash_count": 1,
+        "em_dash_per_kchars": 0.4,
+        "ellipsis_count": 2,
+        "ellipsis_per_kchars": 0.7
+      },
+      "sentence_length_stats": {
+        "std_dev": 10.5,
+        "target_range": [8, 18],
+        "in_range": true,
+        "shortest_sentence": "他笑了。",
+        "longest_sentence_chars": 48
+      },
+      "statistical_profile": {
+        "paragraph_length_cv": 0.55,
+        "narration_connector_density": 0.4,
+        "modifier_repeat_max": 1
+      },
+      "detected_humanize_techniques": ["sensory_intrusion"],
+      "blacklist_update_suggestions": []
+    },
+    "reader_evaluation": {
+      "persona": "fanqie_碎片阅读者",
+      "reader_scores": {
+        "continue_reading": {"score": 3, "weight": 0.30, "reason": "fixture", "evidence": "fixture"},
+        "hook_effectiveness": {"score": 2, "weight": 0.25, "reason": "fixture", "evidence": "fixture"},
+        "skip_urge": {"score": 4, "weight": 0.20, "reason": "fixture", "evidence": "fixture"},
+        "confusion": {"score": 4, "weight": 0.05, "reason": "fixture", "evidence": "fixture"},
+        "empathy": {"score": 3, "weight": 0.10, "reason": "fixture", "evidence": "fixture"},
+        "freshness": {"score": 3, "weight": 0.10, "reason": "fixture", "evidence": "fixture"}
+      },
+      "overall_engagement": 2.95,
+      "suspicious_skim_paragraphs": [
+        {"paragraph_index": 4, "opening_words": "灵气共分为九个大境界", "reason": "设定说明段太长", "severity": "high"}
+      ],
+      "emotional_arc": {
+        "sample_points": [
+          {"position_pct": 0, "intensity": 3, "emotion": "好奇"},
+          {"position_pct": 50, "intensity": 2, "emotion": "平淡"},
+          {"position_pct": 100, "intensity": 3, "emotion": "期待"}
+        ],
+        "arc_shape": "平坦型",
+        "lowest_point_pct": 50,
+        "peak_point_pct": 100,
+        "arc_warning": null
+      },
+      "platform_signal": {
+        "platform": "fanqie",
+        "signals": {"completion_prediction": "medium", "three_day_retention": "low", "binge_urge": "low"},
+        "one_line_verdict": "开头还行但中间走神了"
+      },
+      "golden_chapter_flags": ["no_hook"],
+      "reader_feedback": "主角出场挺快，但中间设定讲解太多，结尾没什么悬念，不太想点下一章。"
+    }
   },
   "metadata": {
     "judges": {

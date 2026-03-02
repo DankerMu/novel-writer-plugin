@@ -46,7 +46,74 @@
     "overall_weighted": null,
     "platform_weights": null,
     "overall": 4.0,
-    "recommendation": "revise"
+    "recommendation": "revise",
+    "risk_flags": [],
+    "required_fixes": [
+      {"target": "paragraph_2", "instruction": "W-002 世界规则疑似违反，需核实"}
+    ],
+    "issues": ["W-002 中等置信度违反"],
+    "strengths": ["节奏流畅", "角色互动自然"],
+    "anti_ai": {
+      "blacklist_hits": {
+        "total_hits": 3,
+        "hits_per_kchars": 1.0,
+        "top_hits": [{"word": "心中暗道", "count": 1}],
+        "narration_connector_hits": 0,
+        "narration_connector_examples": []
+      },
+      "punctuation_overuse": {
+        "em_dash_count": 0,
+        "em_dash_per_kchars": 0.0,
+        "ellipsis_count": 1,
+        "ellipsis_per_kchars": 0.3
+      },
+      "sentence_length_stats": {
+        "std_dev": 13.2,
+        "target_range": [8, 18],
+        "in_range": true,
+        "shortest_sentence": "走。",
+        "longest_sentence_chars": 55
+      },
+      "statistical_profile": {
+        "paragraph_length_cv": 0.72,
+        "narration_connector_density": 0.0,
+        "modifier_repeat_max": 0
+      },
+      "detected_humanize_techniques": ["rhythm_break", "body_before_mind"],
+      "blacklist_update_suggestions": []
+    },
+    "reader_evaluation": {
+      "persona": "fanqie_碎片阅读者",
+      "reader_scores": {
+        "continue_reading": {"score": 4, "weight": 0.30, "reason": "fixture", "evidence": "fixture"},
+        "hook_effectiveness": {"score": 4, "weight": 0.25, "reason": "fixture", "evidence": "fixture"},
+        "skip_urge": {"score": 4, "weight": 0.20, "reason": "fixture", "evidence": "fixture"},
+        "confusion": {"score": 5, "weight": 0.05, "reason": "fixture", "evidence": "fixture"},
+        "empathy": {"score": 4, "weight": 0.10, "reason": "fixture", "evidence": "fixture"},
+        "freshness": {"score": 4, "weight": 0.10, "reason": "fixture", "evidence": "fixture"}
+      },
+      "overall_engagement": 4.05,
+      "suspicious_skim_paragraphs": [],
+      "emotional_arc": {
+        "sample_points": [
+          {"position_pct": 0, "intensity": 3, "emotion": "平静"},
+          {"position_pct": 40, "intensity": 4, "emotion": "紧张"},
+          {"position_pct": 80, "intensity": 2, "emotion": "失落"},
+          {"position_pct": 100, "intensity": 5, "emotion": "期待"}
+        ],
+        "arc_shape": "V型",
+        "lowest_point_pct": 80,
+        "peak_point_pct": 100,
+        "arc_warning": null
+      },
+      "platform_signal": {
+        "platform": "fanqie",
+        "signals": {"completion_prediction": "high", "three_day_retention": "medium", "binge_urge": "medium"},
+        "one_line_verdict": "结尾反转不错，想看后面"
+      },
+      "golden_chapter_flags": [],
+      "reader_feedback": "节奏比第一章好多了，结尾反转是个惊喜。"
+    }
   },
   "metadata": {
     "judges": {
