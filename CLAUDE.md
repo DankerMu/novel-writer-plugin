@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Claude Code plugin for Chinese web novel (网文) multi-agent collaborative writing. 8 specialized agents orchestrated through a state-machine workflow with spec-driven quality gates and anti-AI output strategies.
+Claude Code plugin for Chinese web novel (网文) multi-agent collaborative writing. 9 specialized agents orchestrated through a state-machine workflow with spec-driven quality gates and anti-AI output strategies.
 
 ## Commands
 
@@ -45,7 +45,7 @@ State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current
 
 Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite.
 
-### 8 Agents
+### 9 Agents
 
 | Agent | Model | Role | Write Access |
 |-------|-------|------|--------------|
@@ -57,6 +57,7 @@ Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 revi
 | StyleAnalyzer | Sonnet | Style fingerprint extraction (4 modes) | Yes |
 | StyleRefiner | Opus | AI phrase removal, style matching, ≤15% edits | Yes |
 | QualityJudge | Sonnet | Dual-track scoring, read-only | No |
+| AudienceEval | Sonnet | First-person reader engagement, gate participation | No |
 
 Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config.
 

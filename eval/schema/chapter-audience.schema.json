@@ -3,7 +3,7 @@
   "title": "Chapter Audience Evaluation Output",
   "description": "AudienceEval output written to evaluations/chapter-{C:03d}-audience.json",
   "type": "object",
-  "required": ["chapter", "persona", "reader_scores", "overall_engagement", "suspicious_skim_paragraphs", "emotional_arc", "platform_signal", "reader_feedback"],
+  "required": ["chapter", "persona", "reader_scores", "overall_engagement", "suspicious_skim_paragraphs", "emotional_arc", "platform_signal", "golden_chapter_flags", "reader_feedback"],
   "properties": {
     "chapter": { "type": "integer", "minimum": 1 },
     "persona": {
@@ -45,7 +45,7 @@
       "properties": {
         "sample_points": {
           "type": "array",
-          "minItems": 4,
+          "minItems": 3,
           "maxItems": 10,
           "items": {
             "type": "object",
@@ -60,7 +60,8 @@
         },
         "arc_shape": { "enum": ["V型", "上升型", "下降型", "W型", "平坦型", "N型", "倒V型"] },
         "lowest_point_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
-        "peak_point_pct": { "type": "integer", "minimum": 0, "maximum": 100 }
+        "peak_point_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "arc_warning": { "type": ["string", "null"] }
       },
       "additionalProperties": false
     },
@@ -69,7 +70,7 @@
       "required": ["platform", "signals", "one_line_verdict"],
       "properties": {
         "platform": { "enum": ["fanqie", "qidian", "jinjiang", "generic"] },
-        "signals": { "type": "object" },
+        "signals": { "type": "object", "additionalProperties": { "type": "string" } },
         "one_line_verdict": { "type": "string" }
       },
       "additionalProperties": false
@@ -95,6 +96,7 @@
       "required": ["score", "reason", "evidence"],
       "properties": {
         "score": { "type": "number", "minimum": 1, "maximum": 5 },
+        "weight": { "type": "number", "minimum": 0, "maximum": 1 },
         "reason": { "type": "string" },
         "evidence": { "type": "string" }
       },
