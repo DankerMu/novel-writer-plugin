@@ -31,6 +31,7 @@ description: >
 - 若 `volumes/vol-{V:02d}/storyline-schedule.json` 不存在：跳过故事线节奏区块或显示"暂无故事线调度数据"
 - 若 `style-drift.json` 不存在：风格漂移区块显示"未生成纠偏文件（style-drift.json 不存在）"
 - 若 `ai-blacklist.json` 不存在：黑名单维护区块显示"未配置 AI 黑名单"
+- 若 `evaluations/chapter-*-audience.json` 均不存在：读者参与度区块显示"暂无读者视角数据"
 
 ```
 1. .checkpoint.json → 当前卷号、章节数、状态
@@ -42,6 +43,7 @@ description: >
 7. Glob("evaluations/chapter-*-eval.json") → 所有评分
 8. Glob("chapters/chapter-*.md") → 章节文件列表（统计字数）
 9. Glob("logs/chapter-*-log.json") → 流水线日志（成本、耗时、修订次数）
+10. Glob("evaluations/chapter-*-audience.json") → 读者视角评估
 ```
 
 ### Step 2: 计算统计
@@ -61,6 +63,12 @@ description: >
 | Token/成本 | `logs/chapter-*-log.json` | `.stages[].input_tokens` / `.stages[].output_tokens` / `.total_cost_usd` |
 | 漂移状态 | `style-drift.json` | `.active` / `.drifts[]` |
 | 黑名单版本 | `ai-blacklist.json` | `.version` / `.last_updated` / `.words` / `.whitelist` |
+| 读者参与度 | `evaluations/chapter-*-audience.json` | `.overall_engagement` |
+| 读者 6 维度 | `evaluations/chapter-*-audience.json` | `.reader_scores.{dimension}.score` |
+| 跳读段落 | `evaluations/chapter-*-audience.json` | `.suspicious_skim_paragraphs[]` |
+| 情感弧线 | `evaluations/chapter-*-audience.json` | `.emotional_arc.arc_shape` |
+| 平台信号 | `evaluations/chapter-*-audience.json` | `.platform_signal` |
+| 读者一句话 | `evaluations/chapter-*-audience.json` | `.platform_signal.one_line_verdict` |
 
 ```
 - 总章节数
@@ -75,6 +83,13 @@ description: >
 - 活跃角色数量
 - 累计成本（sum total_cost_usd）、平均每章成本、平均每章耗时
 - 修订率（revisions > 0 的章节占比）
+- 读者参与度均值（overall_engagement 字段平均，仅当存在 audience.json 时展示）
+- 读者 6 维度均值（continue_reading / hook_effectiveness / skip_urge / confusion / empathy / freshness）
+- 近 10 章参与度趋势（vs 全局均值）
+- 跳读热点：统计 suspicious_skim_paragraphs severity="high" 出现次数；若最近 5 章连续出现 high severity，输出 WARNING
+- 情感弧线分布：统计 arc_shape 频次（如"最近 10 章：V型×4, 上升型×3, 平坦型×3"）
+- 平台信号趋势：按 platform_signal.signals 中各信号的 high/medium/low 分布统计
+- 最新读者一句话（最近一章的 one_line_verdict）
 ```
 
 #### 故事线节奏提示（轻量、只读）
@@ -123,6 +138,13 @@ description: >
   均章成本：${avg_cost}/章
   均章耗时：{avg_duration}s
   修订率：{revision_rate}%
+
+读者参与度：（仅当存在 audience.json 时展示）
+  均值：{engagement_avg}/5.0（近10章：{recent_engagement_avg}/5.0）
+  {platform_display_name}读者说："{latest_one_line_verdict}"
+  6 维度：继续 {cr}/5 | 钩子 {hook}/5 | 跳读 {skip}/5 | 清晰 {conf}/5 | 共情 {emp}/5 | 新鲜 {fresh}/5
+  情感弧线：{arc_distribution_brief}
+  跳读警告：{skip_warning_or_none}
 ```
 
 ## 约束
