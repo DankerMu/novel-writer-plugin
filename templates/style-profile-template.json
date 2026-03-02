@@ -1,5 +1,5 @@
 {
-  "_comment": "风格指纹模板 — 由 StyleAnalyzer Agent 填充，ChapterWriter 和 StyleRefiner 读取",
+  "_comment": "风格指纹模板 — 由 WorldBuilder（风格提取模式）填充，ChapterWriter 读取",
 
   "source_type": null,
   "_source_type_comment": "original（用户原创样本）| reference（参考作者）| template（预置模板）| write_then_extract（先写后提）",
@@ -47,7 +47,7 @@
   "_narrative_voice_comment": "第一人称 | 第三人称限制 | 全知",
 
   "style_exemplars": [],
-  "_style_exemplars_comment": "从样本中提取的 3-5 段最能代表目标风格质感的原文片段（每段 50-150 字）。ChapterWriter 写作前作为 few-shot 锚点阅读，StyleRefiner 润色时作为风格参照。预置模板模式填入该风格类型的典型范文片段",
+  "_style_exemplars_comment": "从样本中提取的 3-5 段最能代表目标风格质感的原文片段（每段 50-150 字）。ChapterWriter 写作前作为 few-shot 锚点阅读，Phase 2 润色时作为风格参照。预置模板模式填入该风格类型的典型范文片段",
 
   "writing_directives": [],
   "_writing_directives_comment": "正向写作指令数组，每条含 directive + do/dont 对比示例。格式：[{\"directive\": \"用短动作句推进\", \"do\": \"他拔刀。刀光一闪。人头落地。\", \"dont\": \"他迅速地拔出了腰间的长刀，在刀光闪烁之间，对方的头颅便已经滚落在地。\"}]。旧格式（纯字符串数组）仍兼容，但新提取应使用 DO/DON'T 格式",
@@ -56,6 +56,6 @@
   "_override_constraints_comment": "可选：覆盖 ChapterWriter 默认写作约束。支持的 key：anti_intuitive_detail (bool, 默认 true), max_scene_sentences (int, 默认 2)。未设置的 key 使用默认值",
 
   "analysis_notes": null,
-  "_analysis_notes_comment": "StyleAnalyzer 的分析备注"
+  "_analysis_notes_comment": "WorldBuilder 风格提取模式的分析备注"
 }
 

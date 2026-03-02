@@ -37,7 +37,7 @@ ChapterWriter 收到 hard 规则时会以禁止项注入：违反即自动拒绝
 ## L2 角色契约
 
 **文件**：`characters/active/*.json`
-**生成者**：CharacterWeaver
+**生成者**：WorldBuilder（角色模式）
 
 定义每个角色的能力边界和行为模式：
 

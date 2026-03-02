@@ -17,7 +17,7 @@
 #   2. If multiple subagents run concurrently, the marker reflects only the
 #      most recently started one (last-write-wins).
 # This is acceptable because the entry Skill orchestrates subagents
-# sequentially (ChapterWriter → Summarizer → StyleRefiner → QualityJudge),
+# sequentially (ChapterWriter → Summarizer → QualityJudge),
 # so concurrent overlap is unlikely in practice. The guard is best-effort;
 # the primary write boundary is the staging→commit transaction model in the
 # entry Skill.
@@ -108,7 +108,7 @@ fi
 
 active_agent_type="$(jq -r '.agent_type // ""' "$marker_file" 2>/dev/null || true)"
 case "$active_agent_type" in
-  chapter-writer|summarizer|style-refiner) ;;
+  chapter-writer|summarizer) ;;
   *) exit 0 ;;
 esac
 

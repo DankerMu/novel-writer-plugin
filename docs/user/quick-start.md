@@ -64,9 +64,9 @@
 系统自动完成以下步骤（无需你操作）：
 
 1. WorldBuilder 生成精简世界观设定（≤3 条核心规则）
-2. CharacterWeaver 创建主角和核心配角
+2. WorldBuilder（角色创建模式）创建主角和核心配角
 3. 初始化 1 条主线故事线
-4. StyleAnalyzer 提取风格指纹（若提供了样本）
+4. WorldBuilder（风格提取模式）提取风格指纹（若提供了样本）
 
 ## Step 6: 迷你卷规划（Step F0）
 
@@ -82,7 +82,7 @@
 系统自动执行 3 轮写作流水线：
 
 ```
-ChapterWriter → Summarizer → StyleRefiner → QualityJudge
+ChapterWriter(含润色) → Summarizer → QualityJudge(含读者评估)
 ```
 
 每章完成后你能看到：章节标题、字数、质量评分（有平台时还显示平台适配分）。
