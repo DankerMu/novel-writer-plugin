@@ -56,8 +56,8 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 - `pipeline_stage == "drafting"`：
   - 若 `staging/chapters/chapter-{C:03d}.md` 不存在 → 从 ChapterWriter 重启整章
   - 若 `staging/chapters/chapter-{C:03d}.md` 已存在但 `staging/summaries/chapter-{C:03d}-summary.md` 不存在 → 从 Summarizer 恢复
-- `pipeline_stage == "drafted"` → 跳过 ChapterWriter/Summarizer，从 StyleRefiner 恢复
-- `pipeline_stage == "refined"` → 从 QualityJudge 恢复
+- `pipeline_stage == "drafted"` → 跳过 ChapterWriter/Summarizer，从 QualityJudge 恢复
+- 向后兼容：遇到旧 checkpoint 的 `refined` 视为 `drafted`
 - `pipeline_stage == "judged"` → 直接执行 commit 阶段
 - `pipeline_stage == "revising"` → 修订中断，从 ChapterWriter 重启（保留 revision_count 以防无限循环）
 
@@ -255,21 +255,16 @@ for chapter_num in range(start, start + remaining_N):
      - 写入 `.novel.lock/info.json`：`{"pid": <PID>, "started": "<ISO-8601>", "chapter": <N>}`
      更新 checkpoint: pipeline_stage = "drafting", inflight_chapter = chapter_num
 
-  1. ChapterWriter Agent → 生成初稿
+  1. ChapterWriter Agent → 生成初稿 + 润色（Phase 1 + Phase 2）
      输入: chapter_writer_manifest（inline 计算值 + 文件路径；Agent 自行 Read 文件）
-     输出: staging/chapters/chapter-{C:03d}.md（+ 可选 hints，自然语言状态提示）
+     输出: staging/chapters/chapter-{C:03d}.md（+ 可选 hints）+ staging/logs/style-refiner-chapter-{C:03d}-changes.json
 
   2. Summarizer Agent → 生成摘要 + 权威状态增量 + 串线检测
      输入: summarizer_manifest（inline 计算值 + 文件路径）
      输出: staging/summaries/chapter-{C:03d}-summary.md + staging/state/chapter-{C:03d}-delta.json + staging/state/chapter-{C:03d}-crossref.json + staging/storylines/{storyline_id}/memory.md
      更新 checkpoint: pipeline_stage = "drafted"
 
-  3. StyleRefiner Agent → 去 AI 化润色
-     输入: style_refiner_manifest（inline 计算值 + 文件路径）
-     输出: staging/chapters/chapter-{C:03d}.md（覆盖）
-     更新 checkpoint: pipeline_stage = "refined"
-
-  4. QualityJudge Agent → 质量评估（双轨验收）
+  3. QualityJudge Agent → 质量评估（Track 1+2+3 统一评估）
      （可选确定性工具）中文 NER 实体抽取（用于一致性/LS-001 辅助信号）：
        - 若存在 `${CLAUDE_PLUGIN_ROOT}/scripts/run-ner.sh`：
          - 执行：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/run-ner.sh staging/chapters/chapter-{C:03d}.md`
@@ -286,7 +281,7 @@ for chapter_num in range(start, start + remaining_N):
          - 若退出码为 0 且 stdout 为合法 JSON → 记为 `blacklist_lint_json`，写入 quality_judge_manifest.blacklist_lint
        - 若脚本不存在/失败/输出非 JSON → `blacklist_lint_json = null`，不得阻断流水线（回退 LLM 估计）
      输入: quality_judge_manifest（inline 计算值 + 文件路径；cross_references 来自 staging/state/chapter-{C:03d}-crossref.json）
-     返回: 结构化 eval JSON（QualityJudge 只读，不落盘；含 overall_raw + overall_weighted（有 platform_guide 且含评估权重时）+ overall（= overall_weighted 或 overall_raw）+ platform_weights）
+     返回: 结构化 eval JSON（QualityJudge 只读，不落盘；含 overall_raw + overall_weighted（有 platform_guide 且含评估权重时）+ overall（= overall_weighted 或 overall_raw）+ platform_weights + reader_evaluation（Track 3 读者评估，可为 null））
      关键章双裁判:
        - 关键章判定：
          - 卷首章：chapter_num == chapter_start
@@ -304,37 +299,23 @@ for chapter_num in range(start, start + remaining_N):
        - eval_used = primary_eval
      更新 checkpoint: pipeline_stage = "judged"
 
-  4.5. AudienceEval Agent → 读者视角评估（参与门控）
-     编排器组装 audience_eval_manifest（见 `references/context-contracts.md` § AudienceEval）：
-     - inline: chapter, volume, platform（从 style-profile.json 提取，已在 Step 2.6 读取）, excitement_type（从 chapter_contract 提取，已在 Step 2.5 解析）, is_golden_chapter（chapter <= 3）
-     - paths: chapter_draft, recent_summaries（近 2 章）, style_profile, chapter_contract
-     调用: Task(subagent_type="audience-eval")
-     超时: 60 秒；失败/超时 → audience_eval_result = null，记 WARNING 到 logs，继续流水线
-     成功: 将返回 JSON 写入 staging/evaluations/chapter-{C:03d}-audience.json
-     注意: AudienceEval 不更新 pipeline_stage（中断恢复时可跳过，非关键数据）
-
   5. 质量门控决策（Gate Decision Engine）:
      门控决策（详见 `references/gate-decision.md`）：
        - high-confidence violation → revise（强制修订）
        - 平台硬门任一 fail（章节 001-003 且有 platform_guide）→ revise（强制修订）
        - overall ≥ 4.0 且无上述硬门失败 → pass
-       - overall ≥ 3.5 → polish（StyleRefiner 二次润色）
+       - overall ≥ 3.5 → polish（ChapterWriter Phase 2 二次润色）
        - overall ≥ 3.0 → revise（ChapterWriter Opus 修订，最多 2 轮）
        - overall ≥ 2.0 → pause_for_user（暂停，通知用户审核）
        - overall < 2.0 → pause_for_user_force_rewrite（强制重写，暂停）
-       - 修订上限 2 次后 overall ≥ 3.0 且无 high violation 且无平台硬门 fail 且无 AudienceEval 黄金三章硬门 fail → force_passed
-     AudienceEval 叠加（只降级不升级；详见 `references/gate-decision.md` § AudienceEval 叠加门控）：
-       - 黄金三章（≤003）engagement < 3.0 → 至少 revise（读者体验硬门）
-       - 普通章 QJ pass + engagement < 2.5 → 降为 polish
-       - 普通章 QJ pass + 2.5 ≤ engagement < 3.0 → WARNING 记录（不降级）
-       - AudienceEval 失败/超时 → 仅用 QJ 门控
-       - 降级时融合 reader_feedback + suspicious_skim_paragraphs 到修订指令
+       - 修订上限 2 次后 overall ≥ 3.0 且无 high violation 且无平台硬门 fail 且无 reader_evaluation 黄金三章硬门 fail（QJ 内部已处理） → force_passed
+     QualityJudge 已内化 engagement overlay → 编排器直接映射 recommendation 到 gate_decision：
+       - pass → pass, polish → polish, revise → revise, review → pause_for_user, rewrite → pause_for_user_force_rewrite
 
   6. 事务提交（staging → 正式目录）:
      - 移动 staging/chapters/chapter-{C:03d}.md → chapters/chapter-{C:03d}.md
      - 移动 staging/summaries/chapter-{C:03d}-summary.md → summaries/
-     - 移动 staging/evaluations/chapter-{C:03d}-eval.json → evaluations/
-     - 移动 staging/evaluations/chapter-{C:03d}-audience.json → evaluations/（若存在；AudienceEval 失败时文件不存在，跳过）
+     - 移动 staging/evaluations/chapter-{C:03d}-eval.json → evaluations/（含 reader_evaluation）
      - 移动 staging/storylines/{storyline_id}/memory.md → storylines/{storyline_id}/memory.md
      - 移动 staging/state/chapter-{C:03d}-crossref.json → state/chapter-{C:03d}-crossref.json（保留跨线泄漏审计数据）
      - 合并 state delta: 校验 ops（§10.6）→ 逐条应用 → state_version += 1 → 追加 state/changelog.jsonl
@@ -370,10 +351,10 @@ for chapter_num in range(start, start + remaining_N):
 
      - **Step 3.7: M3 周期性维护（非阻断，详见 `references/periodic-maintenance.md`）**
        - AI 黑名单动态维护：从 QualityJudge suggestions 读取候选 → 自动追加（confidence medium+high, count≥3, words<80）或记录候选
-       - 风格漂移检测（每 5 章）：StyleAnalyzer 提取 metrics → 与基线对比 → 漂移则写入 style-drift.json / 回归则清除 / 超时(>15章)则 stale_timeout
+       - 风格漂移检测（每 5 章）：WorldBuilder（风格漂移检测模式）提取 metrics → 与基线对比 → 漂移则写入 style-drift.json / 回归则清除 / 超时(>15章)则 stale_timeout
 
   7. 输出本章结果:
-     > 第 {C} 章已生成（{word_count} 字），评分 {overall_final}/5.0{有 platform 时追加「（{platform_display_name}适配分 {overall_weighted}）」}{有 audience_eval 时追加「，读者参与度 {overall_engagement}/5.0」}，门控 {gate_decision}，修订 {revision_count} 次 {pass_icon}
+     > 第 {C} 章已生成（{word_count} 字），评分 {overall_final}/5.0{有 platform 时追加「（{platform_display_name}适配分 {overall_weighted}）」}{eval.json 含 reader_evaluation 时追加「，读者参与度 {overall_engagement}/5.0」}，门控 {gate_decision}，修订 {revision_count} 次 {pass_icon}
 ```
 
 ### Step 4: 定期检查触发
@@ -395,8 +376,8 @@ Ch {X}: {字数}字 {分数} {状态} | Ch {X+1}: {字数}字 {分数} {状态} 
 
 ## 约束
 
-- 每章严格按 ChapterWriter → Summarizer → StyleRefiner → QualityJudge → AudienceEval 顺序
+- 每章严格按 ChapterWriter(含润色) → Summarizer → QualityJudge(含读者评估) 顺序
 - 质量不达标时自动修订最多 2 次
 - 写入使用 staging → commit 事务模式（详见 Step 2-6）
-- **Agent 写入边界**：所有 Agent（ChapterWriter/Summarizer/StyleRefiner）仅写入 `staging/` 目录，正式目录（`chapters/`、`summaries/`、`state/`、`storylines/`、`evaluations/`）由入口 Skill 在 commit 阶段操作。QualityJudge 为只读，不写入任何文件
+- **Agent 写入边界**：所有 Agent（ChapterWriter/Summarizer）仅写入 `staging/` 目录，正式目录（`chapters/`、`summaries/`、`state/`、`storylines/`、`evaluations/`）由入口 Skill 在 commit 阶段操作。QualityJudge 为只读，不写入任何文件
 - 所有输出使用中文

@@ -33,7 +33,7 @@ else:
     - 输入: chapter_writer_revision_manifest（在 chapter_writer_manifest 基础上追加 inline 字段 `required_fixes` + `high_confidence_violations`，paths 追加 `chapter_draft` 指向 staging 中的现有正文）
     - 修订指令：以 eval.required_fixes 作为最小修订指令；若 required_fixes 为空，则用 high_confidence_violations 生成 3-5 条最小修订指令兜底；若两者均为空（score 3.0-3.4 无 violation 触发），则从 eval 的 8 维度中取最低分 2 个维度的 feedback 作为修订方向
     - 约束：定向修改 required_fixes 指定段落，尽量保持其余内容不变
-  - 回到步骤 2 重新走 Summarizer -> StyleRefiner -> QualityJudge -> 门控（保证摘要/state/crossref 与正文一致）
+  - 回到 ChapterWriter(revision+polish) → Summarizer → QualityJudge → 门控（保证摘要/state/crossref 与正文一致）
 
 - 若 gate_decision="revise" 且 revision_count == 2（次数耗尽）：
   - 若 has_high_confidence_violation=false 且 platform_hard_gate_fail(eval)=false 且 overall_final >= 3.0：
@@ -46,7 +46,7 @@ else:
 ## 其他决策的后续动作
 
 - gate_decision="pass"：直接进入 commit
-- gate_decision="polish"：更新 checkpoint: pipeline_stage="revising" -> StyleRefiner 二次润色后进入 commit（不再重复 QualityJudge 以控成本）
+- gate_decision="polish"：更新 checkpoint: pipeline_stage="revising" -> ChapterWriter Phase 2 re-run (polish_only) 后进入 commit（不再重复 QualityJudge 以控成本）
 - gate_decision="pause_for_user" / "pause_for_user_force_rewrite"：释放并发锁（rm -rf .novel.lock）并暂停，等待用户通过 `/novel:start` 决策
 
 ## 写入评估与门控元数据（可追溯）
@@ -57,20 +57,12 @@ else:
     - judges: {primary:{model,overall,overall_raw,overall_weighted?}, secondary?:{model,overall,overall_raw,overall_weighted?}, used, overall_final}
     - gate: {decision: gate_decision, revisions: revision_count, force_passed: bool}
 
-## AudienceEval 叠加门控
+## 读者参与度（已内化到 QualityJudge Track 3）
 
-> AudienceEval（M7）在 QualityJudge 之后执行，输出 `overall_engagement`（1-5）。其结果**只能降级**门控决策，不能升级。
+> QualityJudge 内部 Track 3 已包含读者参与度评估和 engagement overlay 逻辑。编排器直接使用 QualityJudge 输出的 `recommendation`，无需额外叠加。
+>
+> 详见 `agents/quality-judge.md` § Track 3 + 内化门控叠加逻辑。
 
-**输入**：`audience_eval_result`（AudienceEval 返回的 JSON，或 null 表示失败/超时）。
+**修订指令融合**：当 QualityJudge 因 engagement 不足触发降级时，eval JSON 的 `reader_evaluation.reader_feedback` + `reader_evaluation.suspicious_skim_paragraphs` 由编排器追加到 ChapterWriter 修订 manifest 的 `required_fixes`。
 
-
-
-
-
-**max_severity 优先级**：`pause_for_user_force_rewrite` > `pause_for_user` > `revise` > `polish` > `pass`。
-
-**修订指令融合**：当 AudienceEval 触发降级（engagement 不足导致 gate_decision 从 pass 变为 polish/revise）时，编排器将以下内容追加到 ChapterWriter 修订 manifest 的 `required_fixes`：
-- `audience_eval_result.reader_feedback`（读后感，作为修订方向参考）
-- `audience_eval_result.suspicious_skim_paragraphs`（跳读段落，作为定向优化目标）
-
-**force_passed 兜底扩展**：修订 2 次后的 force_passed 条件追加 `且无 AudienceEval 黄金三章硬门 fail`（即黄金三章 engagement < 3.0 不允许 force_passed，必须暂停等用户决策）。
+**force_passed 兜底扩展**：修订 2 次后的 force_passed 条件追加 `且无 reader_evaluation 黄金三章硬门 fail（QJ 内部已处理）`（即黄金三章 engagement < 3.0 不允许 force_passed，必须暂停等用户决策）。

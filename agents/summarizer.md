@@ -24,7 +24,7 @@ description: |
   assistant: "I'll use the summarizer agent to summarize the intersection chapter."
   <commentary>交汇事件章：重点校验 cross_references 与 leak_risk，并更新相关线 memory</commentary>
   </example>
-model: sonnet
+model: opus
 color: cyan
 tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 ---
@@ -77,7 +77,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 # Format
 
-输出七部分，**全部直接写入 `staging/` 目录**（与 ChapterWriter/StyleRefiner 写入 `staging/` 的模式一致，不写入正式目录，commit 阶段由入口 Skill 统一移入正式目录）：
+输出七部分，**全部直接写入 `staging/` 目录**（与 ChapterWriter 写入 `staging/` 的模式一致，不写入正式目录，commit 阶段由入口 Skill 统一移入正式目录）：
 
 **1. 章节摘要**（300 字以内）→ 写入 `staging/summaries/chapter-{C:03d}-summary.md`
 

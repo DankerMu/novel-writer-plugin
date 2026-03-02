@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Claude Code plugin for Chinese web novel (网文) multi-agent collaborative writing. 9 specialized agents orchestrated through a state-machine workflow with spec-driven quality gates and anti-AI output strategies.
+Claude Code plugin for Chinese web novel (网文) multi-agent collaborative writing. 5 specialized agents orchestrated through a state-machine workflow with spec-driven quality gates and anti-AI output strategies.
 
 ## Commands
 
@@ -45,19 +45,15 @@ State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current
 
 Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite.
 
-### 9 Agents
+### 5 Agents
 
 | Agent | Model | Role | Write Access |
 |-------|-------|------|--------------|
-| WorldBuilder | Opus | L1 rules, storylines init | Yes |
-| CharacterWeaver | Opus | Characters, L2 contracts, relationship graph | Yes |
+| WorldBuilder | Opus | L1 rules, storylines init, characters (L2 contracts), style extraction | Yes |
 | PlotArchitect | Opus | Volume outlines, L3 contracts, foreshadowing | Yes |
-| ChapterWriter | Sonnet | 2500–3500 char chapters with style exemplars | Yes |
-| Summarizer | Sonnet | 300-char summaries, state ops, leak detection | Yes |
-| StyleAnalyzer | Sonnet | Style fingerprint extraction (4 modes) | Yes |
-| StyleRefiner | Opus | AI phrase removal, style matching, ≤15% edits | Yes |
-| QualityJudge | Sonnet | Dual-track scoring, read-only | No |
-| AudienceEval | Sonnet | First-person reader engagement, gate participation | No |
+| ChapterWriter | Opus | 2500–3500 char chapters with style exemplars + de-AI polish | Yes |
+| Summarizer | Opus | 300-char summaries, state ops, leak detection | Yes |
+| QualityJudge | Opus | Dual-track scoring + reader engagement, read-only | No |
 
 Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config.
 
@@ -88,13 +84,13 @@ Shared methodology in `skills/novel-writing/SKILL.md` (passive reference, not us
 
 1. Style anchoring via `style-profile.json` extracted from user samples
 2. Constraint injection: blacklist + character speech patterns + anti-intuitive details
-3. Post-processing: StyleRefiner phrase replacement + style exemplar matching
+3. Post-processing: ChapterWriter Phase 2 phrase replacement + style exemplar matching
 4. Detection metrics: blacklist density + adjacent-sentence repetition < 2
 
 ### Context Management
 
 - **Manifest mode**: Orchestrator passes file paths; agents read on-demand (not full text injection)
-- **Context budgets**: ~19–24K tokens for ChapterWriter, ~10–12K for Summarizer
+- **Context budgets**: ~19–24K tokens for ChapterWriter, ~10–12K for Summarizer, ~14-16K for QualityJudge
 - **Checkpoint recovery**: `/novel:continue` resumes from `pipeline_stage` + `inflight_chapter`
 
 ## Evaluation Infrastructure (M3)

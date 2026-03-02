@@ -20,10 +20,10 @@
 
 ### 主角概念
 
-- **姓名**：{protagonist_name} <!-- CharacterWeaver 在 Step D 后自动填充 -->
+- **姓名**：{protagonist_name} <!-- WorldBuilder 在 Step D 后自动填充 -->
 - **身份**：{protagonist_identity} <!-- Step A 收集（一句话描述） -->
-- **目标**：{protagonist_goal} <!-- CharacterWeaver 在 Step D 后自动填充 -->
-- **内在矛盾**：{protagonist_contradiction} <!-- CharacterWeaver 在 Step D 后自动填充 -->
+- **目标**：{protagonist_goal} <!-- WorldBuilder 在 Step D 后自动填充 -->
+- **内在矛盾**：{protagonist_contradiction} <!-- WorldBuilder 在 Step D 后自动填充 -->
 
 ## 风格定位
 

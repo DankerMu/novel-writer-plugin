@@ -201,7 +201,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 2. `volumes/vol-{V:02d}/storyline-schedule.json` — 本卷故事线调度（active_storylines + interleaving_pattern + convergence_events）
 3. `volumes/vol-{V:02d}/foreshadowing.json` — 本卷伏笔计划（新增 + 上卷延续），每条伏笔含 `id`/`description`/`scope`(`short`|`medium`|`long`)/`status`/`planted_chapter`/`target_resolve_range`/`history`
 4. `volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.json` — 每章契约（批量生成，含 storyline_id + storyline_context）
-5. `volumes/vol-{V:02d}/new-characters.json` — 本卷需要新建的角色清单（outline 中引用但 `characters/active/` 不存在的角色），格式：`[{"name": "角色名", "first_chapter": N, "role": "antagonist | supporting | minor", "brief": "一句话定位"}]`。`role` 描述角色在全书中的故事定位（区别于 primary/secondary/seasoning 的本卷叙事权重）。入口 Skill 据此批量调用 CharacterWeaver 创建角色档案 + L2 契约
+5. `volumes/vol-{V:02d}/new-characters.json` — 本卷需要新建的角色清单（outline 中引用但 `characters/active/` 不存在的角色），格式：`[{"name": "角色名", "first_chapter": N, "role": "antagonist | supporting | minor", "brief": "一句话定位"}]`。`role` 描述角色在全书中的故事定位（区别于 primary/secondary/seasoning 的本卷叙事权重）。入口 Skill 据此批量调用 WorldBuilder（角色创建模式）创建角色档案 + L2 契约
 
 # Edge Cases
 

@@ -160,22 +160,22 @@
 | 任意 | 有 high-confidence violation | `revise` | `revise` | 强制修订（无论分数多高；仅 confidence="high" 触发，medium/low 记录警告不阻断） |
 | 任意 | 平台硬门任一 fail（Ch001-003 + platform_guide） | `revise` | `revise` | 强制修订（不受 overall 影响） |
 | 4.0-5.0 | 无 violation 且无硬门 fail | `pass` | `pass` | 直接通过 |
-| 3.5-3.9 | 无 violation | `polish` | `polish` | StyleRefiner 二次润色后通过 |
+| 3.5-3.9 | 无 violation | `polish` | `polish` | ChapterWriter Phase 2 二次润色后通过 |
 | 3.0-3.4 | 无 violation | `revise` | `revise` | ChapterWriter（Opus）自动修订（最多 2 轮） |
 | 2.0-2.9 | 无 violation | `review` | `pause_for_user` | 暂停，通知用户审核决定下一步 |
 | < 2.0 | 无 violation | `rewrite` | `pause_for_user_force_rewrite` | 暂停，建议全章重写（等待用户通过 `/novel:start` 决策） |
 
-**修订上限兜底**：修订 2 次后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail 且无 AudienceEval 黄金三章硬门 fail → `force_passed=true`，允许提交（避免无限循环）。
+**修订上限兜底**：修订 2 次后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail 且无 reader_evaluation 黄金三章硬门 fail → `force_passed=true`，允许提交（避免无限循环）。
 
-## AudienceEval 读者体验门控（M7）
+## 读者体验门控（已内化到 QualityJudge Track 3）
 
-> AudienceEval 在 QualityJudge 之后执行，输出 `overall_engagement`（1-5）。其结果**只能降级**门控决策，不能升级。AudienceEval 失败/超时时仅用 QJ 门控（优雅降级）。
+> 读者参与度评估已内化到 QualityJudge Track 3，输出 `overall_engagement`（1-5）。recommendation 已计入 engagement overlay（只降级不升级）。Track 3 失败时仅用 Track 1+2（优雅降级）。
 
-| 场景 | engagement 条件 | 叠加动作 |
-|------|----------------|----------|
-| 黄金三章（≤003） | < 3.0 | gate_decision 至少 revise（读者体验硬门） |
-| 普通章 QJ=pass | < 2.5 | gate_decision 降为 polish |
-| 普通章 QJ=pass | < 3.0 | WARNING 记录（不降级） |
-| AudienceEval 失败 | — | 仅用 QJ 门控 |
+| 场景 | engagement 条件 | 动作 |
+|------|----------------|------|
+| 黄金三章（≤003） | < 3.0 | 至少 revise（QJ 内部已处理） |
+| QJ pass | < 2.5 | 降为 polish（QJ 内部已处理） |
+| QJ pass | < 3.0 | WARNING 记录不降级 |
+| Track 3 失败 | — | 仅用 Track 1+2 |
 
-降级时编排器将 `reader_feedback` + `suspicious_skim_paragraphs` 注入 ChapterWriter 修订指令。
+降级时编排器将 `reader_evaluation.reader_feedback` + `reader_evaluation.suspicious_skim_paragraphs` 注入 ChapterWriter 修订指令。

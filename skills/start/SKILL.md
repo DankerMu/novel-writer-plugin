@@ -191,7 +191,7 @@ Skill → 状态映射：
 
 #### 更新设定
 
-确认更新类型（世界观/角色/关系） → 变更前快照 → 派发 WorldBuilder/CharacterWeaver 增量更新（含退场保护三重检查） → 变更后差异分析写入 `pending_actions` → 输出传播摘要。
+确认更新类型（世界观/角色/关系） → 变更前快照 → 派发 WorldBuilder 增量更新（世界观模式或角色模式，含退场保护三重检查） → 变更后差异分析写入 `pending_actions` → 输出传播摘要。
 
 详见 `references/setting-update.md`。
 
@@ -200,7 +200,7 @@ Skill → 状态映射：
 2. 如无结果，提示用户可手动将 .md 文件放入 `research/` 目录
 3. 如有结果，展示可导入列表（项目名 + 首行标题），使用 AskUserQuestion 让用户勾选
 4. 将选中的 `final/main.md` 复制到 `research/<project-name>.md`
-5. 展示导入结果，提示 WorldBuilder/CharacterWeaver 下次执行时将自动引用
+5. 展示导入结果，提示 WorldBuilder 下次执行时将自动引用
 
 #### 重试上次操作
 - 若 `orchestrator_state == "ERROR_RETRY"`：

@@ -1,6 +1,6 @@
 # novel — 中文网文多 Agent 协作创作系统
 
-Claude Code 插件，9 个 AI Agent 协作完成网文创作全流程：世界观构建 → 卷级规划 → 章节续写 → 风格润色 → 质量验收 → 读者体验评估。内置去 AI 化四层策略和 Spec-Driven 规范体系，产出接近人类写手的长篇中文网络小说。
+Claude Code 插件，5 个 AI Agent 协作完成网文创作全流程：世界观构建 → 卷级规划 → 章节续写（含去 AI 润色） → 质量验收（含读者体验评估）。内置去 AI 化四层策略和 Spec-Driven 规范体系，产出接近人类写手的长篇中文网络小说。
 
 ## 快速开始
 
@@ -71,23 +71,19 @@ claude --plugin-dir ~/cc-novel-writer
 每章经过完整流水线：
 
 ```
-ChapterWriter → Summarizer → StyleRefiner → QualityJudge
-    续写           摘要+状态       去AI润色        双轨验收
+ChapterWriter(含润色) → Summarizer → QualityJudge(含读者评估)
+      续写+去AI润色         摘要+状态       双轨验收+读者体验
 ```
 
-### 9 Agent 协作体系
+### 5 Agent 协作体系
 
 | Agent | 模型 | 职责 |
 |-------|------|------|
-| **WorldBuilder** | Opus | 世界观构建 + L1 硬规则（物理/魔法/社会） |
-| **CharacterWeaver** | Opus | 角色网络 + L2 契约（能力边界/行为模式） |
+| **WorldBuilder** | Opus | 世界观构建 + L1 硬规则 + 角色管理(L2 契约) + 风格提取 |
 | **PlotArchitect** | Opus | 卷级大纲 + L3 章节契约 + 故事线调度 |
-| **ChapterWriter** | Sonnet | 章节续写 + 多线叙事 + 防串线 |
-| **Summarizer** | Sonnet | 摘要 + 状态增量 + 串线检测 |
-| **StyleAnalyzer** | Sonnet | 用户样本 → 风格指纹 (`style-profile.json`) |
-| **StyleRefiner** | Opus | 去 AI 化润色（黑名单替换 + 风格匹配） |
-| **QualityJudge** | Sonnet | 双轨验收：合规检查 + 8 维度评分 |
-| **AudienceEval** | Sonnet | 读者视角：6 维度体验评分 + 跳读检测 + 情感弧线 |
+| **ChapterWriter** | Opus | 章节续写 + 多线叙事 + 去 AI 化润色（Phase 2） |
+| **Summarizer** | Opus | 摘要 + 状态增量 + 串线检测 |
+| **QualityJudge** | Opus | 双轨验收 + 8 维度评分 + 读者参与度评估 |
 
 ### Spec-Driven 四层规范
 
@@ -117,21 +113,17 @@ ChapterWriter → Summarizer → StyleRefiner → QualityJudge
 
 1. **风格锚定**：从用户样本提取风格指纹
 2. **约束注入**：AI 黑名单 + 语癖 + 句式多样化
-3. **后处理**：StyleRefiner 替换 AI 用语 + 匹配风格
+3. **后处理**：ChapterWriter Phase 2 替换 AI 用语 + 匹配风格
 4. **检测度量**：黑名单命中 < 3 次/千字，相邻 5 句重复句式 < 2
 
 ## 项目结构
 
 ```
 .claude-plugin/plugin.json     插件入口
-agents/                        9 个 Agent 定义
-  audience-eval.md
+agents/                        5 个 Agent 定义
   chapter-writer.md
-  character-weaver.md
   plot-architect.md
   quality-judge.md
-  style-analyzer.md
-  style-refiner.md
   summarizer.md
   world-builder.md
 skills/
@@ -171,7 +163,7 @@ docs/
     storylines.md                多线叙事指南
   test/                        测试清单
   prd/                         产品需求文档（11 章）
-  spec/                        技术规范（6 章 + 8 Agent 独立定义）
+  spec/                        技术规范（6 章 + 5 Agent 独立定义）
 ```
 
 ## 评估与回归
@@ -207,7 +199,7 @@ PR 合入 `main` 自动触发：
 
 | 里程碑 | 描述 | 状态 |
 |--------|------|------|
-| **M1** | 续写引擎基础（8 Agent + 3 Entry Skill + 模板） | 已完成 |
+| **M1** | 续写引擎基础（5 Agent + 3 Entry Skill + 模板） | 已完成 |
 | **M2** | Context 组装与状态机（Orchestrator + Spec 注入 + Hooks） | 已完成 |
 | **M3** | 质量门控与分析（5 档门控 + 双裁判 + NER + 伏笔 + 回归） | 已完成 |
 | **M4** | 端到端打磨（Quick Start + 跨卷 + E2E 基准） | 进行中 |
