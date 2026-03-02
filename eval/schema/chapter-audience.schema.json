@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Chapter Audience Evaluation Output",
+  "description": "AudienceEval output written to evaluations/chapter-{C:03d}-audience.json",
+  "type": "object",
+  "required": ["chapter", "persona", "reader_scores", "overall_engagement", "suspicious_skim_paragraphs", "emotional_arc", "platform_signal", "reader_feedback"],
+  "properties": {
+    "chapter": { "type": "integer", "minimum": 1 },
+    "persona": {
+      "type": "string",
+      "enum": ["fanqie_碎片阅读者", "qidian_付费追更者", "jinjiang_情感投入者", "generic_普通读者"]
+    },
+    "reader_scores": {
+      "type": "object",
+      "required": ["continue_reading", "hook_effectiveness", "skip_urge", "confusion", "empathy", "freshness"],
+      "properties": {
+        "continue_reading": { "$ref": "#/$defs/reader_score" },
+        "hook_effectiveness": { "$ref": "#/$defs/reader_score" },
+        "skip_urge": { "$ref": "#/$defs/reader_score" },
+        "confusion": { "$ref": "#/$defs/reader_score" },
+        "empathy": { "$ref": "#/$defs/reader_score" },
+        "freshness": { "$ref": "#/$defs/reader_score" }
+      },
+      "additionalProperties": false
+    },
+    "overall_engagement": { "type": "number", "minimum": 1, "maximum": 5 },
+    "suspicious_skim_paragraphs": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["paragraph_index", "opening_words", "reason", "severity"],
+        "properties": {
+          "paragraph_index": { "type": "integer", "minimum": 1 },
+          "opening_words": { "type": "string", "maxLength": 40 },
+          "reason": { "type": "string" },
+          "severity": { "enum": ["high", "medium"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "emotional_arc": {
+      "type": "object",
+      "required": ["sample_points", "arc_shape", "lowest_point_pct", "peak_point_pct"],
+      "properties": {
+        "sample_points": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": ["position_pct", "intensity", "emotion"],
+            "properties": {
+              "position_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "intensity": { "type": "integer", "minimum": 1, "maximum": 5 },
+              "emotion": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "arc_shape": { "enum": ["V型", "上升型", "下降型", "W型", "平坦型", "N型", "倒V型"] },
+        "lowest_point_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "peak_point_pct": { "type": "integer", "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "platform_signal": {
+      "type": "object",
+      "required": ["platform", "signals", "one_line_verdict"],
+      "properties": {
+        "platform": { "enum": ["fanqie", "qidian", "jinjiang", "generic"] },
+        "signals": { "type": "object" },
+        "one_line_verdict": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "golden_chapter_flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["flag", "detail"],
+        "properties": {
+          "flag": { "type": "string" },
+          "detail": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "reader_feedback": { "type": "string" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "reader_score": {
+      "type": "object",
+      "required": ["score", "reason", "evidence"],
+      "properties": {
+        "score": { "type": "number", "minimum": 1, "maximum": 5 },
+        "reason": { "type": "string" },
+        "evidence": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
