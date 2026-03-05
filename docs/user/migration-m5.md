@@ -20,7 +20,7 @@
 
 ### 自动兼容（无需操作）
 
-- `style-profile.json` 中 `platform` 缺失或为 `null` 时跳过平台指南加载
+- `style-profile.json` 中 `platform` 现为**必填字段**（v2.0.0 起）。旧项目 `platform` 缺失或为 `null` 时，`/novel:continue` 会终止并提示通过 `/novel:start` 设置平台（可选 `"general"` 通用模式）
 - 流水线行为与 M5 之前完全一致
 
 ### 建议操作（可选）

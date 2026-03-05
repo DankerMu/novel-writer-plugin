@@ -53,7 +53,7 @@ Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 revi
 | PlotArchitect | Opus | Volume outlines, L3 contracts, foreshadowing | Yes |
 | ChapterWriter | Opus | 2500–3500 char chapters with style exemplars + de-AI polish | Yes |
 | Summarizer | Opus | 300-char summaries, state ops, leak detection | Yes |
-| QualityJudge | Opus | Dual-track scoring + reader engagement, read-only | No |
+| QualityJudge | Opus | Dual-track scoring + reader engagement | staging/evaluations only |
 
 Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config.
 

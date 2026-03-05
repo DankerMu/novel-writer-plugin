@@ -58,7 +58,7 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
   - 若 `staging/chapters/chapter-{C:03d}.md` 已存在但 `staging/summaries/chapter-{C:03d}-summary.md` 不存在 → 从 Summarizer 恢复
 - `pipeline_stage == "drafted"` → 跳过 ChapterWriter/Summarizer，从 QualityJudge 恢复
 - 向后兼容：遇到旧 checkpoint 的 `refined` 视为 `drafted`
-- `pipeline_stage == "judged"` → 读取 `staging/evaluations/chapter-{C:03d}-eval-raw.json`（QJ 已落盘），直接执行门控决策 + commit 阶段
+- `pipeline_stage == "judged"` → 读取 `staging/evaluations/chapter-{C:03d}-eval-raw.json`（QJ 已落盘），直接执行门控决策 + commit 阶段；若文件不存在或 JSON 无效 → 降级到 `pipeline_stage == "drafted"`（从 QualityJudge 重新评估）
 - `pipeline_stage == "revising"` → 修订中断，从 ChapterWriter 重启（保留 revision_count 以防无限循环）
 
 恢复章完成 commit 后，再继续从 `last_completed_chapter + 1` 续写后续章节，直到累计提交 N 章（包含恢复章）。
@@ -282,6 +282,7 @@ for chapter_num in range(start, start + remaining_N):
        - 若脚本不存在/失败/输出非 JSON → `blacklist_lint_json = null`，不得阻断流水线（回退 LLM 估计）
      输入: quality_judge_manifest（inline 计算值 + 文件路径；cross_references 来自 staging/state/chapter-{C:03d}-crossref.json）
      输出: staging/evaluations/chapter-{C:03d}-eval-raw.json（QJ 直接落盘；含 overall_raw + overall_weighted（有 platform_guide 且含评估权重时）+ overall（= overall_weighted 或 overall_raw）+ platform_weights + reader_evaluation（Track 3 读者评估，可为 null））
+     编排器在更新 checkpoint 为 "judged" 之前，验证 staging/evaluations/chapter-{C:03d}-eval-raw.json 存在且可解析为合法 JSON；若不存在或解析失败 → 按 Step 1.6 错误处理流程重试 QualityJudge
      编排器读取 eval-raw.json 用于门控决策和双裁判合并，无需从 agent 文本输出中解析 JSON
      关键章双裁判:
        - 关键章判定：

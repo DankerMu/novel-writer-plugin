@@ -1,2 +1,4 @@
 schema: spec-driven
 created: 2026-03-02
+status: superseded
+superseded_by: "v2.0.0 QualityJudge Track 3 (agents/quality-judge.md)"

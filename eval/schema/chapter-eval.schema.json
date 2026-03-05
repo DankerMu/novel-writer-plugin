@@ -19,7 +19,7 @@
     "chapter": { "type": "integer", "minimum": 1 },
     "eval_used": {
       "type": "object",
-      "required": ["contract_verification", "scores", "overall_raw", "overall", "recommendation"],
+      "required": ["contract_verification", "scores", "overall_raw", "overall", "recommendation", "anti_ai", "risk_flags", "reader_evaluation", "overall_weighted", "platform_weights"],
       "properties": {
         "contract_verification": {
           "type": "object",

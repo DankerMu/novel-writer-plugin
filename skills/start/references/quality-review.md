@@ -27,9 +27,10 @@
      ```
    - 选项 1 时，逐章执行补全：
      a. 组装 QualityJudge manifest（复用 `/novel:continue` Step 2.6 的路径计算逻辑，追加 `mode: "track3_backfill"`）
-     b. 派发 QualityJudge Agent（Task, subagent_type="quality-judge"）：仅执行 Track 3，返回 `reader_evaluation` JSON
+     b. 派发 QualityJudge Agent（Task, subagent_type="quality-judge"）：仅执行 Track 3，在 Task 文本输出中返回 `reader_evaluation` JSON（backfill 模式不写入 staging 文件）
      c. 读取对应 `evaluations/chapter-{C:03d}-eval.json`，将返回的 `reader_evaluation` 合并写入 `eval_used.reader_evaluation` 字段
      d. 补全不影响已有 overall/recommendation/gate_decision（Track 3 仅降级不升级，历史门控决策不追溯变更）
+     e. 重复 backfill 同一章是安全的（幂等 set 写入，不影响历史门控）
    - 选项 2 时跳过，继续 Step 2
 2. **一致性检查（NER，周期性每 10 章）**：
    - 章节范围：`[max(1, last_completed_chapter-9), last_completed_chapter]`

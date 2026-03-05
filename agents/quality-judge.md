@@ -417,7 +417,7 @@ else:
 # Edge Cases
 
 - **无章节契约（试写阶段）**：前 3 章无 L3 契约，跳过 Track 1 的 L3 检查
-- **无平台（向后兼容）**：`paths.platform_guide` 缺失或章节号 > 003 时，`platform_hard_gates` 输出为空数组 `[]`，门控逻辑跳过硬门检查。`platform == "general"` 时同样无 platform_guide，硬门跳过
+- **无平台指南文件（向后兼容）**：`platform_guide` 路径缺失（`platform=="general"` 或平台模板文件不存在）或章节号 > 003 时，`platform_hard_gates` 输出为空数组 `[]`，门控逻辑跳过硬门检查。`platform == "general"` 时同样无 platform_guide，硬门跳过
 - **平台硬门依赖 Track 2 评分**：起点 immersion ≥ 3.5 和晋江 style_naturalness ≥ 3.5 需先完成 Track 2 评分再判定；执行顺序为 Track 1 (L1-L3+LS) → Track 2 (评分) → 平台硬门 (引用评分结果) → Track 3 (读者评估) → 门控决策
 - **单平台限制**：当前仅支持单平台硬门检查；多平台同时发布场景需在 `style-profile.json` 中选择主要目标平台
 - **无平台加权（向后兼容）**：`paths.platform_guide` 缺失或不含 `## 评估权重` section 时，`overall_weighted` = null，`platform_weights` = null，`overall` = `overall_raw`，门控决策使用等权分
@@ -428,4 +428,4 @@ else:
 - **修订后重评**：ChapterWriter 修订后重新评估时，应与前次评估对比确认问题已修复
 - **Track 3 失败/fallback**：Track 3 评估内部异常时，`reader_evaluation` 输出为 null，recommendation 仅基于 Track 1+2
 - **自定义平台（Track 3）**：`platform` 为非标准值（非 fanqie/qidian/jinjiang/general）时使用通用「普通读者」人设
-- **旧 eval 补全模式**：当入口 Skill 以 `mode: "track3_backfill"` 调用时，仅执行 Track 3 读者评估（跳过 Track 1+2），输出 `reader_evaluation` JSON 供入口 Skill 合并写入已有 eval.json
+- **旧 eval 补全模式**：当入口 Skill 以 `mode: "track3_backfill"` 调用时，仅执行 Track 3 读者评估（跳过 Track 1+2）。backfill 模式下**不写入** staging 文件（此时 staging 已清空），而是在 Task 文本输出中返回 `reader_evaluation` JSON 块，由入口 Skill（quality-review.md Step 1.5）解析并合并写入已有 eval.json

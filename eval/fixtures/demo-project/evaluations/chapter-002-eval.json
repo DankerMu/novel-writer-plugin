@@ -13,7 +13,7 @@
       "l2_checks": [
         {
           "contract_id": "C-protagonist-001",
-          "status": "violation_suspected",
+          "status": "violation",
           "confidence": "low",
           "detail": "Synthetic suspected violation"
         }

@@ -108,7 +108,7 @@ fi
 
 active_agent_type="$(jq -r '.agent_type // ""' "$marker_file" 2>/dev/null || true)"
 case "$active_agent_type" in
-  chapter-writer|summarizer) ;;
+  chapter-writer|summarizer|quality-judge) ;;
   *) exit 0 ;;
 esac
 
