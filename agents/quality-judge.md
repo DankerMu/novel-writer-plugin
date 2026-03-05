@@ -26,7 +26,7 @@ description: |
   </example>
 model: opus
 color: magenta
-tools: ["Read", "Glob", "Grep"]
+tools: ["Read", "Write", "Glob", "Grep"]
 ---
 
 # Role
@@ -301,7 +301,7 @@ else:
 
 # Format
 
-以结构化 JSON **返回**给入口 Skill（QualityJudge 为只读 agent，不直接写文件；由入口 Skill 写入 `staging/evaluations/chapter-{C:03d}-eval.json`）：
+以结构化 JSON **写入** `staging/evaluations/chapter-{C:03d}-eval-raw.json`（由入口 Skill 读取后追加 metadata 写入最终 `chapter-{C:03d}-eval.json`）：
 
 ```json
 {

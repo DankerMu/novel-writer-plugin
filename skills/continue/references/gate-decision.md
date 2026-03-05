@@ -51,11 +51,13 @@ else:
 
 ## 写入评估与门控元数据（可追溯）
 
-- 写入 staging/evaluations/chapter-{C:03d}-eval.json：
-  - 内容：eval_used（普通章=primary_eval；关键章=overall 更低的一次）+ metadata
+- 读取 staging/evaluations/chapter-{C:03d}-eval-raw.json（QJ 直接落盘的评估结果）
+- 组装最终 staging/evaluations/chapter-{C:03d}-eval.json：
+  - 内容：`{chapter, eval_used: <raw 内容>, metadata: {...}}`（eval_used = 普通章的 primary_eval-raw；关键章取 overall 更低的一次）
   - metadata 至少包含：
     - judges: {primary:{model,overall,overall_raw,overall_weighted?}, secondary?:{model,overall,overall_raw,overall_weighted?}, used, overall_final}
     - gate: {decision: gate_decision, revisions: revision_count, force_passed: bool}
+- 删除 staging/evaluations/chapter-{C:03d}-eval-raw.json（清理中间文件）
 
 ## 读者参与度（已内化到 QualityJudge Track 3）
 

@@ -138,9 +138,9 @@ quality_judge_manifest = {
 
 ---
 
-## QualityJudge 返回值契约
+## QualityJudge 输出契约
 
-QualityJudge 为只读 Agent，不写文件。其返回的结构化 JSON 由编排器消费并写入 `staging/evaluations/chapter-{C:03d}-eval.json`。
+QualityJudge 将评估结果直接写入 `staging/evaluations/chapter-{C:03d}-eval-raw.json`。编排器读取该文件用于门控决策和双裁判合并，追加 metadata 后写入最终 `staging/evaluations/chapter-{C:03d}-eval.json`。
 
 关键返回字段：
 - `contract_verification` — Track 1 合规检查结果（l1/l2/l3/ls_checks + platform_hard_gates + has_violations）

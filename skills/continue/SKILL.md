@@ -58,7 +58,7 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
   - 若 `staging/chapters/chapter-{C:03d}.md` 已存在但 `staging/summaries/chapter-{C:03d}-summary.md` 不存在 → 从 Summarizer 恢复
 - `pipeline_stage == "drafted"` → 跳过 ChapterWriter/Summarizer，从 QualityJudge 恢复
 - 向后兼容：遇到旧 checkpoint 的 `refined` 视为 `drafted`
-- `pipeline_stage == "judged"` → 直接执行 commit 阶段
+- `pipeline_stage == "judged"` → 读取 `staging/evaluations/chapter-{C:03d}-eval-raw.json`（QJ 已落盘），直接执行门控决策 + commit 阶段
 - `pipeline_stage == "revising"` → 修订中断，从 ChapterWriter 重启（保留 revision_count 以防无限循环）
 
 恢复章完成 commit 后，再继续从 `last_completed_chapter + 1` 续写后续章节，直到累计提交 N 章（包含恢复章）。
@@ -281,7 +281,8 @@ for chapter_num in range(start, start + remaining_N):
          - 若退出码为 0 且 stdout 为合法 JSON → 记为 `blacklist_lint_json`，写入 quality_judge_manifest.blacklist_lint
        - 若脚本不存在/失败/输出非 JSON → `blacklist_lint_json = null`，不得阻断流水线（回退 LLM 估计）
      输入: quality_judge_manifest（inline 计算值 + 文件路径；cross_references 来自 staging/state/chapter-{C:03d}-crossref.json）
-     返回: 结构化 eval JSON（QualityJudge 只读，不落盘；含 overall_raw + overall_weighted（有 platform_guide 且含评估权重时）+ overall（= overall_weighted 或 overall_raw）+ platform_weights + reader_evaluation（Track 3 读者评估，可为 null））
+     输出: staging/evaluations/chapter-{C:03d}-eval-raw.json（QJ 直接落盘；含 overall_raw + overall_weighted（有 platform_guide 且含评估权重时）+ overall（= overall_weighted 或 overall_raw）+ platform_weights + reader_evaluation（Track 3 读者评估，可为 null））
+     编排器读取 eval-raw.json 用于门控决策和双裁判合并，无需从 agent 文本输出中解析 JSON
      关键章双裁判:
        - 关键章判定：
          - 卷首章：chapter_num == chapter_start
@@ -346,7 +347,7 @@ for chapter_num in range(start, start + remaining_N):
        - 若 chapter_num == chapter_end：更新 `.checkpoint.json.orchestrator_state = “VOL_REVIEW”` 并提示用户运行 `/novel:start` 执行卷末回顾
        - 否则：更新 `.checkpoint.json.orchestrator_state = “WRITING”`（若本章来自 CHAPTER_REWRITE，则回到 WRITING）
      - 写入 logs/chapter-{C:03d}-log.json（stages 耗时/模型、gate_decision、revisions、force_passed；关键章额外记录 primary/secondary judge 的 model+overall 与 overall_final；token/cost 为估算值或 null，见降级说明）
-     - 清空 staging/ 本章文件
+     - 清空 staging/ 本章文件（含 eval-raw.json 中间文件）
      - 释放并发锁: rm -rf .novel.lock
 
      - **Step 3.7: M3 周期性维护（非阻断，详见 `references/periodic-maintenance.md`）**
@@ -379,5 +380,5 @@ Ch {X}: {字数}字 {分数} {状态} | Ch {X+1}: {字数}字 {分数} {状态} 
 - 每章严格按 ChapterWriter(含润色) → Summarizer → QualityJudge(含读者评估) 顺序
 - 质量不达标时自动修订最多 2 次
 - 写入使用 staging → commit 事务模式（详见 Step 2-6）
-- **Agent 写入边界**：所有 Agent（ChapterWriter/Summarizer）仅写入 `staging/` 目录，正式目录（`chapters/`、`summaries/`、`state/`、`storylines/`、`evaluations/`）由入口 Skill 在 commit 阶段操作。QualityJudge 为只读，不写入任何文件
+- **Agent 写入边界**：ChapterWriter/Summarizer 仅写入 `staging/` 目录，QualityJudge 仅写入 `staging/evaluations/chapter-{C:03d}-eval-raw.json`，正式目录（`chapters/`、`summaries/`、`state/`、`storylines/`、`evaluations/`）由入口 Skill 在 commit 阶段操作
 - 所有输出使用中文
