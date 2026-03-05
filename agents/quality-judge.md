@@ -234,7 +234,7 @@ elif recommendation == "pass" and overall_engagement < 3.0:
    - **句长方差**：计算全章句长 std_dev，对照 style-profile 范围判定（8-18 人类范围，6-8 过渡区，< 6 AI 特征区）
    - **四字词组密度**：统计每 500 字中四字成语/词组个数，连续 2 个以上并列时额外扣分（0-2 人类范围，3 过渡区，≥ 4 AI 特征区）
    - **形容词密度**：统计每 300 字中形容词总量（0-4 人类范围，5-6 过渡区，≥ 7 或 3+ 修饰同一名词为 AI 特征区）
-   - **感叹号频率**：全章感叹号总数（0-5 人类范围，6-8 过渡区，≥ 9 或连用为 AI 特征区）
+   - **感叹号频率**：全章感叹号总数（0-8 人类范围，9-12 过渡区，≥ 13 或连用为 AI 特征区）
    - **向后兼容**：缺失 ≥ 4 项指标时退化为旧版 7 指标评分（详见 quality-rubric.md §6）
    - `detected_humanize_techniques` **不影响评分**，仅记录 tag 供 dashboard 跨章统计
 4. **综合分计算**：
@@ -316,8 +316,7 @@ else:
     "ls_checks": [],
     "platform_hard_gates": [],
     "has_violations": false,                  // 仅统计 L1/L2/L3/LS 检查中的 violation，不含 platform_hard_gates 的 fail（平台硬门由独立谓词判定）
-    "has_warnings": false,
-    "violation_details": []
+    "has_warnings": false
   },
   "anti_ai": {
     "blacklist_hits": {

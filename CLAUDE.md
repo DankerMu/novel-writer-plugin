@@ -78,7 +78,7 @@ Shared methodology in `skills/novel-writing/SKILL.md` (passive reference, not us
 
 - **Staging path enforcement**: `hooks.json` PreToolUse hook restricts all Write/Edit during pipeline to `staging/` directory
 - **Manifest mode**: Entry Skills pass file paths to Agents; Agents use Read tool on-demand (no inline content injection)
-- **AI blacklist**: ~115 banned Chinese phrases in `templates/ai-blacklist.json` (13 categories); target <3 hits per 千字 (maps to style_naturalness score ≥ 4)
+- **AI blacklist**: ~120 banned Chinese phrases in `templates/ai-blacklist.json` (13 categories); target <3 hits per 千字 (maps to style_naturalness score ≥ 4)
 
 ### Anti-AI Output (4 Layers)
 
