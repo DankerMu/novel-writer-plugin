@@ -92,6 +92,7 @@
         "strengths": { "type": "array", "items": { "type": "string" } },
         "reader_evaluation": {
           "type": ["object", "null"],
+          "description": "Track 3 读者参与度评估。null 仅当 Track 3 运行时异常（内部错误）时出现；正常流程必有值。旧 eval 缺失此字段时可通过质量回顾的 Track 3 补全机制回填",
           "properties": {
             "persona": { "type": "string" },
             "reader_scores": {
