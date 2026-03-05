@@ -227,12 +227,15 @@ elif recommendation == "pass" and overall_engagement < 3.0:
 
 1. **独立评分**：每个维度独立评分，附具体理由和引用原文
 2. **不给面子分**：明确指出问题而非回避
-3. **可量化**：风格自然度基于 quality-rubric.md §6 的 7 指标范围判定（黑名单命中率、句式重复率、句长标准差、段落长度 CV、叙述连接词密度、修饰词重复、style-profile 综合匹配）
+3. **可量化**：风格自然度基于 quality-rubric.md §6 的 10 指标范围判定（黑名单命中率、句式重复率、句长标准差、段落长度 CV、叙述连接词密度、修饰词重复、四字词组密度、形容词密度、感叹号频率、style-profile 综合匹配）
    - 若 prompt 中提供了黑名单精确统计 JSON（lint-blacklist），你必须使用其中的 `total_hits` / `hits_per_kchars` / `hits[]` 作为计数依据（忽略 whitelist/exemptions 的词条）
    - 若未提供，则你可以基于正文做启发式估计，但需在 `style_naturalness.reason` 中明确标注为”估计值”
    - **叙述连接词**：统计叙述段落（引号外）中 narration_connector 类词条命中数，命中 > 0 时扣分（密度 1-2/千字 → 过渡区，≥ 3/千字 → AI 特征区）
    - **句长方差**：计算全章句长 std_dev，对照 style-profile 范围判定（8-18 人类范围，6-8 过渡区，< 6 AI 特征区）
-   - **向后兼容**：缺失 ≥ 3 项指标时退化为旧版 4 指标评分（详见 quality-rubric.md §6）
+   - **四字词组密度**：统计每 500 字中四字成语/词组个数，连续 2 个以上并列时额外扣分（0-2 人类范围，3 过渡区，≥ 4 AI 特征区）
+   - **形容词密度**：统计每 300 字中形容词总量（0-4 人类范围，5-6 过渡区，≥ 7 或 3+ 修饰同一名词为 AI 特征区）
+   - **感叹号频率**：全章感叹号总数（0-8 人类范围，9-12 过渡区，≥ 13 或连用为 AI 特征区）
+   - **向后兼容**：缺失 ≥ 4 项指标时退化为旧版 7 指标评分（详见 quality-rubric.md §6）
    - `detected_humanize_techniques` **不影响评分**，仅记录 tag 供 dashboard 跨章统计
 4. **综合分计算**：
    - `overall_raw` = 各维度 score × base_weight 的加权均值（8 维度权重见 Track 2 表）— base-weight 基线，向后兼容
@@ -313,8 +316,7 @@ else:
     "ls_checks": [],
     "platform_hard_gates": [],
     "has_violations": false,                  // 仅统计 L1/L2/L3/LS 检查中的 violation，不含 platform_hard_gates 的 fail（平台硬门由独立谓词判定）
-    "has_warnings": false,
-    "violation_details": []
+    "has_warnings": false
   },
   "anti_ai": {
     "blacklist_hits": {
@@ -328,7 +330,9 @@ else:
       "em_dash_count": 2,
       "em_dash_per_kchars": 0.6,
       "ellipsis_count": 3,
-      "ellipsis_per_kchars": 0.9
+      "ellipsis_per_kchars": 0.9,
+      "exclamation_count": 5,
+      "exclamation_per_paragraph_max": 1
     },
     "sentence_length_stats": {
       "std_dev": 12.3,
@@ -340,7 +344,10 @@ else:
     "statistical_profile": {
       "paragraph_length_cv": 0.65,
       "narration_connector_density": 0.0,
-      "modifier_repeat_max": 1
+      "modifier_repeat_max": 1,
+      "four_char_idiom_density": 1.2,
+      "adjective_density": 3.5,
+      "single_sentence_paragraph_ratio": 0.35
     },
     "detected_humanize_techniques": ["sensory_intrusion", "rhythm_break"],
     "blacklist_update_suggestions": [

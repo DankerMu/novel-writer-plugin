@@ -170,25 +170,32 @@
                 "em_dash_count": { "type": "integer" },
                 "em_dash_per_kchars": { "type": "number" },
                 "ellipsis_count": { "type": "integer" },
-                "ellipsis_per_kchars": { "type": "number" }
+                "ellipsis_per_kchars": { "type": "number" },
+                "exclamation_count": { "type": "integer" },
+                "exclamation_per_paragraph_max": { "type": "integer" }
               }
             },
             "sentence_length_stats": {
               "type": ["object", "null"],
+              "description": "句长统计。null 当统计工具不可用或章节过短时",
               "properties": {
-                "std_dev": { "type": ["number", "null"] },
-                "target_range": { "type": ["array", "null"], "items": { "type": "number" } },
-                "in_range": { "type": ["boolean", "null"] },
-                "shortest_sentence": { "type": ["string", "null"] },
-                "longest_sentence_chars": { "type": ["integer", "null"] }
+                "std_dev": { "type": ["number", "null"], "description": "全章句长标准差（字）" },
+                "target_range": { "type": ["array", "null"], "items": { "type": "number" }, "description": "目标标准差范围，默认 [8, 18]" },
+                "in_range": { "type": ["boolean", "null"], "description": "std_dev 是否落入 target_range" },
+                "shortest_sentence": { "type": ["string", "null"], "description": "最短句原文" },
+                "longest_sentence_chars": { "type": ["integer", "null"], "description": "最长句字数" }
               }
             },
             "statistical_profile": {
               "type": ["object", "null"],
+              "description": "结构化统计指标。null 当统计工具不可用时",
               "properties": {
-                "paragraph_length_cv": { "type": ["number", "null"] },
-                "narration_connector_density": { "type": ["number", "null"] },
-                "modifier_repeat_max": { "type": ["integer", "null"] }
+                "paragraph_length_cv": { "type": ["number", "null"], "description": "段落长度变异系数" },
+                "narration_connector_density": { "type": ["number", "null"], "description": "叙述连接词密度（次/千字）" },
+                "modifier_repeat_max": { "type": ["integer", "null"], "description": "500字窗口内修饰词最大重复次数" },
+                "four_char_idiom_density": { "type": ["number", "null"], "description": "四字词组密度（个/500字）" },
+                "adjective_density": { "type": ["number", "null"], "description": "形容词密度（个/300字）" },
+                "single_sentence_paragraph_ratio": { "type": ["number", "null"], "description": "单句段落占比（统计参考，不直接参与评分）" }
               }
             },
             "detected_humanize_techniques": {
