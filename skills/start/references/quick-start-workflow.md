@@ -55,18 +55,18 @@
 风格来源选择完成后，使用 AskUserQuestion 询问目标平台：
 
 ```
-目标发布平台：
+目标发布平台（必选）：
 1. 番茄小说 (Recommended) — 免费短章快节奏
 2. 起点中文网 — 付费长章体系
 3. 晋江文学城 — 女性向，文笔要求高
-4. 跳过 — 不指定平台
+4. 通用模式 — 不针对特定平台，使用三平台交集标准
 ```
 
 - 选项 1 → `platform = "fanqie"`
 - 选项 2 → `platform = "qidian"`
 - 选项 3 → `platform = "jinjiang"`
-- 选项 4 → `platform = null`
-- Other（用户输入自定义字符串）→ `platform = 该字符串`（如 `"zongheng"`，系统将尝试加载 `templates/platforms/{platform}.md`；文件不存在时 WARNING 并跳过）
+- 选项 4 → `platform = "general"`
+- Other（用户输入自定义字符串）→ `platform = 该字符串`（如 `"zongheng"`，系统将尝试加载 `templates/platforms/{platform}.md`；文件不存在时 WARNING 并跳过，Track 3 使用通用读者人设）
 
 `platform` 值在 Step C 写入 `style-profile.json` 的 `platform` 字段。
 
@@ -113,7 +113,7 @@
 1. 创建项目目录结构（参考 `docs/dr-workflow/novel-writer-tool/final/prd/09-data.md` §9.1）
 2. 从 `${CLAUDE_PLUGIN_ROOT}/templates/` 复制模板文件到项目目录（至少生成以下文件）：
    - `brief.md`：从 `brief-template.md` 复制并用用户输入填充占位符
-   - `style-profile.json`：从 `style-profile-template.json` 复制（后续由 WorldBuilder 风格提取模式填充）。若 Step B 采集了 `platform` 值（非 null），立即写入 `style-profile.json` 的 `platform` 字段
+   - `style-profile.json`：从 `style-profile-template.json` 复制（后续由 WorldBuilder 风格提取模式填充）。将 Step B 采集的 `platform` 值写入 `style-profile.json` 的 `platform` 字段（必填，不可为 null）
    - `ai-blacklist.json`：从 `ai-blacklist.json` 复制
 3. **初始化最小可运行文件**（模板复制后立即创建，确保后续 Agent 可正常读取）：
    - `.checkpoint.json`：`{"last_completed_chapter": 0, "current_volume": 0, "orchestrator_state": "QUICK_START", "pipeline_stage": null, "inflight_chapter": null, "quick_start_step": "C", "revision_count": 0, "pending_actions": [], "last_checkpoint_time": "<now>"}`

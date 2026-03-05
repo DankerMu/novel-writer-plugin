@@ -14,6 +14,23 @@
    - `style-drift.json`（如存在：active + drifts + detected_chapter）
    - `ai-blacklist.json`（version/last_updated/words/whitelist/update_log）
    - `style-profile.json`（preferred_expressions；用于解释黑名单豁免）
+1.5. **旧评估 Track 3 补全检测**：
+   - 扫描 Step 1 收集的 eval.json，筛选 `reader_evaluation == null` 或字段缺失的章节
+   - 若存在待补全章节，使用 AskUserQuestion 提示：
+     ```
+     检测到以下章节缺少读者参与度评估（Track 3）：
+     Ch {list}
+
+     选项：
+     1. 补全评估 (Recommended) — 对这些章节重跑 QualityJudge Track 3
+     2. 跳过 — 继续质量回顾，后续再处理
+     ```
+   - 选项 1 时，逐章执行补全：
+     a. 组装 QualityJudge manifest（复用 `/novel:continue` Step 2.6 的路径计算逻辑，追加 `mode: "track3_backfill"`）
+     b. 派发 QualityJudge Agent（Task, subagent_type="quality-judge"）：仅执行 Track 3，返回 `reader_evaluation` JSON
+     c. 读取对应 `evaluations/chapter-{C:03d}-eval.json`，将返回的 `reader_evaluation` 合并写入 `eval_used.reader_evaluation` 字段
+     d. 补全不影响已有 overall/recommendation/gate_decision（Track 3 仅降级不升级，历史门控决策不追溯变更）
+   - 选项 2 时跳过，继续 Step 2
 2. **一致性检查（NER，周期性每 10 章）**：
    - 章节范围：`[max(1, last_completed_chapter-9), last_completed_chapter]`
    - 实体抽取（优先确定性脚本，失败回退 LLM）：

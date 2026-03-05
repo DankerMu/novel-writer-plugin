@@ -111,7 +111,7 @@ quality_judge_manifest = {
   blacklist_lint: obj | null,                    # scripts/lint-blacklist.sh 输出
   ner_entities: obj | null,                      # scripts/run-ner.sh 输出
   continuity_report_summary: obj | null,         # logs/continuity/latest.json 裁剪
-  platform: str | null,                          # 从 style-profile.json 提取（fanqie | qidian | jinjiang | null）
+  platform: str,                                  # 从 style-profile.json 提取（fanqie | qidian | jinjiang | general | 自定义），必填不可为 null
   excitement_type: [str] | null,                 # 从 chapter_contract 提取（可选）
   is_golden_chapter: bool,                       # chapter <= 3
   narration_only_lint: obj | null,                  # lint-blacklist.sh 的 narration_only_stats 输出

@@ -225,7 +225,7 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 - 确定 `recent_summaries[]`（近 3 章摘要路径，按时间倒序）
 - **QualityJudge `recent_summaries[]`（条件注入）**：当 chapter ≤ 3 且 platform_guide 存在时，注入近 2 章摘要路径供平台硬门回溯判定（Ch001 为空数组，Ch002 仅含 Ch001 摘要，Ch003 含 Ch001+002 摘要；路径指向文件不存在时跳过该条目）；章节 > 3 或无 platform_guide 时不注入此字段
 - 其余路径为固定模式（如 `style-profile.json`、`ai-blacklist.json`）
-- **平台指南条件加载**：读取 `style-profile.json` 的 `platform` 字段（缺失或 null 则跳过）。若 `platform` 非空，计算路径 `templates/platforms/{platform}.md`：文件存在则加入 `manifest.paths.platform_guide`（ChapterWriter + QualityJudge 均注入）；文件不存在则输出 WARNING（「平台指南 {platform}.md 不存在，跳过」）并继续（不阻断流水线）
+- **平台指南加载**：读取 `style-profile.json` 的 `platform` 字段（缺失或 null 则终止并提示用户通过 `/novel:start` 设置平台，platform 为必填字段）。`platform` 为 `"general"` 时不加载 platform_guide（无对应模板文件），但 `platform` 值仍传入 QualityJudge manifest 供 Track 3 读者人设选择。其余平台值计算路径 `templates/platforms/{platform}.md`：文件存在则加入 `manifest.paths.platform_guide`（ChapterWriter + QualityJudge 均注入）；文件不存在则输出 WARNING（「平台指南 {platform}.md 不存在，跳过」）并继续（不阻断流水线）
 
 关键原则：
 - 同一输入 → 同一 manifest（确定性）

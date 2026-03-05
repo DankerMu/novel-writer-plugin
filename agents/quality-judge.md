@@ -52,7 +52,7 @@ tools: ["Read", "Glob", "Grep"]
 - blacklist_lint（可选，scripts/lint-blacklist.sh 精确统计 JSON）
 - ner_entities（可选，scripts/run-ner.sh NER 输出 JSON）
 - continuity_report_summary（可选，一致性检查裁剪摘要）
-- platform（fanqie | qidian | jinjiang | null，从 style-profile.json 提取）
+- platform（fanqie | qidian | jinjiang | general | 自定义，从 style-profile.json 提取，必填）
 - excitement_type（来自 chapter_contract，可选）
 - is_golden_chapter（bool，chapter <= 3）
 
@@ -150,7 +150,8 @@ tools: ["Read", "Glob", "Grep"]
 - `fanqie` → **番茄「碎片阅读者」**：25 岁上班族，手机阅读，每次 15 分钟；跳读触发器：景物描写 > 200 字、设定说明 > 150 字、无对话纯叙述 > 300 字
 - `qidian` → **起点「付费追更者」**：22-28 岁男性，书龄 3 年+；跳读触发器：重复解释已知设定 > 100 字、无信息增量日常 > 250 字
 - `jinjiang` → **晋江「情感投入者」**：20-26 岁女性，CP 驱动；跳读触发器：与 CP 无关支线 > 300 字、男频式力量体系说明 > 150 字
-- `null` / 缺失 → **通用「普通读者」**：无特定偏好，三平台交集标准（最宽松阈值）
+- `general` → **通用「普通读者」**：无特定偏好，三平台交集标准（最宽松阈值）
+- 其他自定义值 → 使用**通用「普通读者」**人设（与 `general` 相同）
 
 ### 6 维度读者评分
 
@@ -183,7 +184,7 @@ tools: ["Read", "Glob", "Grep"]
 
 加权均值，权重按平台不同：
 
-| 维度 | 番茄 | 起点 | 晋江 | 通用 |
+| 维度 | 番茄 | 起点 | 晋江 | 通用/自定义 |
 |------|------|------|------|------|
 | continue_reading | 0.30 | 0.20 | 0.20 | 0.25 |
 | hook_effectiveness | 0.25 | 0.15 | 0.15 | 0.20 |
@@ -409,7 +410,7 @@ else:
 # Edge Cases
 
 - **无章节契约（试写阶段）**：前 3 章无 L3 契约，跳过 Track 1 的 L3 检查
-- **无平台（向后兼容）**：`paths.platform_guide` 缺失或章节号 > 003 时，`platform_hard_gates` 输出为空数组 `[]`，门控逻辑跳过硬门检查
+- **无平台（向后兼容）**：`paths.platform_guide` 缺失或章节号 > 003 时，`platform_hard_gates` 输出为空数组 `[]`，门控逻辑跳过硬门检查。`platform == "general"` 时同样无 platform_guide，硬门跳过
 - **平台硬门依赖 Track 2 评分**：起点 immersion ≥ 3.5 和晋江 style_naturalness ≥ 3.5 需先完成 Track 2 评分再判定；执行顺序为 Track 1 (L1-L3+LS) → Track 2 (评分) → 平台硬门 (引用评分结果) → Track 3 (读者评估) → 门控决策
 - **单平台限制**：当前仅支持单平台硬门检查；多平台同时发布场景需在 `style-profile.json` 中选择主要目标平台
 - **无平台加权（向后兼容）**：`paths.platform_guide` 缺失或不含 `## 评估权重` section 时，`overall_weighted` = null，`platform_weights` = null，`overall` = `overall_raw`，门控决策使用等权分
@@ -419,5 +420,5 @@ else:
 - **lint-blacklist 缺失**：若未提供 lint 统计，你仍需给出黑名单命中率与例句，但需标注为估计值；若提供则以其为准
 - **修订后重评**：ChapterWriter 修订后重新评估时，应与前次评估对比确认问题已修复
 - **Track 3 失败/fallback**：Track 3 评估内部异常时，`reader_evaluation` 输出为 null，recommendation 仅基于 Track 1+2
-- **无 platform（Track 3 向后兼容）**：`platform` 为 null 时使用通用「普通读者」人设
-- **旧 eval.json 无 reader_evaluation**：字段为 null，Track 3 不可用（向后兼容）
+- **自定义平台（Track 3）**：`platform` 为非标准值（非 fanqie/qidian/jinjiang/general）时使用通用「普通读者」人设
+- **旧 eval 补全模式**：当入口 Skill 以 `mode: "track3_backfill"` 调用时，仅执行 Track 3 读者评估（跳过 Track 1+2），输出 `reader_evaluation` JSON 供入口 Skill 合并写入已有 eval.json
