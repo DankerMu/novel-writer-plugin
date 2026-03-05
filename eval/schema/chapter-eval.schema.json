@@ -170,7 +170,9 @@
                 "em_dash_count": { "type": "integer" },
                 "em_dash_per_kchars": { "type": "number" },
                 "ellipsis_count": { "type": "integer" },
-                "ellipsis_per_kchars": { "type": "number" }
+                "ellipsis_per_kchars": { "type": "number" },
+                "exclamation_count": { "type": "integer" },
+                "exclamation_per_paragraph_max": { "type": "integer" }
               }
             },
             "sentence_length_stats": {
@@ -188,7 +190,10 @@
               "properties": {
                 "paragraph_length_cv": { "type": ["number", "null"] },
                 "narration_connector_density": { "type": ["number", "null"] },
-                "modifier_repeat_max": { "type": ["integer", "null"] }
+                "modifier_repeat_max": { "type": ["integer", "null"] },
+                "four_char_idiom_density": { "type": ["number", "null"] },
+                "adjective_density": { "type": ["number", "null"] },
+                "single_sentence_paragraph_ratio": { "type": ["number", "null"] }
               }
             },
             "detected_humanize_techniques": {

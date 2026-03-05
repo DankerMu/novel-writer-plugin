@@ -78,14 +78,14 @@ Shared methodology in `skills/novel-writing/SKILL.md` (passive reference, not us
 
 - **Staging path enforcement**: `hooks.json` PreToolUse hook restricts all Write/Edit during pipeline to `staging/` directory
 - **Manifest mode**: Entry Skills pass file paths to Agents; Agents use Read tool on-demand (no inline content injection)
-- **AI blacklist**: ~40 banned Chinese phrases in `templates/ai-blacklist.json`; target <3 hits per 千字 (maps to style_naturalness score ≥ 4)
+- **AI blacklist**: ~115 banned Chinese phrases in `templates/ai-blacklist.json` (13 categories); target <3 hits per 千字 (maps to style_naturalness score ≥ 4)
 
 ### Anti-AI Output (4 Layers)
 
 1. Style anchoring via `style-profile.json` extracted from user samples
 2. Constraint injection: blacklist + character speech patterns + anti-intuitive details
 3. Post-processing: ChapterWriter Phase 2 phrase replacement + style exemplar matching
-4. Detection metrics: blacklist density + adjacent-sentence repetition < 2
+4. Detection metrics: blacklist density + adjacent-sentence repetition < 2 + four-char idiom density + adjective density + exclamation frequency (10 metrics total in QJ anti_ai)
 
 ### Context Management
 

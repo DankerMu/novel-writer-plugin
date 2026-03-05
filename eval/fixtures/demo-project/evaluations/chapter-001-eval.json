@@ -71,7 +71,9 @@
         "em_dash_count": 1,
         "em_dash_per_kchars": 0.4,
         "ellipsis_count": 2,
-        "ellipsis_per_kchars": 0.7
+        "ellipsis_per_kchars": 0.7,
+        "exclamation_count": 3,
+        "exclamation_per_paragraph_max": 1
       },
       "sentence_length_stats": {
         "std_dev": 10.5,
@@ -83,7 +85,10 @@
       "statistical_profile": {
         "paragraph_length_cv": 0.55,
         "narration_connector_density": 0.4,
-        "modifier_repeat_max": 1
+        "modifier_repeat_max": 1,
+        "four_char_idiom_density": 2.0,
+        "adjective_density": 4.5,
+        "single_sentence_paragraph_ratio": 0.30
       },
       "detected_humanize_techniques": ["sensory_intrusion"],
       "blacklist_update_suggestions": []
