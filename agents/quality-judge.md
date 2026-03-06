@@ -230,6 +230,7 @@ elif recommendation == "pass" and overall_engagement < 3.0:
 3. **可量化**：风格自然度基于 quality-rubric.md §6 的 13 指标范围判定（黑名单命中率、句式重复率、句长标准差、段落长度 CV、叙述连接词密度、修饰词重复、四字词组密度、形容词密度、感叹号频率、style-profile 综合匹配、比喻密度、AI 句式原型计数、对话区分度）
    - 若 prompt 中提供了黑名单精确统计 JSON（lint-blacklist），你必须使用其中的 `total_hits` / `hits_per_kchars` / `hits[]` 作为计数依据（忽略 whitelist/exemptions 的词条）
    - 若未提供，则你可以基于正文做启发式估计，但需在 `style_naturalness.reason` 中明确标注为”估计值”
+   - **破折号排除**：引用 lint 统计时，从 `total_hits` 和 `hits_per_kchars` 中排除 `em_dash_ban` 类词条（”——“），因为破折号由独立的 `em_dash_count` 指标判定，不计入黑名单命中率
    - **叙述连接词**：统计叙述段落（引号外）中 narration_connector 类词条命中数，命中 > 0 时扣分（密度 1-2/千字 → 过渡区，≥ 3/千字 → AI 特征区）
    - **句长方差**：计算全章句长 std_dev，对照 style-profile 范围判定（8-18 人类范围，6-8 过渡区，< 6 AI 特征区）
    - **四字词组密度**：统计每 500 字中四字成语/词组个数，连续 2 个以上并列时额外扣分（0-2 人类范围，3 过渡区，≥ 4 AI 特征区）
@@ -239,7 +240,7 @@ elif recommendation == "pass" and overall_engagement < 3.0:
    - **AI 句式原型计数**：4 类原型（作者代理理解/模板化转折/抽象判断/书面腔入侵）命中总数（0 人类范围，1-2 过渡区，≥ 3 为 AI 特征区）。第一人称"我知道他在…"豁免
    - **对话区分度**：去掉对话标签后可辨识说话者的比例（≥ 70% 人类范围，50-70% 过渡区，< 50% 为 AI 特征区）。对话轮数 < 3 时默认 4 分
    - **破折号判定更新**：`em_dash_count > 0` 即视为 AI 特征区（零容忍）
-   - **向后兼容**：缺失 ≥ 4 项指标时退化为旧版 7 指标评分（排除四字词组密度、形容词密度、感叹号频率、比喻密度、AI 句式原型计数、对话区分度）
+   - **向后兼容**：旧版评估缺失新增指标时，QJ 应从正文中补足缺失指标的统计，始终按 13 项完整评分。不退化到旧版 7 指标
    - `detected_humanize_techniques` **不影响评分**，仅记录 tag 供 dashboard 跨章统计
 4. **综合分计算**：
    - `overall_raw` = 各维度 score × base_weight 的加权均值（8 维度权重见 Track 2 表）— base-weight 基线，向后兼容
