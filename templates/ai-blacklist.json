@@ -1,8 +1,8 @@
 {
-  "version": "1.2.0",
-  "description": "AI 高频中文用语黑名单 — 生成时禁止使用",
-  "last_updated": "2026-03-02",
-  "max_words": 120,
+  "version": "1.3.0",
+  "description": "AI 检测规则集 — 精确词条黑名单 + 语义模式（semantic_match 类别由 CW/QJ LLM 层处理，lint 脚本仅匹配 words[]）",
+  "last_updated": "2026-03-06",
+  "max_words": 130,
   "_max_words_comment": "words[] 增长上限，超过时自动追加暂停（见 periodic-maintenance.md）",
   "words": [
     "不禁",
@@ -113,7 +113,14 @@
     "点了点头",
     "摇了摇头",
     "沉声道",
-    "冷冷地说"
+    "冷冷地说",
+    "犹如",
+    "好似",
+    "活像",
+    "恰如",
+    "一如",
+    "宛若",
+    "——"
   ],
   "categories": {
     "emotion_cliche": [
@@ -150,7 +157,7 @@
     ],
     "action_cliche": ["深吸一口气", "紧握双拳", "瞳孔骤缩", "浑身一震", "仿佛被什么击中", "缓缓说道", "淡淡地说", "轻声道", "微微一笑", "点了点头", "摇了摇头", "沉声道", "冷冷地说"],
     "transition_cliche": ["与此同时", "值得一提的是", "毫无疑问", "显而易见", "不言而喻"],
-    "simile_cliche": ["宛如", "恍若", "仿佛置身于", "如同一道闪电"],
+    "simile_cliche": ["宛如", "恍若", "仿佛置身于", "如同一道闪电", "犹如", "好似", "活像", "恰如", "一如", "宛若"],
     "time_cliche": ["一时间", "顿时", "霎时间", "刹那间"],
     "thought_cliche": ["暗自思忖", "不由自主", "不由得", "心中暗想"],
     "narration_connector": {
@@ -171,6 +178,58 @@
       "_comment": "叙事填充词，仅段首/句首位置禁止，段中自然使用不计入（narration_only 标记）",
       "narration_only": true,
       "words": ["就这样", "于是乎", "言归正传", "不得不承认", "说起来", "要知道"]
+    },
+    "simile_pattern": {
+      "_comment": "通用比喻结构检测，非精确字符串匹配。由 CW/QJ 在 LLM 层语义匹配，lint 脚本跳过此类别",
+      "semantic_match": true,
+      "density_limit": {
+        "per_paragraph": 1,
+        "per_kchars": 3
+      },
+      "patterns": [
+        "像X一样/似的",
+        "好像X",
+        "仿佛X",
+        "如同X一般",
+        "好比X"
+      ],
+      "_density_note": "所有形式的比喻合计（精确词条 + 语义模式），每段≤1个，每千字≤3个。精确词条命中优先计入黑名单命中率，语义匹配不重复计数同一比喻实例"
+    },
+    "ai_sentence_pattern": {
+      "_comment": "AI 句式原型检测，非精确字符串匹配。由 CW/QJ 在 LLM 层语义匹配，lint 脚本跳过此类别",
+      "semantic_match": true,
+      "patterns": [
+        {
+          "pattern_name": "author_proxy_comprehension",
+          "description": "作者替角色做理解总结，用全知视角概括角色此刻的认知",
+          "examples": ["她知道他是在……", "他明白这意味着……", "她理解了对方的用意"],
+          "replacement_strategy": "改为角色的直接反应（动作/微表情/内心独白），不做认知总结"
+        },
+        {
+          "pattern_name": "template_transition",
+          "description": "模板化转折句式，用固定句式制造转折",
+          "examples": ["听上去……，可……", "看似……，实则……", "虽然……，但……"],
+          "replacement_strategy": "用动作/事件制造转折，不用逻辑连接词"
+        },
+        {
+          "pattern_name": "abstract_judgment",
+          "description": "抽象化判断，用概念词替代具体描写",
+          "examples": ["那股安排劲", "可被执行的路", "一种微妙的平衡"],
+          "replacement_strategy": "拆解为具体感官细节或角色行为"
+        },
+        {
+          "pattern_name": "formal_tone_intrusion",
+          "description": "书面腔/公文腔入侵叙事文体",
+          "examples": ["可被执行", "具有一定的合理性", "在此基础上", "鉴于目前的情况"],
+          "replacement_strategy": "改为口语化表达或直接删除"
+        }
+      ],
+      "_exemption": "第一人称视角中'我知道他在……'类自我理解为自然表达，豁免检测"
+    },
+    "em_dash_ban": {
+      "_comment": "破折号绝对零容忍。同时加入顶层 words[] 供 lint 精确匹配",
+      "zero_tolerance": true,
+      "words": ["——"]
     }
   },
   "whitelist": [],
