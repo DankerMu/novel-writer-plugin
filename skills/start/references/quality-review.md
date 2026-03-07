@@ -32,8 +32,8 @@
      d. 补全不影响已有 overall/recommendation/gate_decision（Track 3 仅降级不升级，历史门控决策不追溯变更）
      e. 重复 backfill 同一章是安全的（幂等 set 写入，不影响历史门控）
    - 选项 2 时跳过，继续 Step 2
-2. **一致性检查（NER，周期性每 10 章）**：
-   - 章节范围：`[max(1, last_completed_chapter-9), last_completed_chapter]`
+2. **一致性检查（NER，滑窗每 5 章触发，窗口 10 章）**：
+   - 章节范围：`[max(1, last_completed_chapter-9), last_completed_chapter]`（步长 5 形成重叠滑窗：ch1-10, ch6-15, ch11-20…）
    - 实体抽取（优先确定性脚本，失败回退 LLM）：
      - 若存在 `${CLAUDE_PLUGIN_ROOT}/scripts/run-ner.sh`：
        - 逐章执行：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/run-ner.sh chapters/chapter-{C:03d}.md`
