@@ -153,6 +153,7 @@
         },
         "anti_ai": {
           "type": ["object", "null"],
+          "required": ["detected_humanize_techniques"],
           "properties": {
             "blacklist_hits": {
               "type": "object",
@@ -204,7 +205,8 @@
             },
             "detected_humanize_techniques": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": { "type": "string" },
+              "description": "必须输出（允许空数组），供 periodic-maintenance 人性化技法干旱检测使用"
             },
             "ai_sentence_pattern_details": {
               "type": "array",
@@ -212,7 +214,7 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "pattern_name": { "type": "string", "enum": ["author_proxy_comprehension", "template_transition", "abstract_judgment", "formal_tone_intrusion"] },
+                  "pattern_name": { "type": "string", "enum": ["author_proxy_comprehension", "template_transition", "abstract_judgment", "formal_tone_intrusion", "negation_affirmation"] },
                   "count": { "type": "integer", "minimum": 0 },
                   "examples": { "type": "array", "items": { "type": "string" } }
                 }

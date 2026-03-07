@@ -177,7 +177,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 
 
-> `canon_hints` 为可选输出——若本章无新确立的规则/能力，则 `canon_hints` 为空数组或不输出。编排器 commit 阶段读取此字段时，缺失视为空数组。
+> `canon_hints` 为**必须输出字段**——若本章无新确立的规则/能力，输出空数组 `"canon_hints": []`（不可省略字段）。编排器 commit 阶段依赖此字段执行 planned → established 升级；缺失会导致已确立的规则永远停留在 planned 状态。
 
 # Edge Cases
 
