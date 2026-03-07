@@ -198,7 +198,7 @@
                 "single_sentence_paragraph_ratio": { "type": ["number", "null"], "description": "单句段落占比（统计参考，不直接参与评分）" },
                 "simile_density": { "type": ["number", "null"], "description": "比喻密度（个/千字），精确词条+通用结构合计" },
                 "simile_max_per_paragraph": { "type": ["integer", "null"], "description": "单段最大比喻数量" },
-                "ai_sentence_pattern_count": { "type": ["integer", "null"], "description": "AI 句式原型命中总数（4类合计）" },
+                "ai_sentence_pattern_count": { "type": ["integer", "null"], "description": "AI 句式原型命中总数（5类合计：作者代理理解/模板化转折/抽象判断/书面腔入侵/否定-肯定伪深度）" },
                 "dialogue_distinctiveness": { "type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "对话区分度（去标签后可辨识说话者的比例，0-1）" }
               }
             },
