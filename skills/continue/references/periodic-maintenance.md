@@ -2,7 +2,7 @@
 
 ## AI 黑名单动态维护（不阻断）
 
-- 从 eval_used.anti_ai.blacklist_update_suggestions[] 读取新增候选（必须包含：phrase + count_in_chapter + examples）
+- 若 `eval_used.anti_ai.blacklist_update_suggestions[]` 存在且非空，读取新增候选（必须包含：phrase + count_in_chapter + examples）；若字段缺失或为 null，跳过本章黑名单维护（不报错）
 - 增长上限检查：若 `words[]` 长度 >= 120，跳过自动追加，仅记录到 `update_log[]`（source="auto_skipped_cap"），并在 `/novel:start` 质量回顾中提示用户审核黑名单规模
 - 自动追加门槛（保守，避免误伤）：
   - `confidence in {medium, high}` 且 `count_in_chapter >= 3` -> 才允许自动追加

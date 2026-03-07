@@ -71,6 +71,10 @@ description: >
 | 读者一句话 | `evaluations/chapter-*-eval.json` | `.reader_evaluation.platform_signal.one_line_verdict` |
 | 读者读后感 | `evaluations/chapter-*-eval.json` | `.reader_evaluation.reader_feedback` |
 | 黄金三章警告 | `evaluations/chapter-*-eval.json` | `.reader_evaluation.golden_chapter_flags[]`（仅 Ch001-003） |
+| 卷级一致性 | `volumes/vol-{V:02d}/continuity-report.json` | `.issues[]`（卷末自动回顾生成，可选） |
+| 卷级伏笔报告 | `volumes/vol-{V:02d}/foreshadowing-report.json` | `.resolved_in_global` / `.overdue_short`（卷末自动回顾生成，可选） |
+| 卷级桥梁断链 | `volumes/vol-{V:02d}/broken-bridges.json` | broken items（卷末自动回顾生成，可选） |
+| 卷级节奏分析 | `volumes/vol-{V:02d}/storyline-rhythm.json` | 出场统计 / 休眠 / 交汇达成（卷末自动回顾生成，可选） |
 
 ```
 - 总章节数

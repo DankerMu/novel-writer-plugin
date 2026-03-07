@@ -2,6 +2,7 @@
 
 1. 收集本卷 `evaluations/`、`summaries/`、`foreshadowing/global.json`、`storylines/`，生成本卷回顾要点（质量趋势、低分章节、未回收伏笔、故事线节奏、桥梁断链）
 2. **全卷一致性报告（NER）**：
+   - **幂等性检查**：若 `volumes/vol-{V:02d}/continuity-report.json` 已存在（由 `/novel:continue` 卷末自动回顾生成），提示用户”卷末一致性检查已自动完成”，提供选项：使用现有报告（Recommended）/ 重新生成。选择”使用现有”时跳过 NER 抽取，直接读取既有报告用于 Step 4 review.md 生成
    - 章节范围：优先使用本卷 `outline.md` 解析得到的 `[chapter_start, chapter_end]`；若解析失败则退化为”本卷 evaluations/ 与 summaries/ 中匹配 `chapter-(\d{3})` 的章节号集合，取 min/max 作为范围”
    - 实体抽取与报告 schema：见 `skills/continue/references/continuity-checks.md`
    - 若存在 `${CLAUDE_PLUGIN_ROOT}/scripts/run-ner.sh`：逐章执行抽取；否则回退 LLM（优先 summaries，必要时回看 chapters），按同一 schema 抽取 entities，并为每类实体输出 confidence
