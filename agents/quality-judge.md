@@ -240,6 +240,9 @@ elif recommendation == "pass" and overall_engagement < 3.0:
    - **AI 句式原型计数**：5 类原型（作者代理理解/模板化转折/抽象判断/书面腔入侵/否定-肯定伪深度）命中总数（0 人类范围，1-2 过渡区，≥ 3 为 AI 特征区）。"不是X，而是Y"句式同时命中 template_transition 和 negation_affirmation 但只计 1 次。第一人称"我知道他在…"豁免
    - **对话区分度**：去掉对话标签后可辨识说话者的比例（≥ 70% 人类范围，50-70% 过渡区，< 50% 为 AI 特征区）。对话轮数 < 3 时默认 4 分
    - **破折号判定更新**：`em_dash_count > 0` 即视为 AI 特征区（零容忍）
+   - **格式违规检测（硬违规，不参与维度评分但触发 has_violations）**：
+     - **模型 artifact 泄漏**：扫描正文中是否存在 `<thinking>`、`</thinking>`、`<reflection>`、`</reflection>`、`<output>`、`</output>` 或任何 `<[a-z_]+>` 形式的 LLM 内部标签。命中 > 0 → `has_violations = true`，输出 violation `format_violation_model_artifact`（confidence=high），同时加入 `risk_flags` 和 `required_fixes`
+     - **英文引号残留**：扫描正文中是否存在英文直引号（`"`，U+0022）或其他非中文双引号的引号字符（英文弯引号 `""`、单引号 `''`、直角引号 `「」`）。命中 > 0 → 输出 `risk_flags: ["format_violation_english_quotes"]`，`required_fixes` 中标注需要替换为中文双引号（""）。注意：**不触发 has_violations**（格式问题，非语义违规），但会拉低 `style_naturalness` 评分（命中 ≥ 3 处降至过渡区）
    - **向后兼容**：旧版评估缺失新增指标时，QJ 应从正文中补足缺失指标的统计，始终按 13 项完整评分。不退化到旧版 7 指标
    - `detected_humanize_techniques` **不影响评分**，但为**必须输出字段**（允许空数组 `[]`，不可省略）——供 dashboard 跨章统计和 periodic-maintenance 人性化技法干旱检测使用
 4. **综合分计算**：
