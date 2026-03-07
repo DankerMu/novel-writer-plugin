@@ -153,6 +153,7 @@
         },
         "anti_ai": {
           "type": ["object", "null"],
+          "required": ["detected_humanize_techniques"],
           "properties": {
             "blacklist_hits": {
               "type": "object",

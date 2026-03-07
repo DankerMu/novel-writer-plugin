@@ -48,13 +48,14 @@
 ## 人性化技法跨章追踪（每 5 章触发）
 
 - 触发条件：与风格漂移检测同步（last_completed_chapter % 5 == 0）
-- 读取近 5 章 eval JSON 的 `anti_ai.statistical_profile.detected_humanize_techniques[]`
-- 前置检查：若窗口内 ≥ 3 章 eval 缺失 `anti_ai.statistical_profile.detected_humanize_techniques` 字段（null 或不存在），跳过本周期 humanize_drought 判定（记录日志 "humanize data unavailable for majority of window, skipping"）
+- 读取近 5 章 eval JSON 的 `eval_used.anti_ai.detected_humanize_techniques[]`
+- 前置检查：若窗口内 ≥ 3 章 eval 缺失 `eval_used.anti_ai.detected_humanize_techniques` 字段（null 或不存在），跳过本周期 humanize_drought 判定（记录日志 "humanize data unavailable for majority of window, skipping"）
 - 统计 5 章内 unique technique tag 数量
 - 判定：
   - unique == 0（连续 5 章零技法）→ 输出 risk_flag `humanize_drought` WARNING
   - unique > 0 → 正常，不做干预
 - humanize_drought 处理：
-  - 将提示注入下章 `style_drift_directives`："近 5 章未使用任何人性化技法（style-guide §2.9），在合适场景中自然融入"
-  - 仅注入一次，下个 5 章周期重新评估
+  - 写入 `style-drift.json`：追加 `drifts[]` 条目 `{"type": "humanize_drought", "detected_chapter": C, "directive": "近 5 章未使用任何人性化技法（style-guide §2.9），在合适场景中自然融入"}`，设 `active=true`（如已有 drift 条目则保持，仅追加 drought 条目）
+  - 编排器 Step 2.6 组装 manifest 时，已从 `style-drift.json` 读取 `style_drift_directives`（SKILL.md:225），drought directive 自然被注入下章
+  - 仅注入一次：下个 5 章周期重新评估——若 drought 解除（unique > 0），从 `style-drift.json.drifts[]` 移除 `type=="humanize_drought"` 的条目（若 drifts 为空则 `active=false`）
 - 注意：不设最低配额——humanize_drought 仅为温和提醒，不阻断流水线

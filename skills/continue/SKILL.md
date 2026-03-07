@@ -351,7 +351,7 @@ for chapter_num in range(start, start + remaining_N):
      - 处理 unknown_entities: 从 Summarizer 输出提取 unknown_entities，追加写入 logs/unknown-entities.jsonl；若累计 ≥ 3 个未注册实体，在本章输出中警告用户
      - 更新 .checkpoint.json（last_completed_chapter + 1, pipeline_stage = "committed", inflight_chapter = null, revision_count = 0）
      - 状态转移：
-       - 若 chapter_num == chapter_end：更新 `.checkpoint.json.orchestrator_state = “VOL_REVIEW”` 并提示用户运行 `/novel:start` 执行卷末回顾
+       - 若 chapter_num == chapter_end：更新 `.checkpoint.json.orchestrator_state = “VOL_REVIEW”` 并提示用户运行 `/novel:start` 进行 State 清理和下卷规划（卷末核心检查已由 Step 8 自动完成）
        - 否则：更新 `.checkpoint.json.orchestrator_state = “WRITING”`（若本章来自 CHAPTER_REWRITE，则回到 WRITING）
      - 写入 logs/chapter-{C:03d}-log.json（stages 耗时/模型、gate_decision、revisions、force_passed；关键章额外记录 primary/secondary judge 的 model+overall 与 overall_final；token/cost 为估算值或 null，见降级说明）
      - 清空 staging/ 本章文件（含 eval-raw.json 中间文件）
@@ -377,7 +377,7 @@ for chapter_num in range(start, start + remaining_N):
      - **质量简报（每 5 章触发）**：`last_completed_chapter % 5 == 0` 时输出近 5 章均分 + 低分章节 + 风格漂移检测结果
      - **伏笔盘点 + 跨线桥梁检查（每 10 章触发）**：`last_completed_chapter >= 10` 且 `last_completed_chapter % 10 == 0` 时自动执行（流程与 `quality-review.md` Step 4 一致），报告落盘到 `logs/foreshadowing/` + `logs/storylines/`
      - **故事线节奏分析（每 10 章触发）**：与伏笔盘点同步触发（流程与 `quality-review.md` Step 5 一致），报告落盘到 `logs/storylines/rhythm-*.json`
-     - **Track 3 补全检测（每 10 章触发）**：`last_completed_chapter % 10 == 0` 时扫描近 10 章 `evaluations/chapter-*-eval.json`，筛选 `reader_evaluation == null` 的章节；若存在，输出列表并提示用户可运行 `/novel:start → 质量回顾` 补全（不阻断续写）
+     - **Track 3 补全检测（每 10 章触发）**：`last_completed_chapter % 10 == 0` 时扫描近 10 章 `evaluations/chapter-*-eval.json`，筛选 `eval_used.reader_evaluation == null` 的章节；若存在，输出列表并提示用户可运行 `/novel:start → 质量回顾` 补全（不阻断续写）
      - **卷末自动回顾**：到达本卷末尾章节（`chapter_num == chapter_end`）时，**自动执行**以下核心检查（不只是提醒）：
        - 全卷 NER 一致性报告（流程与 `vol-review.md` Step 2 一致），落盘到 `volumes/vol-{V:02d}/continuity-report.json` + `logs/continuity/latest.json`
        - 伏笔盘点 + 桥梁检查 + 故事线节奏分析（流程与 `vol-review.md` Step 3 一致），落盘到 `volumes/vol-{V:02d}/` 对应文件

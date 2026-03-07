@@ -11,6 +11,7 @@
      - 写入 `volumes/vol-{V:02d}/continuity-report.json`
      - 同步写入/覆盖 `logs/continuity/latest.json`（供后续 `/novel:continue` 注入 QualityJudge LS-001）
 3. **伏笔盘点 + 桥梁检查 + 节奏分析**（卷级汇总；不阻断）：
+   - **幂等性检查**：若 `volumes/vol-{V:02d}/foreshadowing-report.json`、`broken-bridges.json`、`storyline-rhythm.json` 均已存在（由 `/novel:continue` 卷末自动回顾生成），提示用户"卷末伏笔/桥梁/节奏分析已自动完成"，提供选项：使用现有报告（Recommended）/ 重新生成。选择"使用现有"时跳过计算，直接读取既有报告用于 Step 4 review.md 生成
    - 章节范围：使用 Step 2 得到的 `[chapter_start, chapter_end]`
    - Read（如存在）：
      - 本卷伏笔计划：`volumes/vol-{V:02d}/foreshadowing.json`
