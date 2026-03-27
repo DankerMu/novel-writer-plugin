@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # PreToolUse hook: detect sliding window checkpoint and inject validation instruction.
 #
-# Fires when the orchestrator commits a chapter to chapters/chapter-NNN.md.
+# Fires on Write (to chapters/chapter-NNN.md) or Bash (mv/cp to chapters/).
 # If the chapter number hits a sliding window checkpoint (≥10 and %5==0),
 # injects a systemMessage forcing the orchestrator to execute the consistency
 # check (SKILL.md Step 8) by spawning an agent to read original chapter text.
-# Does NOT block the write — permissionDecision is always "allow".
+# Does NOT block the tool — permissionDecision is always "allow".
 
 set -euo pipefail
 
@@ -15,22 +15,36 @@ input="$(cat)"
 
 hook_event="$(echo "$input" | jq -r '.hook_event_name // ""')"
 tool_name="$(echo "$input" | jq -r '.tool_name // ""')"
-file_path="$(echo "$input" | jq -r '.tool_input.file_path // ""')"
 
 [ "$hook_event" = "PreToolUse" ] || exit 0
-[ "$tool_name" = "Write" ] || exit 0
-
-# Only match chapters/chapter-NNN.md (NOT staging/chapters/)
-case "$file_path" in
-  */staging/*) exit 0 ;;
-esac
 
 chapter_num=""
-case "$file_path" in
-  */chapters/chapter-[0-9][0-9][0-9].md)
-    bn="${file_path##*/}"
-    chapter_num="${bn#chapter-}"
-    chapter_num="${chapter_num%.md}"
+
+case "$tool_name" in
+  Write)
+    file_path="$(echo "$input" | jq -r '.tool_input.file_path // ""')"
+    # Skip staging writes
+    case "$file_path" in */staging/*) exit 0 ;; esac
+    case "$file_path" in
+      */chapters/chapter-[0-9][0-9][0-9].md)
+        bn="${file_path##*/}"
+        chapter_num="${bn#chapter-}"
+        chapter_num="${chapter_num%.md}"
+        chapter_num=$((10#$chapter_num))
+        ;;
+      *) exit 0 ;;
+    esac
+    ;;
+  Bash)
+    cmd="$(echo "$input" | jq -r '.tool_input.command // ""')"
+    # Match: mv/cp from staging/chapters/ to chapters/ (commit pattern)
+    # e.g. "mv staging/chapters/chapter-010.md chapters/chapter-010.md"
+    if ! echo "$cmd" | grep -qE '(mv|cp)\b.*staging/chapters/chapter-[0-9]{3}\.md'; then
+      exit 0
+    fi
+    # Extract chapter number from the destination (non-staging path)
+    chapter_num="$(echo "$cmd" | grep -oE '[^/]chapters/chapter-([0-9]{3})\.md' | head -1 | grep -oE '[0-9]{3}')" || true
+    [ -n "$chapter_num" ] || exit 0
     chapter_num=$((10#$chapter_num))
     ;;
   *) exit 0 ;;
