@@ -37,7 +37,7 @@ project_dir="${cwd:-$(pwd)}"
 if ! echo "$cmd" | grep -qE '(mv|cp)\b.*staging/chapters/chapter-[0-9]{3}\.md'; then
   exit 0
 fi
-chapter_num="$(echo "$cmd" | grep -oE '[^/]chapters/chapter-([0-9]{3})\.md' | head -1 | grep -oE '[0-9]{3}')" || true
+chapter_num="$(echo "$cmd" | grep -oE 'staging/chapters/chapter-([0-9]{3})\.md' | head -1 | grep -oE '[0-9]{3}')" || true
 [ -n "$chapter_num" ] || exit 0
 chapter_num=$((10#$chapter_num))
 
