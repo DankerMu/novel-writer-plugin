@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
 # PreToolUse hook: sliding window checkpoint enforcement.
 #
-# Fires on Write|Edit|Bash. On every invocation:
+# TRIGGER: Fires immediately when .checkpoint.json is set to committed
+#   at a chapter that is a multiple of 5. For Write/Edit to .checkpoint.json,
+#   parses tool_input directly (immediate). For other tools, reads disk
+#   (fires on next call after checkpoint update).
 #
-# 1. If marker exists:
-#    - Bash mv chapter commit → check report → deny/allow (GATE)
-#    - Everything else → pass through silently
-#
-# 2. If NO marker:
-#    - Read .checkpoint.json FROM DISK (works regardless of how it was updated)
-#    - If pipeline_stage=committed + chapter is checkpoint (≥10, %5==0)
-#      → create marker + inject full instructions (TRIGGER)
-#
-# This approach doesn't care whether checkpoint was updated via Write,
-# Edit, or Bash. It reads the actual state from disk.
+# GATE: If marker exists and report not written, denies Bash mv chapter
+#   commits. Safety net if agent ignores the trigger message.
 
 set -euo pipefail
 
@@ -55,27 +49,47 @@ build_instructions() {
 MSG
 }
 
+# ─── Helper: emit trigger ───
+emit_trigger() {
+  local ch="$1"
+  local ws=$(( ch - 9 ))
+  [ "$ws" -ge 1 ] || ws=1
+
+  mkdir -p "$project_dir/logs"
+  local instructions
+  instructions="$(build_instructions "$ch" "$ws")"
+  printf '%s\n%s\n' "$ch" "$instructions" > "$marker"
+
+  jq -n --arg msg "⚠️ 【滑窗校验点】第 ${ch} 章提交完成，触发滑窗一致性校验。
+
+${instructions}" \
+    '{systemMessage: $msg, hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
+}
+
+# ─── Helper: check if chapter is a checkpoint ───
+is_checkpoint() {
+  local ch="$1"
+  [ "$ch" -ge 10 ] 2>/dev/null || return 1
+  [ $(( ch % 5 )) -eq 0 ] || return 1
+  return 0
+}
+
 # ═══════════════════════════════════════════════════════════════
 # CASE 1: Marker exists — GATE mode
 # ═══════════════════════════════════════════════════════════════
 if [ -f "$marker" ]; then
-  # Only gate Bash mv chapter commits; let everything else through
-  if [ "$tool_name" != "Bash" ]; then
-    exit 0
-  fi
+  [ "$tool_name" = "Bash" ] || exit 0
 
   cmd="$(echo "$input" | jq -r '.tool_input.command // ""')"
   if ! echo "$cmd" | grep -qE '(mv|cp)\b.*staging/chapters/chapter-[0-9]{3}\.md'; then
     exit 0
   fi
 
-  # Check if report was updated after marker
   if [ -f "$report" ] && [ "$report" -nt "$marker" ]; then
     rm -f "$marker"
     exit 0
   fi
 
-  # DENY with full instructions
   instructions="$(sed '1d' "$marker" 2>/dev/null || echo "请执行 SKILL.md Step 8 滑窗校验。")"
   jq -n \
     --arg msg "⛔ 章节 commit 被阻断——滑窗校验未完成。
@@ -89,25 +103,62 @@ ${instructions}
 fi
 
 # ═══════════════════════════════════════════════════════════════
-# CASE 2: No marker — check checkpoint state from DISK
+# CASE 2: No marker — detect committed checkpoint
 # ═══════════════════════════════════════════════════════════════
-stage="$(jq -r '.pipeline_stage // ""' "$checkpoint" 2>/dev/null)" || true
-chapter_num="$(jq -r '.last_completed_chapter // 0' "$checkpoint" 2>/dev/null)" || true
 
-[ "$stage" = "committed" ] || exit 0
-[ "$chapter_num" -ge 10 ] 2>/dev/null || exit 0
-[ $(( chapter_num % 5 )) -eq 0 ] || exit 0
+is_committed=false
+chapter_num=""
 
-ws=$(( chapter_num - 9 ))
-[ "$ws" -ge 1 ] || ws=1
+# ── Try parsing tool_input directly (immediate trigger) ──
+case "$tool_name" in
+  Write)
+    file_path="$(echo "$input" | jq -r '.tool_input.file_path // ""')"
+    case "$file_path" in
+      */.checkpoint.json|*.checkpoint.json)
+        content="$(echo "$input" | jq -r '.tool_input.content // ""')"
+        stage="$(echo "$content" | jq -r '.pipeline_stage // ""' 2>/dev/null)" || true
+        ch="$(echo "$content" | jq -r '.last_completed_chapter // 0' 2>/dev/null)" || true
+        if [ "$stage" = "committed" ]; then
+          is_committed=true
+          chapter_num="$ch"
+        fi
+        ;;
+    esac
+    ;;
+  Edit)
+    file_path="$(echo "$input" | jq -r '.tool_input.file_path // ""')"
+    case "$file_path" in
+      */.checkpoint.json|*.checkpoint.json)
+        new_string="$(echo "$input" | jq -r '.tool_input.new_string // ""')"
+        if echo "$new_string" | grep -q '"committed"'; then
+          is_committed=true
+          # Try chapter from new_string first
+          ch="$(echo "$new_string" | grep -oE '"last_completed_chapter"[[:space:]]*:[[:space:]]*([0-9]+)' | grep -oE '[0-9]+' | head -1)" || true
+          if [ -z "$ch" ]; then
+            # Chapter was set in a previous edit, read from disk
+            ch="$(jq -r '.last_completed_chapter // 0' "$checkpoint" 2>/dev/null)" || true
+          fi
+          chapter_num="$ch"
+        fi
+        ;;
+    esac
+    ;;
+esac
 
-# Create marker
-mkdir -p "$project_dir/logs"
-instructions="$(build_instructions "$chapter_num" "$ws")"
-printf '%s\n%s\n' "$chapter_num" "$instructions" > "$marker"
+# ── Fallback: read from disk (for Bash and other tools) ──
+if [ "$is_committed" = false ]; then
+  stage="$(jq -r '.pipeline_stage // ""' "$checkpoint" 2>/dev/null)" || true
+  ch="$(jq -r '.last_completed_chapter // 0' "$checkpoint" 2>/dev/null)" || true
+  if [ "$stage" = "committed" ]; then
+    is_committed=true
+    chapter_num="$ch"
+  fi
+fi
 
-# Inject full instructions
-jq -n --arg msg "⚠️ 【滑窗校验点】第 ${chapter_num} 章提交完成，触发滑窗一致性校验。
+# ── Check and trigger ──
+[ "$is_committed" = true ] || exit 0
+[ -n "$chapter_num" ] || exit 0
+chapter_num=$((10#$chapter_num))
+is_checkpoint "$chapter_num" || exit 0
 
-${instructions}" \
-  '{systemMessage: $msg, hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
+emit_trigger "$chapter_num"
