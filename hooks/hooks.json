@@ -59,7 +59,7 @@
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Write|Bash",
         "hooks": [
           {
             "type": "command",
