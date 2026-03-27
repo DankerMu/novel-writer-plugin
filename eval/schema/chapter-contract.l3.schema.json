@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "ChapterContract",
-  "description": "L3 chapter contract with excitement_type for specifying chapter excitement focus.",
+  "title": "ChapterContract (Legacy JSON format)",
+  "description": "Legacy JSON schema for L3 chapter contracts. As of v2.2.0, the canonical format is Markdown (templates/chapter-contract.md). This schema is retained for backward compatibility with projects that still use JSON contracts. New projects should use Markdown contracts in volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md.",
   "type": "object",
   "required": ["chapter", "storyline_id", "objectives"],
   "properties": {

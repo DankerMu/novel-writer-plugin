@@ -172,7 +172,23 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - `acceptance_criteria`：从「验收标准」提取列表
 - `foreshadowing`：从「事件中自然推进的伏笔」提取 F-XXX 及动作
 
-**钩子类型枚举**：cliffhanger / reversal / mystery_reveal / confrontation / emotional_punch / worldbuilding_wow
+**excitement_type 枚举**（每章必填，「钩子 → 类型」行使用）：
+
+| 值 | 含义 |
+|----|------|
+| `power_up` | 主角实力提升/获得新能力 |
+| `reversal` | 局势反转/打脸 |
+| `cliffhanger` | 悬念高峰/断崖式结尾 |
+| `emotional_peak` | 情感爆发/催泪/燃点 |
+| `mystery_reveal` | 谜团揭示/真相大白 |
+| `confrontation` | 正面对决/高手过招 |
+| `worldbuilding_wow` | 世界观震撼展示/新设定揭幕 |
+| `setup` | 铺垫章（蓄力/布局/伏笔密集埋设） |
+
+**校验规则**：
+- 每章 1-2 个类型（过多说明焦点不集中）
+- `setup` 与其他类型**互斥**（铺垫章不应同时标注爽点）
+- `excitement_note`（可选字符串）：当枚举无法精确描述时补充说明
 
 **链式传递**：前章「局势变化」表的「章末」列自动成为下一章「前章衔接」的输入。
 

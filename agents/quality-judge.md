@@ -88,11 +88,17 @@ tools: ["Read", "Write", "Glob", "Grep"]
 1. **L1 世界规则检查**：遍历 prompt 中提供的所有 `constraint_type: "hard"` 的规则，检查正文是否违反
    - **Planned 引用检测**：若 manifest 中提供了 `planned_rule_ids`（所有 `canon_status == "planned"` 的规则 ID 列表），扫描正文是否引用了 planned 规则描述的内容。命中时 `status = "warning"`（不触发修订），detail 说明「正文引用了尚未确立的世界规则 {rule_id}」。此检查帮助发现 ChapterWriter 越界引用预案内容
 2. **L2 角色契约检查**：检查角色行为是否超出 contracts 定义的能力边界和行为模式
-3. **L3 章节契约检查**（如存在）：
-   - preconditions 中的角色状态是否在正文中体现
-   - 所有 `required: true` 的 objectives 是否达成
-   - postconditions 中的状态变更是否有因果支撑
-   - acceptance_criteria 逐条验证
+3. **L3 章节契约检查**（如存在；Markdown 契约优先，JSON 回退）：
+   - **Markdown 契约**：
+     - 「事件」section 描述的核心事件是否在正文中完整呈现
+     - 「冲突与抉择」的冲突/抉择/赌注是否在正文中有对应情节
+     - 「局势变化」表的章末状态是否与正文实际演进一致
+     - 「验收标准」逐条验证
+   - **JSON 契约（回退）**：
+     - preconditions 中的角色状态是否在正文中体现
+     - 所有 `required: true` 的 objectives 是否达成
+     - postconditions 中的状态变更是否有因果支撑
+     - acceptance_criteria 逐条验证
    - **genre-specific criteria 检查**（黄金三章 / Step F0 产物）：若 `acceptance_criteria` 中包含 genre-specific key（如 `golden_finger_hinted`、`both_leads_appeared`、`core_mystery_presented` 等，参见 `skills/novel-writing/references/golden-chapter-criteria.md`），按 key 语义检查正文是否满足。未满足的 genre-specific criteria 输出为 l3_checks violation（confidence 根据判断确定性设为 high/medium）
    - **excitement_type 爽点落地评估**（如 chapter_contract 含 `excitement_type`）：
      - 非 setup 章：检查正文中是否存在与标注爽点类型匹配的段落（如 `reversal` → 是否有反转桥段、`power_up` → 是否有升级/获得段落）。未落地的爽点类型输出为 soft violation（不阻断，记入 pacing 维度评分）
@@ -201,7 +207,10 @@ tools: ["Read", "Write", "Glob", "Grep"]
 4. **不与 Track 1/2 重叠**：不评价情节逻辑严密性、角色塑造技巧、伏笔合理性、L1/L2/L3 合规性等已覆盖维度
 5. **setup 章宽容**：`excitement_type == ["setup"]` 时降低 hook_effectiveness 期望值（setup 章 3 分 ≈ 普通章 4 分）
 6. **evidence 必须引用原文**：每个维度的 evidence 必须是正文中的具体片段
-7. **Track 3 fallback**：Track 3 评估失败时（如内部错误），fallback 仅用 Track 1+2，`reader_evaluation` 输出为 null
+7. **Track 3 fallback**：以下情况 Track 3 输出 `reader_evaluation: null`，fallback 仅用 Track 1+2：
+   - QualityJudge 执行 Track 3 时发生内部错误（上下文截断、JSON 结构异常等）
+   - 章节正文过短（< 500 字），无法产生有效读者体验评估
+   - Track 3 **不会**因平台类型、章节序号或评分高低而主动跳过——它始终尝试执行，仅在异常时 fallback
 
 ### 内化门控叠加逻辑
 
@@ -268,19 +277,19 @@ elif recommendation == "pass" and overall_engagement < 3.0:
 从 `paths.platform_guide` 读取平台标识，从 `paths.recent_summaries[]` 读取前章摘要（供回溯判定），按以下规则执行硬门检查：
 
 **番茄小说**：
-- Ch001: 主角在前 200 字内登场并面临冲突
-- Ch001-003: 每章末尾有明确悬念钩子
-- Ch003: 前 3 章内至少出现一次反转/打脸/升级事件（回溯 `paths.recent_summaries[]` 判断；若前章摘要不可用则标注 `status: "skipped", detail: "前章摘要不可用，无法回溯判定"`）
+- `fanqie_ch001_protagonist`: Ch001 主角在前 200 字内登场并面临冲突。**度量**：从正文首字起算（不含标题），计算到主角首次出现（名字/代称/第一人称"我"）的非空白字符数 ≤ 200；且该段落或下一段落含冲突要素（对抗/威胁/困境/抉择）
+- `fanqie_ch001-003_hook`: Ch001-003 每章末尾有明确悬念钩子。**度量**：正文最后 200 字内存在未解决的悬念、反转、或新信息揭示（非总结性收束）
+- `fanqie_ch003_reversal`: 前 3 章内至少出现一次反转/打脸/升级事件。**度量**：回溯 `paths.recent_summaries[]` + 本章正文，判断是否存在局势反转/对手被反制/主角获得新能力。若前章摘要不可用则标注 `status: "skipped", detail: "前章摘要不可用，无法回溯判定"`
 
 **起点中文网**：
-- Ch003: 前 3 章让读者感知到世界观/力量体系的存在与层级感（冰山式暗示，非框架建立）
-- Ch003: immersion 维度评分 ≥ 3.5（引用 Track 2 结果）
+- `qidian_ch003_worldbuilding`: Ch003 前 3 章让读者感知到世界观/力量体系的存在与层级感（冰山式暗示，非框架建立）。**度量**：正文中存在 ≥ 2 处暗示力量/世界层级的描写（如角色对高阶存在的反应、禁区提及、能力差距展示），且无超过 150 字的连续设定说明段
+- `qidian_ch003_immersion`: Ch003 immersion 维度评分 ≥ 3.5（引用 Track 2 结果）
 
 **晋江文学城**：
-- Ch001-002: 主角人设通过行为（非旁白）展现
-- Ch001-003: 至少一个 CP lead 登场
-- Ch001-002: 情感基调建立
-- Ch001-003: style_naturalness 维度评分 ≥ 3.5（引用 Track 2 结果）
+- `jinjiang_ch001-002_show_not_tell`: Ch001-002 主角人设通过行为（非旁白）展现。**度量**：主角核心性格特质（至少 1 项）通过具体动作/对话/决策展示，非叙述者直接陈述（如"她很勇敢"不算，"她挡在前面"算）
+- `jinjiang_ch001-003_cp_lead`: Ch001-003 至少一个 CP lead 登场。**度量**：CP 主要角色（非背景提及）在前 3 章内有台词或直接行动场景
+- `jinjiang_ch001-002_emotional_tone`: Ch001-002 情感基调建立。**度量**：前 2 章能辨识出故事的情感底色（甜/虐/悬疑/治愈等），正文中存在 ≥ 1 处情感浓度较高的段落（情绪词密度或对话情感强度高于叙述均值）
+- `jinjiang_ch001-003_style`: Ch001-003 style_naturalness 维度评分 ≥ 3.5（引用 Track 2 结果）
 
 **输出规则**：
 - 硬门失败时：`platform_hard_gates` 中对应条目 `status = "fail"`，并附带平台特定的修改建议（`fix_suggestion`）

@@ -29,7 +29,7 @@ chapter_writer_manifest = {
     chapters_since_last: int,
     line_arc_progress: str,
   },
-  concurrent_state: {str: str},         # 其他活跃线一句话状态
+  concurrent_state: {str: str},         # 其他活跃线一句话状态（key=storyline_id, value=≤50字当前状态描述；来源：storyline-schedule.json 的 active_storylines 中非当前线，由编排器从各线最近 memory.md 首行或 outline StateChanges 提取；冻结线不出现）
   transition_hint: obj | null,          # 切线过渡
   hard_rules_list: [str],              # L1 禁止项列表（已格式化；仅 established + INTRODUCING 标记的 planned）
   foreshadowing_tasks: [obj],          # 本章伏笔任务子集
