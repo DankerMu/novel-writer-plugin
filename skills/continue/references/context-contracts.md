@@ -40,7 +40,7 @@ chapter_writer_manifest = {
   paths: {
     style_profile: "style-profile.json",                              # 必读（含 style_exemplars + writing_directives）
     style_drift: "style-drift.json",                                  # 可选
-    chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.json",
+    chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md",  # Markdown优先，回退.json
     volume_outline: "volumes/vol-{V:02d}/outline.md",
     current_state: "state/current-state.json",
     world_rules: "world/rules.json",                                  # 可选
@@ -121,7 +121,7 @@ quality_judge_manifest = {
     chapter_draft: "staging/chapters/chapter-{C:03d}.md",
     style_profile: "style-profile.json",
     ai_blacklist: "ai-blacklist.json",
-    chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.json",
+    chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md",  # Markdown优先，回退.json
     world_rules: "world/rules.json",                                  # 可选
     prev_summary: "summaries/chapter-{C-1:03d}-summary.md",           # 可选（首章无）
     recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 近 2 章摘要（始终注入；按可用性降级：Ch001 为空数组，Ch002 仅含 Ch001，Ch003 含 Ch001+002；路径不存在时跳过该条目）

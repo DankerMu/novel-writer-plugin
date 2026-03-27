@@ -145,15 +145,24 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 #### Step 2.4: L2 角色契约裁剪（确定性）
 
 前置：读取并解析本章 L3 章节契约（缺失则终止并提示回到 `/novel:start` → “规划本卷”补齐）：
-- `chapter_contract_path = volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.json`
+- 优先路径：`chapter_contract_path = volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md`（Markdown 格式）
+- 回退路径：`volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.json`（旧版 JSON 格式，向后兼容）
+- **Markdown 契约字段提取**：从结构化 Markdown 中提取等效字段：
+  - `storyline_id`：从「基本信息 → 故事线」行提取
+  - `涉及角色`：从「事件中自然流露的角色特质」section 提取角色名列表
+  - `world_rules`：从「世界规则约束」section 提取 W-XXX ID 列表
+  - `excitement_type`：从「钩子 → 类型」行提取
+  - `acceptance_criteria`：从「验收标准」section 提取列表
+  - `foreshadowing`：从「事件中自然推进的伏笔」section 提取 F-XXX 及动作
+  - `前章衔接`：从「前章衔接」section 提取
 
 裁剪规则：
 
-- 若存在 `chapter_contract.preconditions.character_states`：
-  - 仅加载这些 preconditions 中涉及的角色（**无硬上限**；交汇事件章可 > 10）
-  - 注意：`character_states` 的键为中文显示名，需要用 `entity_id_map` 反向映射到 `slug_id`
+- 若契约中「事件中自然流露的角色特质」列出了具体角色：
+  - 仅加载这些角色（**无硬上限**；交汇事件章可 > 10）
+  - 角色名为中文显示名，需要用 `entity_id_map` 反向映射到 `slug_id`
 - 否则：
-  - 最多加载 15 个活跃角色（按“最近出场”排序截断）
+  - 最多加载 15 个活跃角色（按”最近出场”排序截断）
   - “最近出场”计算：扫描近 10 章 `summaries/`（从新到旧），命中 `display_name` 的第一次出现即视为最近；未命中视为最旧
   - 排序规则：`last_seen_chapter` 降序 → `slug_id` 升序（保证确定性）
 
@@ -173,14 +182,15 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 
 1. 读取 `volumes/vol-{V:02d}/storyline-schedule.json`（如存在则解析；用于判定 dormant_storylines 与交汇事件 involved_storylines）。
 2. 读取 `storylines/storyline-spec.json`（如存在；注入给 QualityJudge 做 LS 验收）。
-3. 章节契约与大纲一致性校验（确定性；不通过则终止，避免“拿错契约继续写”导致串线/违约）：
-   - `chapter_contract.chapter == C`
-   - `chapter_contract.storyline_id == outline_storyline_id`
-   - `chapter_contract.objectives` 至少 1 条 `required: true`
+3. 章节契约与大纲一致性校验（确定性；不通过则终止，避免”拿错契约继续写”导致串线/违约）：
+   - 契约中的章号 == C
+   - 契约中的 storyline_id == outline_storyline_id
+   - **Markdown 契约**：「事件」section 非空（核心事件必须存在）
+   - **JSON 契约（回退）**：`objectives` 至少 1 条 `required: true`
 4. 以 `chapter_contract` 为优先来源确定：
-   - `storyline_id`（本章所属线）
-   - `storyline_context`（含 `last_chapter_summary` / `chapters_since_last` / `line_arc_progress` / `concurrent_state`）
-   - `transition_hint`（如存在）
+   - `storyline_id`（本章所属线，从「基本信息」提取）
+   - `storyline_context`（**Markdown 契约**：从「前章衔接」section 提取；**JSON**：从 `storyline_context` 对象提取）
+   - `transition_hint`（**Markdown 契约**：若大纲中有 TransitionHint 则从大纲提取；**JSON**：从契约对象提取）
 5. memory 路径策略：
    - 当前线 `storylines/{storyline_id}/memory.md`：如存在，写入 manifest.paths.storyline_memory
    - 相邻线：

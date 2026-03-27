@@ -108,69 +108,73 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
    - 伏笔计划以 `short` scope 为主（卷内回收），允许 1-2 条 `medium` 伏笔为后续卷铺垫
    - **genre-specific acceptance_criteria**：参考 `skills/novel-writing/references/golden-chapter-criteria.md` 映射表，将 genre 对应的 criteria（如 `golden_finger_hinted: true`）合并到各章 L3 契约的 `acceptance_criteria` 数组中。若 `platform_guide` 存在，叠加平台特定 criteria（与 genre criteria 并列而非互斥）
 
-# Spec-Driven Writing — L3 章节契约
+# 剧情导向 — L3 章节契约（Markdown 格式）
 
-从叙述性大纲自动派生每章的结构化契约：
+从叙述性大纲自动派生每章的**剧情导向**契约。核心原则：每章的核心是「发生了什么事」，角色塑造和伏笔是事件的副产品。
 
-```json
-// volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.json
-{
-  "chapter": C,
-  "storyline_id": "storyline_id",
-  "storyline_context": {
-    "last_chapter_summary": "上次该线最后一章摘要",
-    "chapters_since_last": 0,
-    "line_arc_progress": "该线弧线进展描述",
-    "concurrent_state": "其他活跃线一句话状态"
-  },
-  "preconditions": {
-    "character_states": {"角色名": {"location": "...", "状态key": "..."}},
-    "required_world_rules": ["W-001", "W-002"]
-  },
-  "objectives": [
-    {
-      "id": "OBJ-{C}-1",
-      "type": "plot | foreshadowing | character_development",
-      "required": true,
-      "description": "目标描述"
-    }
-  ],
-  "postconditions": {
-    "state_changes": {"角色名": {"location": "...", "emotional_state": "..."}},
-    "foreshadowing_updates": {"伏笔ID": "planted | advanced | resolved"}
-  },
-  "acceptance_criteria": [
-    "OBJ-{C}-1 在正文中明确体现",
-    "不违反 W-001, W-002",
-    "不违反 C-角色ID-001（L2 角色契约）",
-    "postconditions 中的状态变更在正文中有因果支撑"
-  ],
-  "excitement_type": ["reversal"],
-  "excitement_note": null
-}
+**文件路径**：`volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md`
+
+**模板**（项目 `templates/chapter-contract.md` 为权威模板；以下为结构概要）：
+
+```markdown
+## 第 {C} 章：{章名}
+
+### 基本信息
+- **章号**：{C}
+- **故事线**：{storyline_id}
+- **POV**：{pov_character}
+- **场景**：{location}
+
+### 事件（本章发生了什么）
+{2-3 句话描述核心事件。写「发生了什么」不写「展示了什么」。}
+
+### 冲突与抉择
+- **冲突**：{核心矛盾}
+- **抉择**：{角色面临的选择及每个选项的代价}
+- **赌注**：{失败后果}
+
+### 局势变化（章首 → 章末）
+| 维度 | 章首 | 章末 |
+|------|------|------|
+| 外部威胁 | {状态} | {状态} |
+| 主角处境 | {状态} | {状态} |
+| 关键关系 | {状态} | {状态} |
+
+### 钩子
+- **章末悬念**：{读者翻页动力}
+- **类型**：{cliffhanger / reversal / mystery_reveal / confrontation / emotional_punch}
+
+### 事件中自然流露的角色特质
+- {角色}：{在什么事件中，通过什么行为，流露什么特质}
+
+### 事件中自然推进的伏笔
+- {F-XXX}：{在什么事件中自然推进}
+
+### 世界规则约束
+- {W-XXX}：{与本章事件的关联}
+
+### 前章衔接
+- {来自第X章的Y后果/悬念}
+
+### 验收标准
+1. 核心事件在正文中完整呈现
+2. 角色的抉择有明确因果
+3. 章末局势与章首有可辨识的不可逆变化
+4. 钩子能让读者想翻下一章
+5. {本章特定验收项}
 ```
 
-**链式传递**：前章的 postconditions 自动成为下一章的 preconditions。
+**关键字段提取规则**（供编排器使用）：
+- `storyline_id`：从「基本信息 → 故事线」提取
+- `涉及角色`：从「事件中自然流露的角色特质」提取角色列表
+- `world_rules`：从「世界规则约束」提取 W-XXX ID 列表
+- `excitement_type`：从「钩子 → 类型」提取
+- `acceptance_criteria`：从「验收标准」提取列表
+- `foreshadowing`：从「事件中自然推进的伏笔」提取 F-XXX 及动作
 
-**excitement_type 枚举**（根级字段，每章必填）：
+**钩子类型枚举**：cliffhanger / reversal / mystery_reveal / confrontation / emotional_punch / worldbuilding_wow
 
-| 值 | 含义 |
-|----|------|
-| `power_up` | 主角实力提升/获得新能力 |
-| `reversal` | 局势反转/打脸 |
-| `cliffhanger` | 悬念高峰/断崖式结尾 |
-| `emotional_peak` | 情感爆发/催泪/燃点 |
-| `mystery_reveal` | 谜团揭示/真相大白 |
-| `confrontation` | 正面对决/高手过招 |
-| `worldbuilding_wow` | 世界观震撼展示/新设定揭幕 |
-| `setup` | 铺垫章（蓄力/布局/伏笔密集埋设） |
-
-**校验规则**：
-- `excitement_type` 为非空数组（`[]` 拒绝——每章必须有明确的爽点定位或标注为 setup）
-- `setup` 与其他类型**互斥**（铺垫章不应同时标注爽点；若章节在铺垫中包含小爽点，选择主要爽点类型而非 setup）
-- 每章 1-2 个类型为宜（过多说明章节焦点不集中）
-- `excitement_note`（可选字符串）：当枚举无法精确描述时补充说明
-- 未来扩展保留（M7+，M6 研究提议新增 `underdog_rise`/`tension_build`/`chemistry_spark`）：新增枚举值时**必须同步更新** `eval/schema/chapter-contract.l3.schema.json` 的 enum 列表，否则 schema 校验将拒绝新值
+**链式传递**：前章「局势变化」表的「章末」列自动成为下一章「前章衔接」的输入。
 
 # Format
 
@@ -200,7 +204,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 > **继承模式 NOTE 标记**：继承模式下，已有章节区块末尾可追加 `<!-- [NOTE] 建议加强第 2 章伏笔"古老预言"的暗示 -->` 格式的 HTML 注释。入口 Skill 解析 outline 时忽略 HTML 注释，不影响 key 行提取。
 2. `volumes/vol-{V:02d}/storyline-schedule.json` — 本卷故事线调度（active_storylines + interleaving_pattern + convergence_events）
 3. `volumes/vol-{V:02d}/foreshadowing.json` — 本卷伏笔计划（新增 + 上卷延续），每条伏笔含 `id`/`description`/`scope`(`short`|`medium`|`long`)/`status`/`planted_chapter`/`target_resolve_range`/`history`
-4. `volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.json` — 每章契约（批量生成，含 storyline_id + storyline_context）
+4. `volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md` — 每章契约（Markdown 格式，剧情导向，按项目模板 `templates/chapter-contract.md` 生成）
 5. `volumes/vol-{V:02d}/new-characters.json` — 本卷需要新建的角色清单（outline 中引用但 `characters/active/` 不存在的角色），格式：`[{"name": "角色名", "first_chapter": N, "role": "antagonist | supporting | minor", "brief": "一句话定位"}]`。`role` 描述角色在全书中的故事定位（区别于 primary/secondary/seasoning 的本卷叙事权重）。入口 Skill 据此批量调用 WorldBuilder（角色创建模式）创建角色档案 + L2 契约
 
 # Edge Cases
