@@ -1,5 +1,5 @@
 {
-  "description": "Novel writer: venv bootstrap + SessionStart context injection + PreToolUse staging path audit",
+  "description": "Novel writer: venv bootstrap + SessionStart context injection + PreToolUse staging path audit + sliding window checkpoint enforcement",
   "hooks": {
     "SessionStart": [
       {
@@ -54,6 +54,16 @@
           {
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/audit-staging-path.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-sliding-window.sh",
             "timeout": 5
           }
         ]

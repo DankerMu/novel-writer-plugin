@@ -377,13 +377,23 @@ for chapter_num in range(start, start + remaining_N):
   8. **定期检查（循环内，每章提交后立即判定）**:
      - **滑窗一致性校验（每 5 章触发，窗口 10 章，步长 5）**：
        - 触发条件：`last_completed_chapter >= 10` 且 `last_completed_chapter % 5 == 0`
+       - **Hook 强制触发**：`check-sliding-window.sh`（PreToolUse hook）在章节提交到 `chapters/` 时自动检测校验点，注入 systemMessage——编排器不得跳过
        - 窗口范围：`[max(1, last_completed_chapter - 9), last_completed_chapter]`（天然形成 ch1-10, ch6-15, ch11-20... 的重叠滑窗）
-       - **自动执行**（不只是提醒），流程与 `quality-review.md` Step 2 一致：
-         - NER 实体抽取（脚本优先，LLM fallback）
-         - 一致性规则：角色映射/空间矛盾/时间线矛盾
-         - 报告落盘：`logs/continuity/continuity-report-vol-{V:02d}-ch{start:03d}-ch{end:03d}.json` + 覆盖 `logs/continuity/latest.json`
-       - 输出简报：issues_total + 高严重级前 3 条 + LS-001 高置信提示
-       - **不阻断流水线**：仅输出报告，不影响下一章续写
+       - **执行流程**（agent 驱动，读原文而非摘要/评估文件）：
+         1. 读取窗口内所有章节**原文**（`chapters/chapter-{C:03d}.md`）+ 对应**大纲区块**（`volumes/vol-{V:02d}/outline.md` 中 `### 第 N 章` 段落）+ 对应**章节契约**（`volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md`）
+         2. **正文↔契约/大纲对齐检查**（逐章）：
+            - 契约「事件」section 描述的核心事件是否在正文中完整呈现
+            - 契约「冲突与抉择」的冲突/抉择/赌注是否在正文中有对应情节
+            - 契约「局势变化」表的章末状态是否与正文实际演进一致
+            - 契约「验收标准」各条是否满足
+            - 大纲 Storyline/POV/Location 是否与正文匹配
+            - 大纲 Foreshadowing 指定的伏笔动作是否在正文中体现
+         3. **跨章连续性检查**：角色位置/状态连续性、时间线矛盾、世界规则合规性、伏笔推进一致性、跨线信息泄漏
+         4. 可选辅助：NER 实体抽取（`scripts/run-ner.sh`，脚本优先，LLM fallback）
+         5. 报告落盘：`logs/continuity/continuity-report-vol-{V:02d}-ch{start:03d}-ch{end:03d}.json` + 覆盖 `logs/continuity/latest.json`
+       - **自动修复**：对可修复问题（事实性矛盾、连续性断裂、角色状态不一致、正文偏离契约/大纲）直接编辑受影响章节原文；不可自动修复的问题（剧情逻辑矛盾、需调整契约/大纲等）列出并提示用户
+       - **阻断流水线**：校验 + 修复完成前不得继续下一章
+       - 输出简报：issues_total + 已修复数 + 未修复高严重级 + LS-001 高置信提示
      - **质量简报（每 5 章触发）**：`last_completed_chapter % 5 == 0` 时输出近 5 章均分 + 低分章节 + 风格漂移检测结果
      - **伏笔盘点 + 跨线桥梁检查（每 10 章触发）**：`last_completed_chapter >= 10` 且 `last_completed_chapter % 10 == 0` 时自动执行（流程与 `quality-review.md` Step 4 一致），报告落盘到 `logs/foreshadowing/` + `logs/storylines/`
      - **故事线节奏分析（每 10 章触发）**：与伏笔盘点同步触发（流程与 `quality-review.md` Step 5 一致），报告落盘到 `logs/storylines/rhythm-*.json`
