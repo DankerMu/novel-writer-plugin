@@ -107,6 +107,20 @@ Returns relevant foreshadowing items for a target chapter.
   ```
 - **Deps**: `python3` (stdlib only)
 
+## Automation Scripts
+
+### auto-continue.sh
+
+Automated cross-session continuation loop. Each round launches a fresh `claude -p` session (clean context), runs `/novel:continue N`, then checks `.checkpoint.json` to decide whether to loop.
+
+- **Usage**: `./auto-continue.sh [chapters_per_batch] [max_rounds]`
+  - Default: 5 chapters/batch, 20 rounds max
+  - `./auto-continue.sh 5 -1` for unlimited rounds (until volume end)
+- **Prerequisite**: Novel project root as cwd, `claude` CLI available, `jq` installed
+- **Stop conditions**: `VOL_REVIEW` (volume complete), `ERROR_RETRY`, no progress, max rounds
+- **Logs**: `logs/auto-continue.log` (summary) + `logs/auto-continue-round-N.log` (per-round claude output)
+- **Deps**: `claude` CLI, `jq`
+
 ## Eval Scripts
 
 ### calibrate-quality-judge.sh
