@@ -90,7 +90,9 @@ Shared methodology in `skills/novel-writing/SKILL.md` (passive reference, not us
 ### Context Management
 
 - **Manifest mode**: Orchestrator passes file paths; agents read on-demand (not full text injection)
+- **Context assembly**: Deterministic rules extracted to `skills/continue/references/context-assembly.md` (Step 2.0-2.7)
 - **Context budgets**: ~19–24K tokens for ChapterWriter, ~10–12K for Summarizer, ~14-16K for QualityJudge
+- **Track 3 tiering**: `track3_mode` (full/lite) — golden/end-of-volume/critical chapters get full Track 3; normal chapters get lite (overall_engagement + reader_feedback only)
 - **Checkpoint recovery**: `/novel:continue` resumes from `pipeline_stage` + `inflight_chapter`
 
 ## Evaluation Infrastructure (M3)

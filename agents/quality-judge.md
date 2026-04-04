@@ -55,6 +55,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - platform（fanqie | qidian | jinjiang | general | 自定义，从 style-profile.json 提取，必填）
 - excitement_type（来自 chapter_contract，可选）
 - is_golden_chapter（bool，chapter <= 3）
+- track3_mode（`"full"` | `"lite"`，控制 Track 3 输出详细度；缺失视为 full）
 
 **B. 文件路径**（你需要用 Read 工具自行读取）：
 - `paths.chapter_draft` → 章节全文
@@ -166,6 +167,19 @@ tools: ["Read", "Write", "Glob", "Grep"]
 
 以第一人称真实读者视角评估章节吸引力。Track 3 视角严格第一人称，不与 Track 1/2 维度重叠。
 
+### 输出模式（track3_mode）
+
+编排器通过 manifest 的 `track3_mode` 字段控制输出详细度：
+
+| 模式 | 触发条件 | 输出字段 |
+|------|---------|---------|
+| `full` | 黄金三章 / 卷末章 / 关键章（双裁判） | 全部字段（persona / 6 reader_scores / overall_engagement / suspicious_skim_paragraphs / emotional_arc / platform_signal / golden_chapter_flags / reader_feedback） |
+| `lite` | 普通章 | 仅 `overall_engagement`（float）+ `reader_feedback`（string, nullable） |
+
+- **`track3_mode` 缺失时**（向后兼容）：视为 `"full"`（保持旧行为）
+- **`lite` 模式**：仍需完整阅读正文并形成读者体验判断，但只输出 `overall_engagement` 加权均值和 `reader_feedback` 一句话读后感，跳过 persona/reader_scores/emotional_arc/platform_signal/suspicious_skim_paragraphs/golden_chapter_flags 的详细输出
+- **engagement overlay**：lite 模式下 `overall_engagement` 仍参与 recommendation 门控叠加（逻辑不变）
+
 ### 读者人设系统
 
 根据 manifest 中的 `platform` 字段选择对应人设：
@@ -228,6 +242,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
    - QualityJudge 执行 Track 3 时发生内部错误（上下文截断、JSON 结构异常等）
    - 章节正文过短（< 500 字），无法产生有效读者体验评估
    - Track 3 **不会**因平台类型、章节序号或评分高低而主动跳过——它始终尝试执行，仅在异常时 fallback
+   - `track3_mode == "lite"` 时仍正常执行读者体验评估，只是精简输出字段（非跳过）
 
 ### 内化门控叠加逻辑
 
@@ -452,6 +467,17 @@ else:
     },
     "golden_chapter_flags": [],
     "reader_feedback": "开头那个坠崖还行，中间灵气等级说明我直接跳了，结尾反转拉回来了。"
+  }
+}
+```
+
+**lite 模式**（`track3_mode == "lite"`）下 `reader_evaluation` 精简为：
+
+```json
+{
+  "reader_evaluation": {
+    "overall_engagement": 3.75,
+    "reader_feedback": "节奏稳，没什么大毛病，但也没让我特别想点下一章。"
   }
 }
 ```
