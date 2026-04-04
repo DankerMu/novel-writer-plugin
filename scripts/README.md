@@ -54,6 +54,25 @@ Quality score aggregator for QUALITY.md generation.
 - **Features**: Per-volume 8-dimension scoring trends, low-score alerts (≥3 consecutive chapters < 3.5), gate decision distribution, cleanup queue
 - **Deps**: `python3` (stdlib only)
 
+### check-feedback-constraints.sh
+
+QJ feedback loop — detects consecutive low-scoring dimensions and generates constraints for next chapter.
+
+- **Usage**: `check-feedback-constraints.sh [project_dir]`
+- **stdout**: JSON with new/expired/active constraints
+- **Side effects**: Writes `volumes/vol-{V:02d}/feedback-constraints.json`
+- **Deps**: `python3` (stdlib only)
+
+### gc-scan.sh
+
+Volume-level garbage collection scanner.
+
+- **Usage**: `gc-scan.sh [project_dir] [volume_num]`
+- **stdout**: JSON gc report
+- **Side effects**: Writes `logs/gc/gc-report-vol-{V:02d}.json`
+- **Categories**: overdue foreshadowing, stale character contracts, missing summaries, uncovered storylines
+- **Deps**: `python3` (stdlib only)
+
 ### lint-meta-leak.sh
 
 Deterministic meta-information leak detector.
