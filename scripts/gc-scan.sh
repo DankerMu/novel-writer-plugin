@@ -118,6 +118,28 @@ def _scan_character_staleness(last_ch: int) -> Dict[str, Any]:
     if not os.path.isdir(char_dir):
         return {"status": "skipped", "reason": "directory not found"}
 
+    # Build last-activity map from state/changelog.jsonl (most recent chapter per slug_id)
+    changelog_path = "state/changelog.jsonl"
+    last_activity: Dict[str, int] = {}
+    if os.path.isfile(changelog_path):
+        try:
+            with open(changelog_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                        ch = entry.get("chapter")
+                        target = entry.get("target", "")
+                        if isinstance(ch, int) and target:
+                            slug = target.split("/")[-1].replace(".json", "")
+                            last_activity[slug] = max(last_activity.get(slug, 0), ch)
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+        except OSError:
+            pass
+
     stale: List[Dict[str, Any]] = []
     for fname in sorted(os.listdir(char_dir)):
         if not fname.endswith(".json"):
@@ -127,18 +149,19 @@ def _scan_character_staleness(last_ch: int) -> Dict[str, Any]:
         if not isinstance(data, dict):
             continue
 
-        last_verified = data.get("last_verified")
-        if not isinstance(last_verified, int):
+        slug_id = fname.replace(".json", "")
+        last_ch_for_char = last_activity.get(slug_id, 0)
+        if last_ch_for_char == 0:
+            # No changelog entry — skip (can't determine staleness)
             continue
 
-        gap = last_ch - last_verified
+        gap = last_ch - last_ch_for_char
         if gap > STALENESS_GAP:
-            slug_id = fname.replace(".json", "")
             name = data.get("name", data.get("character_name", slug_id))
             stale.append({
                 "slug_id": slug_id,
                 "name": name,
-                "last_verified": last_verified,
+                "last_changelog_chapter": last_ch_for_char,
                 "gap": gap,
             })
 
@@ -251,7 +274,7 @@ def _scan_storyline_coverage(last_ch: int) -> Dict[str, Any]:
             })
         else:
             gap = last_ch - last_pov
-            if gap > STORYLINE_COVERAGE_WINDOW:
+            if gap >= STORYLINE_COVERAGE_WINDOW:
                 uncovered.append({
                     "storyline_id": sl_id,
                     "last_pov_chapter": last_pov,
@@ -288,38 +311,11 @@ def main() -> None:
     summary = _scan_summary_coverage(last_ch)
     storyline = _scan_storyline_coverage(last_ch)
 
-    # Count total issues
-    total = 0
-    action_required = 0
-    warn = 0
-    info = 0
-
-    fs_count = foreshadowing.get("count", 0)
-    total += fs_count
-    action_required += fs_count  # overdue foreshadowing = action required
-
-    cs_count = character.get("count", 0)
-    total += cs_count
-    warn += cs_count  # stale contracts = warning
-
-    sm_count = summary.get("count", 0)
-    total += sm_count
-    if sm_count > 0:
-        warn += min(sm_count, sm_count - 1)
-        info += 1 if sm_count > 0 else 0
-        # Recalculate: missing summaries are warnings
-        warn = warn - (1 if sm_count > 0 else 0)
-        info = 0
-        warn += sm_count
-
-    sl_count = storyline.get("count", 0)
-    total += sl_count
-    info += sl_count  # uncovered storylines = info
-
-    # Recalculate severity cleanly
+    # Severity classification
     action_required = foreshadowing.get("count", 0)
     warn = character.get("count", 0) + summary.get("count", 0)
     info = storyline.get("count", 0)
+    total = action_required + warn + info
 
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
