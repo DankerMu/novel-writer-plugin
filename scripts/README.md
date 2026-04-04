@@ -45,6 +45,15 @@ Two-phase sliding window checkpoint enforcement (PostToolUse trigger + PreToolUs
 
 ## Pipeline Scripts
 
+### aggregate-quality.sh
+
+Quality score aggregator for QUALITY.md generation.
+
+- **Usage**: `aggregate-quality.sh [project_dir]`
+- **stdout**: Writes `QUALITY.md` to project root
+- **Features**: Per-volume 8-dimension scoring trends, low-score alerts (≥3 consecutive chapters < 3.5), gate decision distribution, cleanup queue
+- **Deps**: `python3` (stdlib only)
+
 ### lint-meta-leak.sh
 
 Deterministic meta-information leak detector.
