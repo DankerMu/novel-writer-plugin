@@ -351,7 +351,8 @@ else:
     "platform_hard_gates": [],
     "meta_leak_checks": [],
     "terminology_checks": [],
-    "has_violations": false,                  // 仅统计 L1/L2/L3/LS/meta_leak 检查中的 violation，不含 platform_hard_gates 的 fail（平台硬门由独立谓词判定）；terminology_checks 不影响 has_violations
+    "format_checks": [],
+    "has_violations": false,                  // 仅统计 L1/L2/L3/LS/meta_leak/format_checks 检查中的 violation，不含 platform_hard_gates 的 fail（平台硬门由独立谓词判定）；terminology_checks 不影响 has_violations
     "has_warnings": false
   },
   "anti_ai": {
