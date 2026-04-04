@@ -65,6 +65,6 @@ else:
 >
 > 详见 `agents/quality-judge.md` § Track 3 + 内化门控叠加逻辑。
 
-**修订指令融合**：当 QualityJudge 因 engagement 不足触发降级时，eval JSON 的 `reader_evaluation.reader_feedback` + `reader_evaluation.suspicious_skim_paragraphs` 由编排器追加到 ChapterWriter 修订 manifest 的 `required_fixes`。
+**修订指令融合**：当 QualityJudge 因 engagement 不足触发降级时，eval JSON 的 `reader_evaluation.reader_feedback` + `reader_evaluation.suspicious_skim_paragraphs`（如存在）由编排器追加到 ChapterWriter 修订 manifest 的 `required_fixes`。`track3_mode == "lite"` 时 `suspicious_skim_paragraphs` 不可用，仅注入 `reader_feedback`（QJ 已将跳读判断嵌入 `required_fixes[].instruction` 文本中）。
 
 **force_passed 兜底扩展**：修订 2 次后的 force_passed 条件追加 `且无 reader_evaluation 黄金三章硬门 fail（QJ 内部已处理）`（即黄金三章 engagement < 3.0 不允许 force_passed，必须暂停等用户决策）。

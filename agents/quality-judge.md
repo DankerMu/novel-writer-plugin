@@ -260,7 +260,7 @@ elif recommendation == "pass" and overall_engagement < 3.0:
     risk_flags.append("low_engagement_warning")  # WARNING 不降级
 ```
 
-当 engagement 触发降级时，将 `reader_feedback` + `suspicious_skim_paragraphs` 注入修订指令 `required_fixes`。
+当 engagement 触发降级时，将 `reader_feedback` + `suspicious_skim_paragraphs` 注入修订指令 `required_fixes`。lite 模式下 `suspicious_skim_paragraphs` 不作为独立字段输出，但跳读判断应嵌入 `required_fixes[].instruction` 文本中。
 
 `force_passed` 兜底扩展：修订 2 次后的 force_passed 条件追加「且无 reader_evaluation 黄金三章硬门 fail」（即黄金三章 engagement < 3.0 不允许 force_passed）。
 
