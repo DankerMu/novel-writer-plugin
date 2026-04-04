@@ -71,6 +71,20 @@
                   "detail": { "type": "string" }
                 }
               }
+            },
+            "format_checks": {
+              "type": "array",
+              "description": "格式规则检查结果（lint-format.sh）",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "category": { "type": "string" },
+                  "severity": { "enum": ["error", "warning"] },
+                  "status": { "enum": ["violation", "warning", "pass"] },
+                  "count": { "type": "integer" },
+                  "detail": { "type": "string" }
+                }
+              }
             }
           }
         },

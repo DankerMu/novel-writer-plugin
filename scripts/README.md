@@ -95,6 +95,29 @@ Deterministic meta-information leak detector.
 - **Severity**: `error` = never in prose (hard gate), `warning` = likely leak, needs context (卷号/章号/元叙述)
 - **Deps**: `python3` (stdlib only)
 
+### lint-format.sh
+
+Deterministic format rule linter.
+
+- **Usage**: `lint-format.sh <chapter.md>`
+- **stdout** (exit 0):
+  ```json
+  {
+    "chapter_path": "chapters/chapter-048.md",
+    "chars": 2800,
+    "total_hits": 1,
+    "errors": 0,
+    "warnings": 1,
+    "checks": [
+      {"category": "em_dash", "severity": "error", "status": "pass", "count": 0, "detail": "无破折号"},
+      {"category": "char_count", "severity": "warning", "status": "warning", "count": 1, "detail": "字数偏短：2800（下限 2500）"}
+    ]
+  }
+  ```
+- **Categories**: em_dash (error), non_cn_quote (error), horizontal_rule (error), char_count (warning)
+- **Severity**: `error` = zero-tolerance format violation (hard gate), `warning` = out-of-range advisory
+- **Deps**: `python3` (stdlib only)
+
 ### lint-blacklist.sh
 
 Deterministic AI-blacklist linter.

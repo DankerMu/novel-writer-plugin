@@ -114,7 +114,12 @@ tools: ["Read", "Write", "Glob", "Grep"]
    - warning 命中结合上下文判断：漂移 → `status: "warning"`；合法别称 → `status: "pass"`
    - 输出至 `contract_verification.terminology_checks`
    - **非硬门槛**：不影响 has_violations，仅记录
-6. **LS 故事线规范检查**：
+6. **格式规则检查**：运行 `scripts/lint-format.sh`
+   - error 命中（破折号、非中文引号、分隔线）→ `status: "violation"`, confidence=high
+   - warning 命中（字数越界）→ `status: "warning"`
+   - 输出至 `contract_verification.format_checks`
+   - **硬门槛**：errors > 0 时 `has_violations = true`
+7. **LS 故事线规范检查**：
    - LS-001（hard）：本章事件时间是否与并发线矛盾
      - 若输入中包含一致性检查摘要（timeline_contradiction / ls_001_signals）且 confidence="high"：将其视为强证据，结合正文核验；若正文未消解矛盾 → 输出 LS-001 violation（confidence=high）并给出可执行修复建议
      - 若 confidence="medium/low"：仅提示，不应直接触发 hard gate（仍可输出为 violation_suspected/violation 且 confidence 降级）
@@ -132,6 +137,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
     "platform_hard_gates": [{"gate_id": "fanqie_ch001_protagonist", "status": "pass | fail", "detail": "...", "fix_suggestion": "..."}],
     "meta_leak_checks": [{"pattern": "F-\\d{3}", "status": "violation", "confidence": "high", "count": 1, "detail": "第15行：伏笔代号 F-007 出现在正文中"}],
     "terminology_checks": [{"category": "variant_detected", "status": "warning", "canonical": "萧炎", "variant": "肖炎", "detail": "第23行：可能的术语变体（编辑距离1）"}],
+    "format_checks": [{"category": "em_dash", "severity": "error", "status": "pass", "count": 0, "detail": "无破折号"}],
     "has_violations": false
   }
 }
