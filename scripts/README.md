@@ -133,6 +133,24 @@ Returns relevant foreshadowing items for a target chapter.
   ```
 - **Deps**: `python3` (stdlib only)
 
+### extract-terminology.sh
+
+Authority terminology extractor from L1/L2 specs.
+
+- **Usage**: `extract-terminology.sh [project_dir]`
+- **stdout**: Writes `world/terminology.json`
+- **Sources**: `world/rules.json` (L1) + `characters/active/*.json` (L2)
+- **Deps**: `python3` (stdlib only)
+
+### lint-terminology.sh
+
+Terminology drift detector for novel chapters.
+
+- **Usage**: `lint-terminology.sh <chapter.md> [terminology.json]`
+- **stdout** (exit 0): JSON report with variant detection, edit-distance checks, and intra-chapter consistency
+- **Severity**: All hits are `warning` (no hard gate)
+- **Deps**: `python3` (stdlib only)
+
 ## Eval Scripts
 
 ### calibrate-quality-judge.sh
