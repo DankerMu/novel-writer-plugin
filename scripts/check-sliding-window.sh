@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# PreToolUse hook: sliding window checkpoint enforcement.
+# Sliding window checkpoint enforcement (PostToolUse trigger + PreToolUse gate).
 #
-# TRIGGER: Fires immediately when .checkpoint.json is set to committed
-#   at a chapter that is a multiple of 5. For Write/Edit to .checkpoint.json,
-#   parses tool_input directly (immediate). For other tools, reads disk
-#   (fires on next call after checkpoint update).
+# PostToolUse (Write|Edit): Fires AFTER .checkpoint.json is updated to
+#   "committed" at a checkpoint chapter (≥10 and %5==0). Creates marker
+#   and injects instructions via additionalContext. Checkpoint is already
+#   written — all chapter files are committed.
 #
-# GATE: If marker exists and report not written, denies Bash mv chapter
-#   commits. Safety net if agent ignores the trigger message.
+# PreToolUse (Write|Edit|Bash): If marker exists and report not written,
+#   denies Write/Edit to staging/** and Bash mv/cp chapter commits.
+#   Safety net if agent ignores PostToolUse instructions.
 
 set -euo pipefail
 
@@ -18,8 +19,6 @@ input="$(cat)"
 hook_event="$(echo "$input" | jq -r '.hook_event_name // ""')"
 tool_name="$(echo "$input" | jq -r '.tool_name // ""')"
 
-[ "$hook_event" = "PreToolUse" ] || exit 0
-
 cwd="$(echo "$input" | jq -r '.cwd // ""')"
 project_dir="${cwd:-$(pwd)}"
 
@@ -28,6 +27,7 @@ checkpoint="$project_dir/.checkpoint.json"
 
 marker="$project_dir/logs/.sliding-window-pending"
 report="$project_dir/logs/continuity/latest.json"
+last_checked="$project_dir/logs/.sliding-window-last-checked"
 
 # ─── Helper: build instructions ───
 build_instructions() {
@@ -45,25 +45,9 @@ build_instructions() {
 4. 可选辅助：NER 实体抽取（scripts/run-ner.sh，脚本优先，LLM fallback）
 5. 报告落盘：logs/continuity/continuity-report-vol-*-ch$(printf '%03d' "$ws")-ch$(printf '%03d' "$ch").json + 覆盖 logs/continuity/latest.json
 6. 自动修复：对可修复问题直接编辑章节原文；不可修复的列出并提示用户
-7. 完成后继续写下一章
+7. 自动修复后复核修复结果，确认无遗漏
+8. 向用户汇报校验结果摘要（问题数量、已修复/未修复、是否有阻断性问题）
 MSG
-}
-
-# ─── Helper: emit trigger ───
-emit_trigger() {
-  local ch="$1"
-  local ws=$(( ch - 9 ))
-  [ "$ws" -ge 1 ] || ws=1
-
-  mkdir -p "$project_dir/logs"
-  local instructions
-  instructions="$(build_instructions "$ch" "$ws")"
-  printf '%s\n%s\n' "$ch" "$instructions" > "$marker"
-
-  jq -n --arg msg "⚠️ 【滑窗校验点】第 ${ch} 章提交完成，触发滑窗一致性校验。
-
-${instructions}" \
-    '{systemMessage: $msg, hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow"}}'
 }
 
 # ─── Helper: check if chapter is a checkpoint ───
@@ -75,90 +59,89 @@ is_checkpoint() {
 }
 
 # ═══════════════════════════════════════════════════════════════
-# CASE 1: Marker exists — GATE mode
+# PostToolUse: Trigger after checkpoint commit
 # ═══════════════════════════════════════════════════════════════
-if [ -f "$marker" ]; then
-  [ "$tool_name" = "Bash" ] || exit 0
+if [ "$hook_event" = "PostToolUse" ]; then
+  # Only care about Write/Edit to .checkpoint.json
+  file_path="$(echo "$input" | jq -r '.tool_input.file_path // ""')"
+  case "$file_path" in
+    */.checkpoint.json|*.checkpoint.json) ;;
+    *) exit 0 ;;
+  esac
 
-  cmd="$(echo "$input" | jq -r '.tool_input.command // ""')"
-  if ! echo "$cmd" | grep -qE '(mv|cp)\b.*staging/chapters/chapter-[0-9]{3}\.md'; then
-    exit 0
+  # Already have a pending check — don't re-trigger
+  [ -f "$marker" ] && exit 0
+
+  # Read from disk (PostToolUse = file already written)
+  stage="$(jq -r '.pipeline_stage // ""' "$checkpoint" 2>/dev/null)" || true
+  ch="$(jq -r '.last_completed_chapter // 0' "$checkpoint" 2>/dev/null)" || true
+
+  [ "$stage" = "committed" ] || exit 0
+  [ -n "$ch" ] || exit 0
+  ch=$((10#$ch))
+  is_checkpoint "$ch" || exit 0
+
+  # Skip if already checked this chapter
+  if [ -f "$last_checked" ]; then
+    prev="$(cat "$last_checked" 2>/dev/null)" || true
+    [ "$prev" = "$ch" ] && exit 0
   fi
 
-  if [ -f "$report" ] && [ "$report" -nt "$marker" ]; then
-    rm -f "$marker"
-    exit 0
-  fi
+  # Create marker and inject instructions
+  mkdir -p "$project_dir/logs"
+  ws=$(( ch - 9 ))
+  [ "$ws" -ge 1 ] || ws=1
+  instructions="$(build_instructions "$ch" "$ws")"
+  printf '%s\n%s\n' "$ch" "$instructions" > "$marker"
 
-  instructions="$(sed '1d' "$marker" 2>/dev/null || echo "请执行 SKILL.md Step 8 滑窗校验。")"
-  jq -n \
-    --arg msg "⛔ 章节 commit 被阻断——滑窗校验未完成。
+  jq -n --arg ctx "⚠️ 【滑窗校验点】第 ${ch} 章提交完成，触发滑窗一致性校验。
 
-${instructions}
-
-完成后重新执行本次 commit。" \
-    --arg reason "sliding window check pending" \
-    '{systemMessage: $msg, hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
+${instructions}" \
+    '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'
   exit 0
 fi
 
 # ═══════════════════════════════════════════════════════════════
-# CASE 2: No marker — detect committed checkpoint
+# PreToolUse: Gate — deny staging writes if marker exists
 # ═══════════════════════════════════════════════════════════════
+[ "$hook_event" = "PreToolUse" ] || exit 0
 
-is_committed=false
-chapter_num=""
-
-# ── Try parsing tool_input directly (immediate trigger) ──
-case "$tool_name" in
-  Write)
-    file_path="$(echo "$input" | jq -r '.tool_input.file_path // ""')"
-    case "$file_path" in
-      */.checkpoint.json|*.checkpoint.json)
-        content="$(echo "$input" | jq -r '.tool_input.content // ""')"
-        stage="$(echo "$content" | jq -r '.pipeline_stage // ""' 2>/dev/null)" || true
-        ch="$(echo "$content" | jq -r '.last_completed_chapter // 0' 2>/dev/null)" || true
-        if [ "$stage" = "committed" ]; then
-          is_committed=true
-          chapter_num="$ch"
-        fi
-        ;;
-    esac
-    ;;
-  Edit)
-    file_path="$(echo "$input" | jq -r '.tool_input.file_path // ""')"
-    case "$file_path" in
-      */.checkpoint.json|*.checkpoint.json)
-        new_string="$(echo "$input" | jq -r '.tool_input.new_string // ""')"
-        if echo "$new_string" | grep -q '"committed"'; then
-          is_committed=true
-          # Try chapter from new_string first
-          ch="$(echo "$new_string" | grep -oE '"last_completed_chapter"[[:space:]]*:[[:space:]]*([0-9]+)' | grep -oE '[0-9]+' | head -1)" || true
-          if [ -z "$ch" ]; then
-            # Chapter was set in a previous edit, read from disk
-            ch="$(jq -r '.last_completed_chapter // 0' "$checkpoint" 2>/dev/null)" || true
-          fi
-          chapter_num="$ch"
-        fi
-        ;;
-    esac
-    ;;
-esac
-
-# ── Fallback: read from disk (for Bash and other tools) ──
-if [ "$is_committed" = false ]; then
-  stage="$(jq -r '.pipeline_stage // ""' "$checkpoint" 2>/dev/null)" || true
-  ch="$(jq -r '.last_completed_chapter // 0' "$checkpoint" 2>/dev/null)" || true
-  if [ "$stage" = "committed" ]; then
-    is_committed=true
-    chapter_num="$ch"
+if [ -f "$marker" ]; then
+  # Report written after marker → check complete, clear gate
+  if [ -f "$report" ] && [ "$report" -nt "$marker" ]; then
+    ch_done="$(head -1 "$marker" 2>/dev/null)" || true
+    [ -n "$ch_done" ] && echo "$ch_done" > "$last_checked"
+    rm -f "$marker"
+    exit 0
   fi
+
+  # ── Deny helper ──
+  deny_sliding_window() {
+    local instructions
+    instructions="$(sed '1d' "$marker" 2>/dev/null || echo "请执行滑窗校验，完成后重试。")"
+    jq -n \
+      --arg msg "⛔ 滑窗校验未完成，操作被阻断。
+
+${instructions}
+
+完成校验并写入 logs/continuity/latest.json 后重试。" \
+      --arg reason "sliding window check pending" \
+      '{systemMessage: $msg, hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $reason}}'
+  }
+
+  case "$tool_name" in
+    Bash)
+      cmd="$(echo "$input" | jq -r '.tool_input.command // ""')"
+      echo "$cmd" | grep -qE '(mv|cp)\b.*staging/chapters/chapter-[0-9]{3}\.md' \
+        && { deny_sliding_window; exit 0; }
+      ;;
+    Write|Edit)
+      file_path="$(echo "$input" | jq -r '.tool_input.file_path // ""')"
+      case "$file_path" in
+        */staging/*) deny_sliding_window; exit 0 ;;
+      esac
+      ;;
+  esac
 fi
 
-# ── Check and trigger ──
-[ "$is_committed" = true ] || exit 0
-[ -n "$chapter_num" ] || exit 0
-chapter_num=$((10#$chapter_num))
-is_checkpoint "$chapter_num" || exit 0
-
-emit_trigger "$chapter_num"
+exit 0
