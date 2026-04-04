@@ -105,7 +105,12 @@ tools: ["Read", "Write", "Glob", "Grep"]
      - setup 章（`excitement_type == ["setup"]`）：不要求章内高潮，改用「铺垫有效性」标准——检查是否有伏笔埋设、信息布局或悬念线索推进（详见 quality-rubric.md §5 补充标准）
      - `excitement_type` 缺失时（旧项目/向后兼容）：跳过爽点落地评估，仅使用常规 pacing 标准
      - 遇到未知枚举值时：输出 WARNING（`unknown excitement_type: {value}`）并跳过该类型的评估，不 crash。注意：schema 层面使用 strict enum，正常流程中不应出现未知值；此防御仅覆盖 schema 校验被跳过或手动编辑 contract 的场景
-4. **LS 故事线规范检查**：
+4. **元信息泄漏检查**：运行 `scripts/lint-meta-leak.sh`，检查正文是否包含结构性元数据
+   - severity="error" 的命中（伏笔代号、技术字段、JSON 块、文件路径、Markdown 表格、Agent 名称、评分格式、系统标签）→ `status: "violation"`，confidence=high，必须修复
+   - severity="warning" 的命中（卷号引用、章号引用、元叙述）→ 结合上下文判断：元结构引用 → `status: "violation"`，confidence=medium；世界观内合理引用 → `status: "pass"`
+   - 输出至 `contract_verification.meta_leak_checks`：`[{"pattern": "F-\\d{3}", "status": "violation", "confidence": "high", "count": 1, "detail": "第15行：伏笔代号 F-007 出现在正文中"}]`
+   - **硬门槛**：errors > 0 时 `has_violations = true`
+5. **LS 故事线规范检查**：
    - LS-001（hard）：本章事件时间是否与并发线矛盾
      - 若输入中包含一致性检查摘要（timeline_contradiction / ls_001_signals）且 confidence="high"：将其视为强证据，结合正文核验；若正文未消解矛盾 → 输出 LS-001 violation（confidence=high）并给出可执行修复建议
      - 若 confidence="medium/low"：仅提示，不应直接触发 hard gate（仍可输出为 violation_suspected/violation 且 confidence 降级）

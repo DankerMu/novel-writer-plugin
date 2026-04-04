@@ -32,14 +32,40 @@ Injects project status into conversation at session start.
 
 ### check-sliding-window.sh
 
-Detects sliding window checkpoints and injects validation instructions.
+Two-phase sliding window checkpoint enforcement (PostToolUse trigger + PreToolUse gate).
 
-- **Trigger**: PreToolUse (Write)
-- **stdin**: Claude Code hook JSON (`tool_input.file_path`)
-- **stdout**: Hook response JSON with `systemMessage` when chapter ≥ 10 and chapter % 5 == 0; silent exit otherwise
+- **Trigger**: PostToolUse (Write|Edit) + PreToolUse (Write|Edit|Bash)
+- **stdin**: Claude Code hook JSON (`hook_event_name`, `tool_name`, `tool_input`)
+- **stdout**:
+  - **PostToolUse (trigger)**: `additionalContext` with sliding window instructions when checkpoint chapter ≥ 10 and % 5 == 0 is committed — fires AFTER checkpoint is written, all files already committed
+  - **PreToolUse (gate)**: `permissionDecision: "deny"` for Write/Edit to `staging/**` or Bash mv/cp chapter when marker exists and report not written; silent exit once `logs/continuity/latest.json` is newer than marker
+  - Silent exit for non-checkpoint chapters or already-checked chapters
+- **Side effects**: Manages `logs/.sliding-window-pending` (marker), `logs/.sliding-window-last-checked` (dedup)
 - **Deps**: `jq`
 
 ## Pipeline Scripts
+
+### lint-meta-leak.sh
+
+Deterministic meta-information leak detector.
+
+- **Usage**: `lint-meta-leak.sh <chapter.md>`
+- **stdout** (exit 0):
+  ```json
+  {
+    "total_hits": 5,
+    "errors": 3,
+    "warnings": 2,
+    "hits_per_kchars": 1.8,
+    "chars": 2800,
+    "hits": [
+      {"category": "meta_code", "severity": "error", "description": "伏笔代号 (F-XXX)", "count": 1, "matches": [{"text": "F-007", "line": 15, "snippet": "..."}]}
+    ]
+  }
+  ```
+- **Categories**: meta_code (F/W/SL/OBJ/LS codes), tech_field (snake_case), json_block, file_path, markdown_artifact, layer_ref, agent_name, score_pattern, system_tag, volume_ref, chapter_ref, meta_narration
+- **Severity**: `error` = never in prose (hard gate), `warning` = likely leak, needs context (卷号/章号/元叙述)
+- **Deps**: `python3` (stdlib only)
 
 ### lint-blacklist.sh
 

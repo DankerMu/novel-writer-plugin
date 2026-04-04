@@ -114,6 +114,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 **Phase 2 前置清洗（P0，无条件执行，不计入修改量）**：
 - **模型 artifact 清除**：扫描并删除所有 LLM 内部标签残留（`<thinking>`、`</thinking>`、`<reflection>`、`</reflection>`、`<output>`、`</output>`、`<answer>`、`</answer>` 及任何 `<[a-z_]+>...</[a-z_]+>` 形式的非正文 XML 标签）。这些是模型推理过程的内部标记，**绝不允许**出现在小说正文中
+- **元信息泄漏清除**：运行 `scripts/lint-meta-leak.sh` 扫描正文，清除所有 severity="error" 的泄漏（伏笔代号 F-XXX、规则代号 W-XXX、故事线 ID、snake_case 技术字段、JSON 块、文件路径格式、Markdown 表格/契约标题、Agent 名称、评分格式、系统标签）。severity="warning" 的泄漏（卷号引用如「卷五」「第三卷」、章号引用、元叙述如「上一章提到」）逐条人工判断：若为元结构引用则删除/改写，若为世界观内合理引用则保留
 - **引号格式统一**：将所有非中文双引号（英文直引号 `"`、英文弯引号 `""`、单引号 `''`、直角引号 `「」`）统一替换为中文双引号（""）。替换规则：成对匹配后替换，确保不破坏引号嵌套
 
 1. **风格参照建立**：阅读 `style_exemplars`，建立目标风格的节奏和质感感知。润色替换时，替代表达应向 exemplar 的风格靠拢，而非仅"避免 AI 感"。若 `style_exemplars` 为空或缺失（旧项目），退化为按 `avg_sentence_length` / `rhetoric_preferences` 等统计指标引导替换方向
