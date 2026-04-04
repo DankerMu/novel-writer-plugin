@@ -2,11 +2,10 @@
 
 ## Trigger
 
-`check-sliding-window.sh`（PostToolUse hook）在 `.checkpoint.json` 写入 `pipeline_stage == "committed"` 时自动检测：
+`check-sliding-window.sh` 注册在两个 hook 事件上，构成**触发 + 门控**双阶段机制：
 
-- 条件：`last_completed_chapter >= 10` 且 `last_completed_chapter % 5 == 0`
-- 触发后创建 `logs/.sliding-window-pending` 标记，通过 `additionalContext` 注入校验指令
-- PreToolUse hook 阻断后续 `staging/` 写入和章节 commit 操作，直到校验完成
+- **PostToolUse（触发）**：监听 Write/Edit 到 `.checkpoint.json`。当 `pipeline_stage == "committed"` 且 `last_completed_chapter >= 10` 且 `% 5 == 0` 时，创建 `logs/.sliding-window-pending` 标记，通过 `additionalContext` 注入校验指令
+- **PreToolUse（门控）**：标记存在期间，阻断 `staging/` 写入和 Bash mv/cp 章节 commit 操作，直到校验完成（`logs/continuity/latest.json` 比标记更新）
 
 窗口范围：`[max(1, ch-9), ch]`，形成 ch1-10, ch6-15, ch11-20... 的重叠滑窗。
 

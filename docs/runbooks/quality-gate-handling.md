@@ -6,6 +6,16 @@ QualityJudge 评分完成后（`pipeline_stage == "judged"`），编排器读取
 
 ## Diagnosis
 
+QualityJudge 输出 `recommendation`（pass/polish/revise/review/rewrite），编排器映射为 `gate_decision`：
+
+| recommendation | gate_decision |
+|---------------|---------------|
+| pass | pass |
+| polish | polish |
+| revise | revise |
+| review | pause_for_user |
+| rewrite | pause_for_user_force_rewrite |
+
 从 `eval-raw.json` 读取以下关键字段，区分问题来源：
 
 - **Violation-driven**：`contract_verification.has_violations == true`，检查 `l1_checks` / `l2_checks` / `l3_checks` / `ls_checks` / `platform_hard_gates` 中 `status == "violation"` 且 `confidence == "high"` 的条目
@@ -19,7 +29,7 @@ QualityJudge 评分完成后（`pipeline_stage == "judged"`），编排器读取
 ### polish（overall_final ∈ [3.5, 4.0)）
 
 1. 调用 ChapterWriter Phase 2 二次润色（**不重复调用 QJ**）
-2. 润色范围：QJ `required_fixes` + `suggestions` 中 `priority == "high"` 的条目
+2. 润色范围：QJ `required_fixes` 中的修复指令 + 8 维度最低分 2 个维度的 `feedback` 作为润色方向
 3. 输出覆盖 `staging/chapters/chapter-{C:03d}.md`
 4. 直接进入 commit 阶段（不重新评分）
 
