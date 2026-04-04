@@ -15,7 +15,7 @@
    - `ai-blacklist.json`（version/last_updated/words/whitelist/update_log）
    - `style-profile.json`（preferred_expressions；用于解释黑名单豁免）
 1.5. **旧评估 Track 3 补全检测**：
-   - 扫描 Step 1 收集的 eval.json，筛选 `reader_evaluation == null` 或字段缺失的章节
+   - 扫描 Step 1 收集的 eval.json，筛选 `reader_evaluation == null` 的章节（Track 3 真正失败/缺失）。注意：`track3_mode == "lite"` 的章节 `reader_evaluation` 非 null（仅含 overall_engagement + reader_feedback），不应视为待补全目标
    - 若存在待补全章节，使用 AskUserQuestion 提示：
      ```
      检测到以下章节缺少读者参与度评估（Track 3）：

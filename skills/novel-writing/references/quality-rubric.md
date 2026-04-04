@@ -198,4 +198,4 @@
 | QJ pass | < 3.0 | WARNING 记录不降级 |
 | Track 3 失败 | — | 仅用 Track 1+2 |
 
-降级时编排器将 `reader_evaluation.reader_feedback` + `reader_evaluation.suspicious_skim_paragraphs` 注入 ChapterWriter 修订指令。
+降级时编排器将 `reader_evaluation.reader_feedback` + `reader_evaluation.suspicious_skim_paragraphs`（如存在）注入 ChapterWriter 修订指令。`track3_mode == "lite"` 时仅 `reader_feedback` 可用。

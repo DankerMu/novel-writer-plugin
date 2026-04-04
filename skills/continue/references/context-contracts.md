@@ -114,6 +114,7 @@ quality_judge_manifest = {
   platform: str,                                  # 从 style-profile.json 提取（fanqie | qidian | jinjiang | general | 自定义），必填不可为 null
   excitement_type: [str] | null,                 # 从 chapter_contract 提取（可选）
   is_golden_chapter: bool,                       # chapter <= 3
+  track3_mode: "full" | "lite",                    # Track 3 输出模式（黄金三章/卷末/关键章=full，普通章=lite）
   narration_only_lint: obj | null,                  # lint-blacklist.sh 的 narration_only_stats 输出
 
   # ── paths ──
@@ -151,7 +152,7 @@ QualityJudge 将评估结果直接写入 `staging/evaluations/chapter-{C:03d}-ev
 - `overall` — 门控决策使用值（= overall_weighted 或 overall_raw）
 - `recommendation` — QualityJudge 建议（pass/polish/revise/review/rewrite）
 - `required_fixes` — 修订指令列表（recommendation 为 revise/review/rewrite 时输出）
-- `reader_evaluation` — Track 3 读者参与度评估（含 persona / reader_scores / overall_engagement / suspicious_skim_paragraphs / emotional_arc / platform_signal / golden_chapter_flags / reader_feedback；Track 3 失败时为 null）
+- `reader_evaluation` — Track 3 读者参与度评估。`track3_mode == "full"` 时含全部字段（persona / reader_scores / overall_engagement / suspicious_skim_paragraphs / emotional_arc / platform_signal / golden_chapter_flags / reader_feedback）；`track3_mode == "lite"` 时仅含 overall_engagement + reader_feedback。Track 3 失败时为 null
 
 **编排器写入 eval JSON 的映射**：
 - `eval_used` = QualityJudge 原始输出（primary 或 secondary 中 overall 更低的一次）
