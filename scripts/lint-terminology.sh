@@ -172,11 +172,12 @@ def scan_variants(text: str, lines: List[str], terms: List[Dict[str, Any]]) -> L
             # Only consider grams within adaptive distance of canonical length
             if abs(len(gram) - clen) > max_dist:
                 continue
-            # For same-length grams, require at least one shared character
-            # to filter out completely unrelated n-grams
-            if len(gram) == clen and not (set(gram) & set(canonical)):
+            # Require >= 50% shared characters to filter unrelated n-grams
+            shared = set(gram) & set(canonical)
+            min_shared = max(1, len(canonical) // 2)
+            if len(shared) < min_shared:
                 continue
-            # Skip trivial extensions (canonical + common particle)
+            # Skip trivial extensions (gram contains canonical as substring)
             if is_trivial_extension(gram, canonical):
                 continue
             # Skip substrings of registered terms
@@ -241,7 +242,9 @@ def scan_inconsistent_refs(text: str, lines: List[str], terms: List[Dict[str, An
                 continue
             if abs(len(gram) - clen) > max_dist:
                 continue
-            if len(gram) == clen and not (set(gram) & set(canonical)):
+            shared = set(gram) & set(canonical)
+            min_shared = max(1, len(canonical) // 2)
+            if len(shared) < min_shared:
                 continue
             if is_trivial_extension(gram, canonical):
                 continue

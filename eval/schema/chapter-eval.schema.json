@@ -43,7 +43,35 @@
               }
             },
             "has_violations": { "type": "boolean" },
-            "has_warnings": { "type": "boolean" }
+            "has_warnings": { "type": "boolean" },
+            "meta_leak_checks": {
+              "type": "array",
+              "description": "元信息泄漏检查结果（lint-meta-leak.sh）",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "pattern": { "type": "string" },
+                  "status": { "enum": ["violation", "pass"] },
+                  "confidence": { "enum": ["high", "medium"] },
+                  "count": { "type": "integer" },
+                  "detail": { "type": "string" }
+                }
+              }
+            },
+            "terminology_checks": {
+              "type": "array",
+              "description": "术语一致性检查结果（lint-terminology.sh）",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "category": { "enum": ["variant_detected", "inconsistent_reference"] },
+                  "status": { "enum": ["warning", "pass"] },
+                  "canonical": { "type": "string" },
+                  "variant": { "type": "string" },
+                  "detail": { "type": "string" }
+                }
+              }
+            }
           }
         },
         "scores": {

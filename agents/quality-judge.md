@@ -130,6 +130,8 @@ tools: ["Read", "Write", "Glob", "Grep"]
     "l3_checks": [{"objective_id": "OBJ-48-1", "status": "pass | violation", "confidence": "high | medium | low", "detail": "..."}],
     "ls_checks": [{"rule_id": "LS-001", "status": "pass | violation", "constraint_type": "hard", "confidence": "high | medium | low", "detail": "..."}],
     "platform_hard_gates": [{"gate_id": "fanqie_ch001_protagonist", "status": "pass | fail", "detail": "...", "fix_suggestion": "..."}],
+    "meta_leak_checks": [{"pattern": "F-\\d{3}", "status": "violation", "confidence": "high", "count": 1, "detail": "第15行：伏笔代号 F-007 出现在正文中"}],
+    "terminology_checks": [{"category": "variant_detected", "status": "warning", "canonical": "萧炎", "variant": "肖炎", "detail": "第23行：可能的术语变体（编辑距离1）"}],
     "has_violations": false
   }
 }
@@ -341,7 +343,9 @@ else:
     "l3_checks": [],
     "ls_checks": [],
     "platform_hard_gates": [],
-    "has_violations": false,                  // 仅统计 L1/L2/L3/LS 检查中的 violation，不含 platform_hard_gates 的 fail（平台硬门由独立谓词判定）
+    "meta_leak_checks": [],
+    "terminology_checks": [],
+    "has_violations": false,                  // 仅统计 L1/L2/L3/LS/meta_leak 检查中的 violation，不含 platform_hard_gates 的 fail（平台硬门由独立谓词判定）；terminology_checks 不影响 has_violations
     "has_warnings": false
   },
   "anti_ai": {
