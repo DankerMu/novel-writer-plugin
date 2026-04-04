@@ -110,7 +110,11 @@ tools: ["Read", "Write", "Glob", "Grep"]
    - severity="warning" 的命中（卷号引用、章号引用、元叙述）→ 结合上下文判断：元结构引用 → `status: "violation"`，confidence=medium；世界观内合理引用 → `status: "pass"`
    - 输出至 `contract_verification.meta_leak_checks`：`[{"pattern": "F-\\d{3}", "status": "violation", "confidence": "high", "count": 1, "detail": "第15行：伏笔代号 F-007 出现在正文中"}]`
    - **硬门槛**：errors > 0 时 `has_violations = true`
-5. **LS 故事线规范检查**：
+5. **术语一致性检查**：若 `world/terminology.json` 存在，运行 `scripts/lint-terminology.sh`
+   - warning 命中结合上下文判断：漂移 → `status: "warning"`；合法别称 → `status: "pass"`
+   - 输出至 `contract_verification.terminology_checks`
+   - **非硬门槛**：不影响 has_violations，仅记录
+6. **LS 故事线规范检查**：
    - LS-001（hard）：本章事件时间是否与并发线矛盾
      - 若输入中包含一致性检查摘要（timeline_contradiction / ls_001_signals）且 confidence="high"：将其视为强证据，结合正文核验；若正文未消解矛盾 → 输出 LS-001 violation（confidence=high）并给出可执行修复建议
      - 若 confidence="medium/low"：仅提示，不应直接触发 hard gate（仍可输出为 violation_suspected/violation 且 confidence 降级）
@@ -126,6 +130,8 @@ tools: ["Read", "Write", "Glob", "Grep"]
     "l3_checks": [{"objective_id": "OBJ-48-1", "status": "pass | violation", "confidence": "high | medium | low", "detail": "..."}],
     "ls_checks": [{"rule_id": "LS-001", "status": "pass | violation", "constraint_type": "hard", "confidence": "high | medium | low", "detail": "..."}],
     "platform_hard_gates": [{"gate_id": "fanqie_ch001_protagonist", "status": "pass | fail", "detail": "...", "fix_suggestion": "..."}],
+    "meta_leak_checks": [{"pattern": "F-\\d{3}", "status": "violation", "confidence": "high", "count": 1, "detail": "第15行：伏笔代号 F-007 出现在正文中"}],
+    "terminology_checks": [{"category": "variant_detected", "status": "warning", "canonical": "萧炎", "variant": "肖炎", "detail": "第23行：可能的术语变体（编辑距离1）"}],
     "has_violations": false
   }
 }
@@ -337,7 +343,9 @@ else:
     "l3_checks": [],
     "ls_checks": [],
     "platform_hard_gates": [],
-    "has_violations": false,                  // 仅统计 L1/L2/L3/LS 检查中的 violation，不含 platform_hard_gates 的 fail（平台硬门由独立谓词判定）
+    "meta_leak_checks": [],
+    "terminology_checks": [],
+    "has_violations": false,                  // 仅统计 L1/L2/L3/LS/meta_leak 检查中的 violation，不含 platform_hard_gates 的 fail（平台硬门由独立谓词判定）；terminology_checks 不影响 has_violations
     "has_warnings": false
   },
   "anti_ai": {
