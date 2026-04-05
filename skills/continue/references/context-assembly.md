@@ -152,17 +152,18 @@
 - `storyline_context` / `concurrent_state` / `transition_hint`：从 contract/schedule 解析（Step 2.5 已完成）
 - `ai_blacklist_top10`：有效黑名单前 10 词（从 ai-blacklist.json 快速提取）
 - `style_drift_directives`：从 style-drift.json 提取的纠偏指令列表（Step 2.7；仅 active=true 时）
-- `track3_mode`：QualityJudge Track 3 输出模式（`"full"` | `"lite"`），判定规则见下方
+- `track3_mode`：ContentCritic Track 3 输出模式（`"full"` | `"lite"`），判定规则见下方
 
 编排器需完成的**路径计算**（作为 paths 字段写入 manifest）：
 - 根据 Step 2.4 裁剪规则确定 `character_contracts[]` 和 `character_profiles[]` 的文件路径列表
 - 根据 Step 2.5 注入策略确定 `storyline_memory` / `adjacent_memories[]` 的路径（过滤 dormant 线）
 - 确定 `recent_summaries[]`（近 3 章摘要路径，按时间倒序）
-- **QualityJudge `recent_summaries[]`（条件注入）**：当 chapter ≤ 3 且 platform_guide 存在时，注入近 2 章摘要路径供平台硬门回溯判定（Ch001 为空数组，Ch002 仅含 Ch001 摘要，Ch003 含 Ch001+002 摘要；路径指向文件不存在时跳过该条目）；章节 > 3 或无 platform_guide 时不注入此字段
+- **QualityJudge `recent_summaries[]`（条件注入）**：当 chapter ≤ 3 且 platform_guide 存在时，注入近 2 章摘要路径供平台硬门回溯判定；章节 > 3 或无 platform_guide 时不注入此字段
+- **ContentCritic `recent_summaries[]`**：与 QualityJudge 同规则注入（CC Track 4 用于跨章重复检测）
 - 其余路径为固定模式（如 `style-profile.json`、`ai-blacklist.json`）
-- **平台指南加载**：读取 `style-profile.json` 的 `platform` 字段（缺失或 null 则终止并提示用户通过 `/novel:start` 设置平台，platform 为必填字段）。`platform` 为 `"general"` 时不加载 platform_guide（无对应模板文件），但 `platform` 值仍传入 QualityJudge manifest 供 Track 3 读者人设选择。**黄金三章提醒**：若 `platform == "general"` 且 `chapter_num == 1`，输出一次性提示：`💡 当前平台为 general，黄金三章的平台硬门检查（起点冰山式世界观/番茄3章内反转/晋江情感锚点等）未启用。如需启用，可通过 /novel:start → 更新设定 配置目标平台。`。其余平台值计算路径 `templates/platforms/{platform}.md`：文件存在则加入 `manifest.paths.platform_guide`（ChapterWriter + QualityJudge 均注入）；文件不存在则输出 WARNING（「平台指南 {platform}.md 不存在，跳过」）并继续（不阻断流水线）
+- **平台指南加载**：读取 `style-profile.json` 的 `platform` 字段（缺失或 null 则终止并提示）。`platform` 为 `"general"` 时不加载 platform_guide，但 `platform` 值仍传入 QualityJudge 和 ContentCritic manifest。**黄金三章提醒**：若 `platform == "general"` 且 `chapter_num == 1`，输出一次性提示。其余平台值计算路径 `templates/platforms/{platform}.md`：文件存在则加入 `manifest.paths.platform_guide`（ChapterWriter + QualityJudge + ContentCritic 均注入）；文件不存在则输出 WARNING 并继续
 
-**`track3_mode` 判定规则**（确定性）：
+**`track3_mode` 判定规则**（确定性，写入 ContentCritic manifest）：
 
 以下任一条件为 true 时 `track3_mode = "full"`，否则 `"lite"`：
 - `is_golden_chapter == true`（chapter ≤ 3 且 platform_guide 存在）

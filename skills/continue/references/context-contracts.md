@@ -114,7 +114,6 @@ quality_judge_manifest = {
   platform: str,                                  # 从 style-profile.json 提取（fanqie | qidian | jinjiang | general | 自定义），必填不可为 null
   excitement_type: [str] | null,                 # 从 chapter_contract 提取（可选）
   is_golden_chapter: bool,                       # chapter <= 3
-  track3_mode: "full" | "lite",                    # Track 3 输出模式（黄金三章/卷末/关键章=full，普通章=lite）
   narration_only_lint: obj | null,                  # lint-blacklist.sh 的 narration_only_stats 输出
 
   # ── paths ──
@@ -125,14 +124,43 @@ quality_judge_manifest = {
     chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md",  # Markdown优先，回退.json
     world_rules: "world/rules.json",                                  # 可选
     prev_summary: "summaries/chapter-{C-1:03d}-summary.md",           # 可选（首章无）
-    recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 近 2 章摘要（始终注入；按可用性降级：Ch001 为空数组，Ch002 仅含 Ch001，Ch003 含 Ch001+002；路径不存在时跳过该条目）
+    recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 近 2 章摘要（始终注入；按可用性降级）
     character_profiles: ["characters/active/{slug}.md", ...],          # 裁剪后选取（叙述档案）
     character_contracts: ["staging/context/characters/{slug}.json", ...], # canon_status 预过滤后的 staging 副本（L2 结构化契约）
     storyline_spec: "storylines/storyline-spec.json",                  # 可选
     storyline_schedule: "volumes/vol-{V:02d}/storyline-schedule.json", # 可选
     cross_references: "staging/state/chapter-{C:03d}-crossref.json",
     quality_rubric: "skills/novel-writing/references/quality-rubric.md",
-    platform_guide: "templates/platforms/{platform}.md",                 # 可选（M5.2 注入路径；M6.2 启用加权评分逻辑）
+    platform_guide: "templates/platforms/{platform}.md",                 # 可选
+  }
+}
+```
+
+---
+
+## ContentCritic manifest
+
+```
+content_critic_manifest = {
+  # ── inline ──
+  chapter: int,
+  volume: int,
+  chapter_outline_block: str,                    # Track 4 用于判定剧情推进
+  platform: str,                                  # Track 3 读者人设选择
+  excitement_type: [str] | null,                 # Track 3 setup 章宽容
+  is_golden_chapter: bool,                       # Track 3 黄金三章专属警告
+  track3_mode: "full" | "lite",                    # Track 3 输出模式
+  mode: str | null,                                # "track3_backfill" 时仅执行 Track 3
+
+  # ── paths ──
+  paths: {
+    chapter_draft: "staging/chapters/chapter-{C:03d}.md",
+    chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md",  # Track 4 剧情推进对照
+    prev_summary: "summaries/chapter-{C-1:03d}-summary.md",           # 可选（Track 4 跨章重复检测）
+    recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 近 2 章摘要
+    style_profile: "style-profile.json",                              # Track 3 人设
+    platform_guide: "templates/platforms/{platform}.md",              # 可选
+    quality_rubric: "skills/novel-writing/references/quality-rubric.md",
   }
 }
 ```
@@ -141,7 +169,7 @@ quality_judge_manifest = {
 
 ## QualityJudge 输出契约
 
-QualityJudge 将评估结果直接写入 `staging/evaluations/chapter-{C:03d}-eval-raw.json`。编排器读取该文件用于门控决策和双裁判合并，追加 metadata 后写入最终 `staging/evaluations/chapter-{C:03d}-eval.json`。
+QualityJudge 将评估结果直接写入 `staging/evaluations/chapter-{C:03d}-eval-raw.json`。
 
 关键返回字段：
 - `contract_verification` — Track 1 合规检查结果（l1/l2/l3/ls_checks + platform_hard_gates + has_violations）
@@ -152,11 +180,27 @@ QualityJudge 将评估结果直接写入 `staging/evaluations/chapter-{C:03d}-ev
 - `overall` — 门控决策使用值（= overall_weighted 或 overall_raw）
 - `recommendation` — QualityJudge 建议（pass/polish/revise/review/rewrite）
 - `required_fixes` — 修订指令列表（recommendation 为 revise/review/rewrite 时输出）
-- `reader_evaluation` — Track 3 读者参与度评估。`track3_mode == "full"` 时含全部字段（persona / reader_scores / overall_engagement / suspicious_skim_paragraphs / emotional_arc / platform_signal / golden_chapter_flags / reader_feedback）；`track3_mode == "lite"` 时仅含 overall_engagement + reader_feedback。Track 3 失败时为 null
 
-**编排器写入 eval JSON 的映射**：
+---
+
+## ContentCritic 输出契约
+
+ContentCritic 将评估结果直接写入 `staging/evaluations/chapter-{C:03d}-content-eval-raw.json`。
+
+关键返回字段：
+- `reader_evaluation` — Track 3 读者参与度评估。`track3_mode == "full"` 时含全部字段；`"lite"` 时仅含 overall_engagement + reader_feedback。Track 3 失败时为 null
+- `content_substance` — Track 4 内容实质性评估（information_density / plot_progression / dialogue_efficiency + content_substance_overall + has_substance_violation + substance_issues[]）。`mode == "track3_backfill"` 时为 null
+
+---
+
+## 编排器写入 eval JSON 的映射
+
+最终 `staging/evaluations/chapter-{C:03d}-eval.json` 结构：
 - `eval_used` = QualityJudge 原始输出（primary 或 secondary 中 overall 更低的一次）
+- `content_eval` = ContentCritic 原始输出
 - `metadata.judges.overall_final` = 编排器计算值（普通章 = primary.overall；关键章 = min(primary.overall, secondary.overall)）
+- `metadata.content_critic` = {model, content_substance_overall, overall_engagement}
+- `metadata.gate` = {decision, revisions, force_passed, substance_violation}
 
 ---
 
