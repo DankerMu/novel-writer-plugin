@@ -22,7 +22,7 @@
      Ch {list}
 
      选项：
-     1. 补全评估 (Recommended) — 对这些章节重跑 QualityJudge Track 3
+     1. 补全评估 (Recommended) — 对这些章节运行 ContentCritic Track 3
      2. 跳过 — 继续质量回顾，后续再处理
      ```
    - 选项 1 时，逐章执行补全：

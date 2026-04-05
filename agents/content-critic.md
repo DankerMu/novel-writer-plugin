@@ -255,12 +255,14 @@ has_substance_violation = any(dimension.score < 3 for dimension in [information_
 
 ## Track 3 engagement overlay（只降级不升级）
 
+编排器根据 CC 输出的 `overall_engagement` + QJ 的 `qj_decision` 合并门控：
+
 ```
 if is_golden_chapter and overall_engagement < 3.0:
     engagement_override = "revise"
-elif overall_engagement < 2.5:
-    engagement_override = "polish"  # 仅当 QJ recommendation 为 pass 时生效
-elif overall_engagement < 3.0:
+elif qj_decision == "pass" and overall_engagement < 2.5:
+    engagement_override = "polish"
+elif qj_decision == "pass" and overall_engagement < 3.0:
     engagement_override = "warning"  # 不降级，仅标记 risk_flag
 else:
     engagement_override = null

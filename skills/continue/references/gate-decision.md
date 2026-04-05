@@ -21,20 +21,29 @@
 
 - `substance_violation(cc_eval)` := 任一 content_substance.{information_density, plot_progression, dialogue_efficiency}.score < 3
 - `substance_severe(cc_eval)` := content_substance.content_substance_overall < 2.0
-- `engagement_override(cc_eval, qj_recommendation)`:
+- `engagement_override(cc_eval, qj_decision)`:
   ```
   if cc_eval.reader_evaluation == null:
       return null  # Track 3 fallback，不影响门控
   engagement = cc_eval.reader_evaluation.overall_engagement
   if is_golden_chapter and engagement < 3.0:
       return "revise"
-  elif qj_recommendation == "pass" and engagement < 2.5:
+  elif qj_decision == "pass" and engagement < 2.5:
       return "polish"
-  elif qj_recommendation == "pass" and engagement < 3.0:
+  elif qj_decision == "pass" and engagement < 3.0:
       return "warning"  # 不降级，仅 risk_flag
   else:
       return null
   ```
+
+## CC 整体失败降级
+
+若 `staging/evaluations/chapter-{C:03d}-content-eval-raw.json` 不存在或 JSON 无效（CC agent 整体不可用）：
+- `substance_decision = null`（不触发 Track 4 硬门）
+- `engagement_decision = null`（不触发 Track 3 overlay）
+- 仅用 QJ 决策（优雅降级）
+- 输出 WARNING：`⚠️ ContentCritic 评估失败，仅使用 QualityJudge Track 1+2 门控`
+- risk_flags 追加 `content_critic_failed`
 
 ## 固化门控决策函数（输出 gate_decision）
 
