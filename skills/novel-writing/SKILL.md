@@ -18,7 +18,7 @@ description: >
 网文创作采用"边写边想"模式，以卷（30-50 章）为单位滚动规划：
 
 1. **卷规划**：PlotArchitect 生成本卷大纲 + 伏笔计划 + L3 章节契约
-2. **日更续写**：ChapterWriter(含润色) → Summarizer → QualityJudge(含读者评估)（单章流水线）
+2. **日更续写**：ChapterWriter(含润色) → Summarizer → [QualityJudge + ContentCritic 并行]（单章流水线）
 3. **定期检查**：每 5 章自动执行滑窗一致性校验（窗口 10 章、步长 5，形成 ch1-10/ch6-15/ch11-20… 重叠覆盖）+ 质量简报 + 风格漂移监控；每 10 章深度盘点（伏笔盘点 + 跨线桥梁检查 + 故事线节奏分析）
 4. **卷末自动核查**：到达卷末章时自动执行全卷 NER 一致性 + 伏笔/桥梁/节奏分析；State 清理和下卷规划由 `/novel:start` 完成
 
@@ -34,7 +34,7 @@ description: >
 | L2 角色契约 | 能力边界/行为模式 | WorldBuilder（角色模式） → `contracts` | 可变更需走协议 |
 | L3 章节契约 | 前置/后置条件/验收标准 | PlotArchitect → `chapter-contracts/` | 可协商须留痕 |
 
-验收采用双轨制：Contract Verification（合规检查 L1/L2/L3/LS，硬门槛）+ Quality Scoring（8 维度评分，软评估）。合规是编译通过，质量是 code review。
+验收采用四轨制：Track 1 Contract Verification（合规检查 L1/L2/L3/LS，硬门槛）+ Track 2 Quality Scoring（8 维度评分，软评估）由 QualityJudge 执行；Track 3 Reader Engagement（读者参与度）+ Track 4 Content Substance（信息密度/剧情推进/对话效率，硬门槛）由 ContentCritic 并行执行。合规是编译通过，质量是 code review，内容实质是 regression test。
 
 ## 多线叙事体系
 

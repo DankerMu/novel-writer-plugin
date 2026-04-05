@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Claude Code plugin for Chinese web novel (网文) multi-agent collaborative writing. 5 specialized agents orchestrated through a state-machine workflow with spec-driven quality gates and anti-AI output strategies.
+Claude Code plugin for Chinese web novel (网文) multi-agent collaborative writing. 6 specialized agents orchestrated through a state-machine workflow with spec-driven quality gates and anti-AI output strategies.
 
 ## Commands
 
@@ -31,7 +31,7 @@ Scripts auto-resolve `${SCRIPT_DIR}/../.venv/bin/python3`, falling back to syste
 | L3 Chapter Contracts | `volumes/vol-{V:02d}/chapter-contracts/` | Pre/post conditions, acceptance criteria | Negotiable w/ audit |
 | LS Storyline Specs | `storylines/storylines.json` | Multi-POV constraints, prevents cross-line leaks | Volume-scoped |
 
-Agents validate outputs against these layers. QualityJudge performs dual-track verification: contract compliance (hard gate) + 8-dimension scoring (soft eval).
+Agents validate outputs against these layers. QualityJudge performs dual-track verification: contract compliance (hard gate) + 8-dimension scoring (soft eval). ContentCritic evaluates reader engagement (Track 3) + content substance (Track 4: information density, plot progression, dialogue efficiency).
 
 ### State Machine
 
@@ -41,21 +41,22 @@ State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current
 
 ### Single-Chapter Pipeline
 
+`ChapterWriter(draft+polish) → Summarizer → [QualityJudge + ContentCritic parallel] → Gate Decision (merge)`
 
+Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite. ContentCritic Track 4 substance violation (any dimension < 3.0) forces revise.
 
-Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite.
+### 6 Agents
 
-### 5 Agents
+| Agent | Model | Color | Role | Write Access |
+|-------|-------|-------|------|--------------|
+| WorldBuilder | Opus | blue | L1 rules, storylines init, characters (L2 contracts), style extraction | Yes |
+| PlotArchitect | Opus | yellow | Volume outlines, L3 contracts, foreshadowing | Yes |
+| ChapterWriter | Opus | green | 2500–3500 char chapters with style exemplars + de-AI polish | Yes |
+| Summarizer | Opus | cyan | 300-char summaries, state ops, leak detection | Yes |
+| QualityJudge | Opus | magenta | Track 1 contract compliance + Track 2 quality scoring | staging/evaluations only |
+| ContentCritic | Opus | red | Track 3 reader engagement + Track 4 content substance | staging/evaluations only |
 
-| Agent | Model | Role | Write Access |
-|-------|-------|------|--------------|
-| WorldBuilder | Opus | L1 rules, storylines init, characters (L2 contracts), style extraction | Yes |
-| PlotArchitect | Opus | Volume outlines, L3 contracts, foreshadowing | Yes |
-| ChapterWriter | Opus | 2500–3500 char chapters with style exemplars + de-AI polish | Yes |
-| Summarizer | Opus | 300-char summaries, state ops, leak detection | Yes |
-| QualityJudge | Opus | Dual-track scoring + reader engagement | staging/evaluations only |
-
-Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config.
+Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config. QualityJudge and ContentCritic run in parallel after Summarizer.
 
 ### 3 Entry Skills
 

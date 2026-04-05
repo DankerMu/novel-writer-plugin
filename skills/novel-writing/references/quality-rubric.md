@@ -185,17 +185,71 @@
 | 2.0-2.9 | 无 violation | `review` | `pause_for_user` | 暂停，通知用户审核决定下一步 |
 | < 2.0 | 无 violation | `rewrite` | `pause_for_user_force_rewrite` | 暂停，建议全章重写（等待用户通过 `/novel:start` 决策） |
 
-**修订上限兜底**：修订 2 次后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail 且无 reader_evaluation 黄金三章硬门 fail → `force_passed=true`，允许提交（避免无限循环）。
+**修订上限兜底**：修订 2 次后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail 且无 ContentCritic substance_violation 且无黄金三章 engagement < 3.0 → `force_passed=true`，允许提交（避免无限循环）。
 
-## 读者体验门控（已内化到 QualityJudge Track 3）
+## 读者体验门控（ContentCritic Track 3）
 
-> 读者参与度评估已内化到 QualityJudge Track 3，输出 `overall_engagement`（1-5）。recommendation 已计入 engagement overlay（只降级不升级）。Track 3 失败时仅用 Track 1+2（优雅降级）。
+> 读者参与度评估由 ContentCritic（Track 3）独立执行，与 QualityJudge 并行。编排器合并两者输出做门控决策。
 
 | 场景 | engagement 条件 | 动作 |
 |------|----------------|------|
-| 黄金三章（≤003） | < 3.0 | 至少 revise（QJ 内部已处理） |
-| QJ pass | < 2.5 | 降为 polish（QJ 内部已处理） |
+| 黄金三章（≤003） | < 3.0 | 至少 revise（编排器合并时处理） |
+| QJ pass | < 2.5 | 降为 polish（编排器合并时处理） |
 | QJ pass | < 3.0 | WARNING 记录不降级 |
-| Track 3 失败 | — | 仅用 Track 1+2 |
+| Track 3 失败 | — | 仅用 QJ Track 1+2 + CC Track 4 |
 
-降级时编排器将 `reader_evaluation.reader_feedback` + `reader_evaluation.suspicious_skim_paragraphs`（如存在）注入 ChapterWriter 修订指令。`track3_mode == "lite"` 时仅 `reader_feedback` 可用。
+降级时编排器将 `content_eval.reader_evaluation.reader_feedback` + `content_eval.reader_evaluation.suspicious_skim_paragraphs`（如存在）注入 ChapterWriter 修订指令。`track3_mode == "lite"` 时仅 `reader_feedback` 可用。
+
+## 内容实质性门控（ContentCritic Track 4）
+
+ContentCritic Track 4 检测三类硬性内容问题，任一维度 < 3.0 强制修订（不可跳过）。
+
+### 9. 信息密度（information_density）— 权重 0.40
+
+检测内容空洞：段落字数多但信息增量为零。
+
+| 分数 | 标准 |
+|------|------|
+| 5 | 每个段落都有明确信息增量（推进剧情/揭示角色/构建世界），无一处冗余 |
+| 4 | 绝大多数段落有信息增量，1-2 处可压缩但不影响阅读 |
+| 3 | 存在 2-3 处空洞段落（大段感悟无推进/纯渲染无目的/重复已知信息） |
+| 2 | 大量段落缺乏信息增量，全章净推进不足正文量的 50% |
+| 1 | 绝大部分内容为填充，近乎无有效信息 |
+
+### 10. 剧情推进（plot_progression）— 权重 0.35
+
+检测剧情重复推进/原地踏步：章末状态与章初无实质变化。
+
+| 分数 | 标准 |
+|------|------|
+| 5 | 局势在章末有明确、不可逆的变化，读者能清晰感知"事情往前走了" |
+| 4 | 有可感知的推进，章末状态与章初不同，但推进力度稍弱 |
+| 3 | 推进部分存在，但有循环模式（同类冲突重演/问题反复讨论后未解决） |
+| 2 | 章末状态与章初几乎无变化，存在明显的 A→B→A 循环或同一事件换皮重演 |
+| 1 | 完全原地踏步，全章事件可删除而不影响后续剧情 |
+
+**setup 章宽容**：铺垫章允许「信息布局型推进」（伏笔埋设、势力暗示、信息预置），3 分阈值放宽为硬门 2 分。
+
+### 11. 对话效率（dialogue_efficiency）— 权重 0.25
+
+检测车轱辘话：对话反复表达同一意思而无新信息。
+
+| 分数 | 标准 |
+|------|------|
+| 5 | 每段对话都推进关系/冲突/信息，无重复表意 |
+| 4 | 对话整体高效，个别处稍有冗余但不影响节奏 |
+| 3 | 存在 1-2 处车轱辘话（同一观点/情感换词重复表达 2 次以上） |
+| 2 | 多处对话在兜圈子，角色反复表达同一立场/情感而无新信息 |
+| 1 | 对话以重复为主，大量内容删除后不影响剧情和人物关系 |
+
+**无对话章节**：对话轮数 < 3 时默认 4 分，改为扫描叙述段落间语义重复。
+
+### 综合分与硬门
+
+`content_substance_overall = information_density × 0.40 + plot_progression × 0.35 + dialogue_efficiency × 0.25`
+
+| 条件 | 动作 |
+|------|------|
+| 任一维度 score < 3.0 | `has_substance_violation = true` → 强制 revise（不可跳过） |
+| content_substance_overall < 2.0 | 强制 pause_for_user |
+| 全部维度 ≥ 3.0 | 无硬门触发，仅记录 |

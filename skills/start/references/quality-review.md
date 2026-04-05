@@ -15,7 +15,7 @@
    - `ai-blacklist.json`（version/last_updated/words/whitelist/update_log）
    - `style-profile.json`（preferred_expressions；用于解释黑名单豁免）
 1.5. **旧评估 Track 3 补全检测**：
-   - 扫描 Step 1 收集的 eval.json，筛选 `reader_evaluation == null` 的章节（Track 3 真正失败/缺失）。注意：`track3_mode == "lite"` 的章节 `reader_evaluation` 非 null（仅含 overall_engagement + reader_feedback），不应视为待补全目标
+   - 扫描 Step 1 收集的 eval.json，筛选 `content_eval.reader_evaluation == null` 或 `content_eval` 不存在的章节（Track 3 真正失败/缺失/旧版 eval 无 content_eval）。注意：`track3_mode == "lite"` 的章节 `reader_evaluation` 非 null（仅含 overall_engagement + reader_feedback），不应视为待补全目标
    - 若存在待补全章节，使用 AskUserQuestion 提示：
      ```
      检测到以下章节缺少读者参与度评估（Track 3）：
@@ -26,9 +26,9 @@
      2. 跳过 — 继续质量回顾，后续再处理
      ```
    - 选项 1 时，逐章执行补全：
-     a. 组装 QualityJudge manifest（复用 `/novel:continue` Step 2.6 的路径计算逻辑，追加 `mode: "track3_backfill"`）
-     b. 派发 QualityJudge Agent（Task, subagent_type="quality-judge"）：仅执行 Track 3，在 Task 文本输出中返回 `reader_evaluation` JSON（backfill 模式不写入 staging 文件）
-     c. 读取对应 `evaluations/chapter-{C:03d}-eval.json`，将返回的 `reader_evaluation` 合并写入 `eval_used.reader_evaluation` 字段
+     a. 组装 ContentCritic manifest（复用 `/novel:continue` Step 2.6 的路径计算逻辑，追加 `mode: "track3_backfill"`）
+     b. 派发 ContentCritic Agent（Task, subagent_type="content-critic"）：仅执行 Track 3（跳过 Track 4），在 Task 文本输出中返回 `reader_evaluation` JSON（backfill 模式不写入 staging 文件）
+     c. 读取对应 `evaluations/chapter-{C:03d}-eval.json`，将返回的 `reader_evaluation` 合并写入 `content_eval.reader_evaluation` 字段（若 `content_eval` 不存在则创建）
      d. 补全不影响已有 overall/recommendation/gate_decision（Track 3 仅降级不升级，历史门控决策不追溯变更）
      e. 重复 backfill 同一章是安全的（幂等 set 写入，不影响历史门控）
    - 选项 2 时跳过，继续 Step 2
