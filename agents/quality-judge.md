@@ -25,7 +25,7 @@ description: |
   <commentary>章节修订后重评估，决定是否继续写/再次修订</commentary>
   </example>
 model: opus
-color: magenta
+color: purple
 tools: ["Read", "Write", "Glob", "Grep"]
 ---
 

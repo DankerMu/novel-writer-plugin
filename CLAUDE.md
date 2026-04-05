@@ -50,10 +50,10 @@ Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 revi
 | Agent | Model | Color | Role | Write Access |
 |-------|-------|-------|------|--------------|
 | WorldBuilder | Opus | blue | L1 rules, storylines init, characters (L2 contracts), style extraction | Yes |
-| PlotArchitect | Opus | yellow | Volume outlines, L3 contracts, foreshadowing | Yes |
+| PlotArchitect | Opus | orange | Volume outlines, L3 contracts, foreshadowing | Yes |
 | ChapterWriter | Opus | green | 2500–3500 char chapters with style exemplars + de-AI polish | Yes |
 | Summarizer | Opus | cyan | 300-char summaries, state ops, leak detection | Yes |
-| QualityJudge | Opus | magenta | Track 1 contract compliance + Track 2 quality scoring | staging/evaluations only |
+| QualityJudge | Opus | purple | Track 1 contract compliance + Track 2 quality scoring | staging/evaluations only |
 | ContentCritic | Opus | red | Track 3 reader engagement + Track 4 content substance | staging/evaluations only |
 
 Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config. QualityJudge and ContentCritic run in parallel after Summarizer.

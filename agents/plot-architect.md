@@ -18,7 +18,7 @@ description: |
   <commentary>调整大纲或伏笔计划时触发</commentary>
   </example>
 model: opus
-color: yellow
+color: orange
 tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 ---
 
