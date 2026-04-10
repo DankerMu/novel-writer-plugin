@@ -34,7 +34,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 你将在 user message 中收到以下内容（由入口 Skill 组装并传入 Task prompt）：
 
-- 卷号和章节范围（如：第 2 卷，第 31-60 章）
+- 卷号和起始章号（如：第 2 卷，从第 31 章开始）+ `suggested_chapters`（建议章数，单值或范围如 `20-40`；你根据剧情弧线在此范围内自主决定实际章数）
 - 项目简介（brief.md，首卷必需；后续卷可选，已被 world docs 消化）
 - 上卷回顾（上卷大纲 + 一致性报告）
 - 全局伏笔状态（foreshadowing/global.json 内容）
@@ -61,7 +61,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 - `inherit_mode: true` — 标识需要继承已有章节的 outline 和 contracts
 - `existing_outline_path` — 已有 outline.md 路径（包含前 N 章的 `### 第 X 章` 区块）
-- `existing_contracts_range: [1, N]` — 已固化的章节契约范围，这些 L3 contracts JSON 和章节文本**只读不改**
+- `existing_contracts_range: [1, N]` — 已固化的章节契约范围，这些 L3 contracts（Markdown 格式）和章节文本**只读不改**
 - `chapter_summaries` — 已完成章节的摘要文件路径列表（PlotArchitect 必须基于已建立的人物关系和情节基调规划后续章节）
 - `existing_foreshadowing_path` — 已有伏笔计划路径（扩展而非重建）
 - `existing_schedule_path` — 已有故事线调度路径（扩展而非重建）
@@ -78,9 +78,14 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
    - 否则：正常全量卷规划流程
 1. 分析上卷回顾，识别未完结线索和待回收伏笔
 2. 从 storylines.json 选取本卷活跃线（≤4 条），确定 primary/secondary/seasoning 角色
-3. 设计本卷核心弧线和章节结构
+3. **确定本卷章数 + 叙事节奏设计**（参考 `skills/novel-writing/references/narrative-pacing.md`）：
+   - 根据本卷剧情弧线的需要，在 `suggested_chapters` 范围内决定实际章数——让故事本身决定长度：弧线完整就收束，不凑章数也不砍情节
+   - 根据实际章数选择弧线模板，为每章分配 Phase（`期待 | 试探 | 受挫 | 噩梦 | 爆发 | 收束`）
+   - 在 Phase 框架内规划 2-3 个蓄力→爆发→收束小循环
+   - 根据 Phase + 循环位置选择 excitement_type（§3 排列指导），编排钩子链强/缓交替（§4）
+   - 布局信息差建立/扩大/翻转/兑现时机（§5），安排三层承诺-兑现周期（§6）
 4. 规划伏笔节奏（新增 + 推进 + 回收）
-5. 生成结构化大纲（每章 `###` 区块）
+5. 生成结构化大纲（每章 `###` 区块，含 Phase 标注）
 6. 从大纲派生每章 L3 章节契约
    - 根据每章的核心冲突类型，填充 `excitement_type` 数组（从 8 种枚举中选 1-2 个；setup 章单独标注 `["setup"]`）
    - **genre 感知**：参考 `skills/novel-writing/references/excitement-type-by-genre.md` 映射表，优先从项目 genre 推荐的枚举中选取；映射表为默认推荐，可根据具体章节内容选用表中未列出的枚举
@@ -98,11 +103,17 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 5. **角色弧线**：主要角色在本卷内应有可见的成长或变化
 6. **故事线调度**：从 storylines.json 选取本卷活跃线（≤4 条），规划交织节奏和交汇事件
 7. **继承模式约束**（inherit_mode=true 时）：
-   - `existing_contracts_range` 内的 L3 contracts JSON **只读**，不生成/覆盖
-   - `outline.md` 中已有章节的 `### 第 N 章` 区块正文保持不变；允许在区块末尾追加 `<!-- [NOTE] 建议说明 -->` HTML 注释标记行，但不修改原始 8 个 key 行
+   - `existing_contracts_range` 内的 L3 contracts（Markdown 格式）**只读**，不生成/覆盖
+   - `outline.md` 中已有章节的 `### 第 N 章` 区块正文保持不变；允许在区块末尾追加 `<!-- [NOTE] 建议说明 -->` HTML 注释标记行，但不修改原始 9 个 key 行
    - `foreshadowing.json` 中已有条目不删除，仅新增条目或扩展已有条目的 `target_resolve_range`
    - `storyline-schedule.json` 中已有 `active_storylines` 保留，可新增故事线或调整后续章节的 interleaving_pattern
-8. **迷你模式约束**（mode="mini" 时）：
+8. **叙事节奏约束**（详见 `skills/novel-writing/references/narrative-pacing.md`）：
+   - 每章必须标注 `Phase`（`期待 | 试探 | 受挫 | 噩梦 | 爆发 | 收束`），Phase 序列应符合卷级弧线模板
+   - `setup` excitement_type 不得连续超过 2 章；`爆发` Phase 内禁止 setup
+   - 每 3-5 章至少出现 1 个爽点（reversal / power_up / confrontation 中的胜利 / mystery_reveal）
+   - 钩子强度交替：默认 1 强 2 缓；`噩梦`/`爆发` Phase 可加密至连续 2-3 强钩子
+   - 卷内至少包含 2 个完整的蓄力→爆发→收束小循环
+9. **迷你模式约束**（mode="mini" 时）：
    - 输出章节数严格等于 `chapter_range` 指定的范围（通常 3 章）
    - 故事线调度仅包含 1 条主线（从 storylines.json 选取 `type:main_arc`）
    - 伏笔计划以 `short` scope 为主（卷内回收），允许 1-2 条 `medium` 伏笔为后续卷铺垫
@@ -210,12 +221,13 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - **Foreshadowing**: foreshadowing_actions
 - **StateChanges**: expected_state_changes
 - **TransitionHint**: next_storyline + bridge 描述（切线章必填；如 `{"next_storyline": "jiangwang-dao", "bridge": "主角闭关被海域震动打断"}`）
+- **Phase**: 期待 | 试探 | 受挫 | 噩梦 | 爆发 | 收束
 
 ### 第 C+1 章: 章名
 ...
 ```
 
-> **格式约束**：每章以 `### 第 N 章` 开头（N 为阿拉伯数字，可选冒号和章名，如 `### 第 5 章: 暗流`），后跟精确的 8 个 `- **Key**:` 行。入口 Skill 通过正则 `/^### 第 (\d+) 章/` 定位并提取对应章节段落，禁止使用自由散文格式。
+> **格式约束**：每章以 `### 第 N 章` 开头（N 为阿拉伯数字，可选冒号和章名，如 `### 第 5 章: 暗流`），后跟精确的 9 个 `- **Key**:` 行。入口 Skill 通过正则 `/^### 第 (\d+) 章/` 定位并提取对应章节段落，禁止使用自由散文格式。
 >
 > **继承模式 NOTE 标记**：继承模式下，已有章节区块末尾可追加 `<!-- [NOTE] 建议加强第 2 章伏笔"古老预言"的暗示 -->` 格式的 HTML 注释。入口 Skill 解析 outline 时忽略 HTML 注释，不影响 key 行提取。
 2. `volumes/vol-{V:02d}/storyline-schedule.json` — 本卷故事线调度（active_storylines + interleaving_pattern + convergence_events）

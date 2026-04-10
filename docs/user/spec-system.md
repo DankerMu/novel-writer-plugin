@@ -52,7 +52,7 @@ ChapterWriter 收到 hard 规则时会以禁止项注入：违反即自动拒绝
 
 ## L3 章节契约
 
-**文件**：`volumes/vol-XX/chapter-contracts/chapter-XXX.json`
+**文件**：`volumes/vol-XX/chapter-contracts/chapter-XXX.md`
 **生成者**：PlotArchitect（卷规划阶段）
 
 每章的前置条件（写之前必须满足什么）和后置条件（写完后必须达成什么）：

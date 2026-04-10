@@ -26,7 +26,7 @@
 4. 若无法定位本章区块：输出错误（包含期望格式示例 `### 第 12 章: 章名`），并提示用户回到 `/novel:start` → "规划本卷"修复 outline 格式后重试。
 5. 解析章节区块内的固定 key 行（确定性；用于后续一致性校验）：
    - 期望格式：`- **Key**: value`
-   - 必需 key：`Storyline`、`POV`、`Location`、`Conflict`、`Arc`、`Foreshadowing`、`StateChanges`、`TransitionHint`
+   - 必需 key：`Storyline`、`POV`、`Location`、`Conflict`、`Arc`、`Foreshadowing`、`StateChanges`、`TransitionHint`、`Phase`
    - 提取 `outline_storyline_id = Storyline`（若缺失或为空 → 视为 outline 结构损坏，报错并终止）
 
 同时，从 outline 中提取本卷章节边界（用于卷首/卷尾双裁判与卷末状态转移）：
@@ -110,6 +110,7 @@
    - `storyline_id`（本章所属线，从「基本信息」提取）
    - `storyline_context`（**Markdown 契约**：从「前章衔接」section 提取；**JSON**：从 `storyline_context` 对象提取）
    - `transition_hint`（**Markdown 契约**：若大纲中有 TransitionHint 则从大纲提取；**JSON**：从契约对象提取）
+   - `narrative_phase`（从大纲 `- **Phase**:` 行提取；值域：期待/试探/受挫/噩梦/爆发/收束；如缺失则不传）
 5. memory 路径策略：
    - 当前线 `storylines/{storyline_id}/memory.md`：如存在，写入 manifest.paths.storyline_memory
    - 相邻线：

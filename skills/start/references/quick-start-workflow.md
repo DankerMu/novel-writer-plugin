@@ -186,7 +186,7 @@
 
 9e. **校验 PlotArchitect 产物**（复用 `references/vol-planning.md` Step 4 校验规则的子集）：
    - `outline.md` 可解析：3 个 `### 第 N 章` 区块，连续覆盖 1-3
-   - 每个区块含 8 个固定 key 行（Storyline/POV/Location/Conflict/Arc/Foreshadowing/StateChanges/TransitionHint）
+   - 每个区块含 9 个固定 key 行（Storyline/POV/Location/Conflict/Arc/Foreshadowing/StateChanges/TransitionHint/Phase）
    - `chapter-contracts/` 3 个文件均可解析，`chapter == C`、`storyline_id` 与 outline 一致、`objectives` 至少 1 条 `required: true`
    - `foreshadowing.json` 和 `storyline-schedule.json` 为合法 JSON
    - 校验失败 → 输出修复建议并终止（不继续到 Step F）
@@ -251,7 +251,7 @@
   - `"E"` → Step F0（迷你卷规划）
   - `"F0"` → Step F（黄金三章试写）。进入 Step F 后，若 `pipeline_stage != null` 且 `inflight_chapter != null`，按 `/novel:continue` Step 1.5 中断恢复规则从断点继续
   - `"F"` → Step G（展示结果 + 下一步）
-- 每个 Step 开始前，先检查该步骤的产物是否已存在（例如 Step D 检查 `world/rules.json`，Step F0 检查 `volumes/vol-01/outline.md` + `volumes/vol-01/chapter-contracts/chapter-001.json`），避免重复生成
+- 每个 Step 开始前，先检查该步骤的产物是否已存在（例如 Step D 检查 `world/rules.json`，Step F0 检查 `volumes/vol-01/outline.md` + `volumes/vol-01/chapter-contracts/chapter-001.md`），避免重复生成
 - quick start 完成后更新 `.checkpoint.json`：`current_volume = 1, last_completed_chapter = 3, orchestrator_state = "VOL_PLANNING"`，删除 `quick_start_step`
 
 > 注意：Step A/B/B.5 不持久化 checkpoint（仅收集用户输入和确认 brief，约 3-5 分钟）。若在 Step C 写入 checkpoint 之前中断，用户将回到 INIT 状态重新创建项目，这是可接受的重做成本。

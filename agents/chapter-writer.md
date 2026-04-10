@@ -60,7 +60,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 **B. 文件路径**（你需要用 Read 工具自行读取）：
 - `paths.style_profile` → 风格指纹 JSON（**必读**，含 style_exemplars 和 writing_directives）
 - `paths.style_drift` → 风格漂移纠偏（可选，存在时读取）
-- `paths.chapter_contract` → L3 章节契约 JSON
+- `paths.chapter_contract` → L3 章节契约（Markdown 格式，回退 JSON）
 - `paths.volume_outline` → 本卷大纲全文
 - `paths.current_state` → 角色当前状态 JSON
 - `paths.world_rules` → L1 世界规则（可选）

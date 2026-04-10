@@ -54,12 +54,13 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - continuity_report_summary（可选，一致性检查裁剪摘要）
 - platform（fanqie | qidian | jinjiang | general | 自定义，从 style-profile.json 提取，必填）
 - excitement_type（来自 chapter_contract，可选）
+- narrative_phase（来自 outline `- **Phase**:` 行，可选；值域：期待/试探/受挫/噩梦/爆发/收束）
 - is_golden_chapter（bool，chapter <= 3）
 **B. 文件路径**（你需要用 Read 工具自行读取）：
 - `paths.chapter_draft` → 章节全文
 - `paths.style_profile` → 风格指纹 JSON
 - `paths.ai_blacklist` → AI 黑名单 JSON
-- `paths.chapter_contract` → L3 章节契约 JSON
+- `paths.chapter_contract` → L3 章节契约（Markdown 格式，回退 JSON）
 - `paths.world_rules` → L1 世界规则（可选）
 - `paths.prev_summary` → 前一章摘要（可选，首章无）
 - `paths.character_profiles[]` → 相关角色叙述档案（.md，用于角色一致性评估）
@@ -156,7 +157,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
 | character（角色塑造） | 0.18 | 言行符合人设、性格连续性 |
 | immersion（沉浸感） | 0.15 | 画面感、氛围营造、详略得当 |
 | foreshadowing（伏笔处理） | 0.10 | 埋设自然度、推进合理性、回收满足感 |
-| pacing（节奏） | 0.08 | 冲突强度、张弛有度；excitement_type 爽点落地评估（如存在） |
+| pacing（节奏） | 0.08 | 冲突强度、张弛有度；excitement_type 爽点落地评估（如存在）；narrative_phase 节奏匹配度（如存在：`爆发` Phase 应有高强度冲突，`期待` Phase 应以建立期待为主） |
 | style_naturalness（风格自然度） | 0.15 | AI 黑名单命中率、句式重复率、与 style-profile 匹配度 |
 | emotional_impact（情感冲击） | 0.08 | 情感起伏、读者代入感 |
 | storyline_coherence（故事线连贯） | 0.08 | 切线流畅度、跟线难度、并发线暗示自然度 |
