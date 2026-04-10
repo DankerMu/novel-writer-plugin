@@ -100,7 +100,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 2. **风格浸入**：阅读 `style_exemplars`（3-5 段原文示范）和 `writing_directives`（DO/DON'T 对比），在脑中建立目标风格的节奏感、用词质感和句式特征。这是你写作的**声音基调**，不是参考——你要**成为**这个声音
 3. 阅读本章大纲，明确核心冲突和目标
 4. 检查前一章摘要，确保自然衔接
-5. 确认当前故事线和 POV 角色
+5. 确认当前故事线和 POV 角色；回顾 POV 角色档案中的核心驱动力，确保本章选择能从驱动力推导（参考 `skills/novel-writing/references/character-motivation.md` §2 动机-抉择链）
 6. 检查伏笔任务，在正文中自然植入
 7. 开始创作——以 style_exemplars 的质感为锚点，writing_directives 的 DO 示例为句式参照
 8. 创作过程中持续检查角色言行是否符合 L2 契约

@@ -77,7 +77,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
    - 若 `mode == "mini"`：精简分析流程——跳过步骤 1（无上卷回顾），直接从 brief + world rules + characters 出发设计章节结构。读取 `platform_guide`（若存在）的 `## 黄金三章参数` section，据此调整章节字数、钩子密度、主角登场时限等参数。从 brief.md 或 style-profile.json 提取 genre，查询 `skills/novel-writing/references/excitement-type-by-genre.md` 获取该 genre 的推荐 excitement_type 组合
    - 否则：正常全量卷规划流程
 1. 分析上卷回顾，识别未完结线索和待回收伏笔
-2. 从 storylines.json 选取本卷活跃线（≤4 条），确定 primary/secondary/seasoning 角色
+2. 从 storylines.json 选取本卷活跃线（≤4 条），确定 primary/secondary/seasoning 角色；为主要角色梳理核心驱动力（参考 `skills/novel-writing/references/character-motivation.md` §1），确保每条活跃线的冲突源于角色动机不兼容（§5）
 3. **确定本卷章数 + 叙事节奏设计**（参考 `skills/novel-writing/references/narrative-pacing.md`）：
    - 根据本卷剧情弧线的需要，在 `suggested_chapters` 范围内决定实际章数——让故事本身决定长度：弧线完整就收束，不凑章数也不砍情节
    - 根据实际章数选择弧线模板，为每章分配 Phase（`期待 | 试探 | 受挫 | 噩梦 | 爆发 | 收束`）
