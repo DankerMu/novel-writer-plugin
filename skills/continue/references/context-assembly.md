@@ -156,6 +156,7 @@
 - `track3_mode`：ContentCritic Track 3 输出模式（`"full"` | `"lite"`），判定规则见下方
 
 编排器需完成的**路径计算**（作为 paths 字段写入 manifest）：
+- 确定 `style_samples`：检查 `style-samples.md` 是否存在（项目根目录）。存在则写入 `manifest.paths.style_samples`；不存在则不加入（ChapterWriter 降级为读取 `style-profile.json` 的 `style_exemplars` 字段）
 - 根据 Step 2.4 裁剪规则确定 `character_contracts[]` 和 `character_profiles[]` 的文件路径列表
 - 根据 Step 2.5 注入策略确定 `storyline_memory` / `adjacent_memories[]` 的路径（过滤 dormant 线）
 - 确定 `recent_summaries[]`（近 3 章摘要路径，按时间倒序）

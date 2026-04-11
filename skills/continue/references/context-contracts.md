@@ -38,7 +38,8 @@ chapter_writer_manifest = {
 
   # ── paths（subagent 自读） ──
   paths: {
-    style_profile: "style-profile.json",                              # 必读（含 style_exemplars + writing_directives）
+    style_samples: "style-samples.md",                                # 必读最高优先级（分场景类型原文风格样本，3000-4000 字）
+    style_profile: "style-profile.json",                              # 必读（含 writing_directives + 统计指标；style_exemplars 已 deprecated）
     style_drift: "style-drift.json",                                  # 可选
     chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md",  # Markdown优先，回退.json
     volume_outline: "volumes/vol-{V:02d}/outline.md",

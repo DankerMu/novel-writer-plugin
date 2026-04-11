@@ -310,29 +310,43 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep", "WebFetch", "WebSearch"]
 4. 识别修辞与节奏偏好，归纳为 `rhetoric_preferences`
 5. 抽取禁忌词与高频口癖：只收录"明显不使用"的词，避免过度泛化
 6. 提取角色语癖与对话格式偏好，生成 `character_speech_patterns`
-7. 提取风格示范片段 `style_exemplars`（3-5 段，每段 50-150 字）：选取最能体现风格质感的段落
+7. **提取分场景风格样本 `style-samples.md`**（替代旧的 `style_exemplars` JSON 字段）：
+   - 按 6 个场景类型从样本中各选取 1-2 段最具代表性的原文片段：
+     - **动作/打斗**：展示节奏感、短句切换、动词选择
+     - **对话场景**：展示角色区分、对话标签、潜台词处理
+     - **心理/内心独白**：展示内省方式、情感表达密度
+     - **环境/氛围**：展示描写密度、感官选择
+     - **过渡/节奏控制**：展示场景切换、段落断裂方式
+     - **高潮/情感爆发**：展示燃点/泪点时的句式变化
+   - 每段 100-400 字，总量 3000-4000 字（约 3-4K tokens）
+   - 选段标准：(a) 风格辨识度高（节奏/用词/句式有鲜明特色）(b) 场景类型覆盖全 (c) 优先选"人味儿"最浓的段落——有生活化细节、不规则节奏、口语化表达的优先
+   - 每段前可加一行简短标注说明该段示范的风格要点（如"短句切换制造紧迫感"）
+   - 输出路径：`style-samples.md`（项目根目录，与 `style-profile.json` 平级）
+   - 模板参考：`templates/style-samples-template.md`
+   - **样本不足降级**：若某场景类型在样本中无对应段落，该类型留空标注"样本未覆盖"；template 模式下从内置风格库填充典型范文
 8. 综合产出 3-8 条 `writing_directives`（DO/DON'T 对比格式）
-9. 按 `style-profile.json` 格式输出结果
+9. 按 `style-profile.json` 格式输出结果（`style_exemplars` 字段留空，风格样本已独立到 `style-samples.md`）
 
 ### 风格提取输出
 
-`style-profile.json`：
-
-
+1. `style-profile.json`：统计指标 + writing_directives（`style_exemplars` 留空）
+2. `style-samples.md`：分场景类型的原文风格样本（3000-4000 字）
 
 ### 风格提取约束
 
 1. **可量化**：提取的指标必须是数值或枚举，非主观评价
 2. **禁忌词精准**：只收录作者明显不使用的词
-3. **示范片段有辨识度**：选择节奏/用词/句式有鲜明特色的段落
-4. **writing_directives DO/DON'T 对比**：每条含 `do` 和 `dont` 示例
-5. **标注来源路径**：`source_type` 反映风格数据的获取路径
+3. **样本选段优先"人味儿"**：选择节奏不规则、有生活化细节、口语化表达的段落；回避模板化、匀速推进的平淡段落
+4. **场景类型覆盖**：6 类场景至少覆盖 4 类（样本不足时标注，不硬凑）
+5. **writing_directives DO/DON'T 对比**：每条含 `do` 和 `dont` 示例
+6. **标注来源路径**：`source_type` 反映风格数据的获取路径
 
 ### 风格提取 Edge Cases
 
-- **样本不足**：仍输出结构，在 `analysis_notes` 标注"样本不足，指标保守估计"
+- **样本不足**：仍输出 `style-profile.json`（统计指标保守估计）+ `style-samples.md`（已覆盖场景类型填充，不足类型标注"样本未覆盖"），在 `analysis_notes` 标注
 - **仿写样本不可得**：MCP web 工具不可用时降级为 template 模式
-- **先写后提**：`source_type` 固定为 `"write_then_extract"`
+- **先写后提**（`write_then_extract`）：试写 3 章后回传提取。此时 `style-samples.md` 从试写章节中提取（样本量有限，场景类型可能不全）；后续用户可手动补充或追加样本后重新执行 Mode 7
+- **已有旧项目迁移**：若项目已有 `style-profile.json` 含 `style_exemplars` 但无 `style-samples.md`，重新执行 Mode 7 时从原始样本重新提取分场景样本
 
 ## Mode 8: 风格漂移检测
 

@@ -62,7 +62,7 @@
   "_narrative_voice_comment": "第一人称 | 第三人称限制 | 全知",
 
   "style_exemplars": [],
-  "_style_exemplars_comment": "从样本中提取的 3-5 段最能代表目标风格质感的原文片段（每段 50-150 字）。ChapterWriter 写作前作为 few-shot 锚点阅读，Phase 2 润色时作为风格参照。预置模板模式填入该风格类型的典型范文片段",
+  "_style_exemplars_comment": "[DEPRECATED] 已迁移至独立文件 style-samples.md（按场景类型分类，3000-4000 字）。此字段保留用于向后兼容：若 style-samples.md 不存在，ChapterWriter 退化为读取此字段。新项目不再填充此字段",
 
   "writing_directives": [],
   "_writing_directives_comment": "正向写作指令数组，每条含 directive + do/dont 对比示例。格式：[{\"directive\": \"用短动作句推进\", \"do\": \"他拔刀。刀光一闪。人头落地。\", \"dont\": \"他迅速地拔出了腰间的长刀，在刀光闪烁之间，对方的头颅便已经滚落在地。\"}]。旧格式（纯字符串数组）仍兼容，但新提取应使用 DO/DON'T 格式",
