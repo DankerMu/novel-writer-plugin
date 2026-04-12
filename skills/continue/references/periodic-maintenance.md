@@ -38,7 +38,7 @@
   - drifts[].directive 生成规则（最多 3 条，短句可执行）：
     - 句长偏长：强调短句/动作推进/拆句
     - 句长偏短：允许适度长句与节奏变化（但仍以 style-profile 为准）
-    - 对话偏少：强调通过对话推进（交给 ChapterWriter；Phase 2 不得硬造新对白）
+    - 对话偏少：强调通过对话推进（交给 ChapterWriter；StyleRefiner 不得硬造新对白）
     - 对话偏多：加强叙述性承接与内心活动（不删对白，仅调整段落与叙述衔接）
 - recovered=true：
   - 清除纠偏：删除 `style-drift.json` 或标记 `active=false`，并写入 `cleared_at/cleared_reason="metrics_recovered"`

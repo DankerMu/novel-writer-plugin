@@ -18,7 +18,7 @@ description: >
 网文创作采用"边写边想"模式，以卷（30-50 章）为单位滚动规划：
 
 1. **卷规划**：PlotArchitect 生成本卷大纲 + 伏笔计划 + L3 章节契约
-2. **日更续写**：ChapterWriter(含润色) → Summarizer → [QualityJudge + ContentCritic 并行]（单章流水线）
+2. **日更续写**：ChapterWriter → StyleRefiner → Summarizer → [QualityJudge + ContentCritic 并行]（单章流水线）
 3. **定期检查**：每 5 章自动执行滑窗一致性校验（窗口 10 章、步长 5，形成 ch1-10/ch6-15/ch11-20… 重叠覆盖）+ 质量简报 + 风格漂移监控；每 10 章深度盘点（伏笔盘点 + 跨线桥梁检查 + 故事线节奏分析）
 4. **卷末自动核查**：到达卷末章时自动执行全卷 NER 一致性 + 伏笔/桥梁/节奏分析；State 清理和下卷规划由 `/novel:start` 完成
 

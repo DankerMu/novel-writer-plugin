@@ -197,7 +197,7 @@
 
 ##### Step F: 黄金三章试写（完整 pipeline）
 
-10. 使用 Task 逐章派发完整流水线（共 3 章），**复用 `/novel:continue` Step 2-3 的完整流水线**（ChapterWriter(含润色) → Summarizer → QualityJudge(含读者评估) → 质量门控）。
+10. 使用 Task 逐章派发完整流水线（共 3 章），**复用 `/novel:continue` Step 2-3 的完整流水线**（ChapterWriter → StyleRefiner → Summarizer → [QualityJudge + ContentCritic 并行] → 质量门控）。
 
     > Step F0 已生成 outline + L3 contracts + storyline-schedule + foreshadowing，本步骤使用与 `/novel:continue` 完全一致的完整流水线。
 
