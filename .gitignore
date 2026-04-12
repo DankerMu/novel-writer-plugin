@@ -26,5 +26,8 @@ eval/runs/
 # Generated reports
 QUALITY.md
 
+# Secrets
+.env
+
 # Local-only files
 progress.md
