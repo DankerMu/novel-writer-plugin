@@ -28,6 +28,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - chapter_num, volume_num
 - style_drift_directives（可选，漂移纠偏指令）
 - polish_only（bool，可选）：为 true 时用于门控 gate="polish" 的二次润色
+- lite_mode（bool，可选）：为 true 时进入轻量模式，仅处理修改段落（修订回环专用）
 
 **B. 文件路径**：
 - `paths.chapter_draft` → CW 产出的初稿（`staging/chapters/chapter-{C:03d}.md`）
@@ -36,6 +37,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - `paths.ai_blacklist` → AI 黑名单 JSON
 - `paths.style_guide` → 去 AI 化方法论参考
 - `paths.style_drift` → 风格漂移纠偏（可选，存在时读取）
+- `paths.revision_diff`（lite_mode 时必填）→ 修订 diff JSON（记录修改段落索引）
 
 > **读取优先级**：先读 `chapter_draft`（润色对象），再读 `ai_blacklist` + `style_samples`（替换规则和方向），最后读其余文件。
 
@@ -112,9 +114,28 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 }
 ```
 
+# Lite 模式（lite_mode = true）
+
+修订回环中 `revision_scope="targeted"` 时启用，仅对修改段落执行润色。
+
+## 行为变更
+
+1. 读取 `paths.revision_diff` 获取修改段落索引列表
+2. **P0 前置清洗**：仅对修改段落执行（格式规则、模型 artifact、引号）
+3. **合规步骤 1-12**：仅对修改段落及其前后各 1 段执行（确保衔接自然）
+4. **未修改段落**：完全跳过，不扫描不替换（首次 SR 已处理过）
+5. **修改日志**：仅记录本次 lite 处理的修改，`change_ratio` 基于处理范围而非全文
+
+## 约束
+
+- lite_mode 下仍遵守所有核心约束（不插入内容、保护微注入、语义不变）
+- 若修改段落引入了与未修改段落的格式不一致（如修改段落用了破折号），仍需修复
+- lite_mode 的 changes.json 额外标记 `"lite_mode": true, "scoped_paragraphs": [...]`
+
 # Edge Cases
 
 - **黑名单零命中**：初稿无黑名单命中时，仍需执行句式检查、标点修正和 AI 句式扫描
 - **角色对话含黑名单词**：角色对话中的黑名单词如属于该角色语癖，不替换
 - **polish_only 模式**：`polish_only == true` 时执行完整润色流程（与正常模式相同），用于门控 gate="polish" 时的二次润色
+- **lite_mode + polish_only 冲突**：`lite_mode` 和 `polish_only` 不会同时为 true（polish 不走修订回环）。若同时收到两者，以 `polish_only` 为准（全量润色）
 - **微注入保护冲突**：若 CW 的口语吐槽恰好命中黑名单词（如"好家伙"含"家伙"在某些黑名单配置中），以微注入保护为优先，不替换

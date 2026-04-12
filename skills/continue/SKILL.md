@@ -201,7 +201,31 @@ for chapter_num in range(start, start + remaining_N):
        - QJ pass + engagement < 2.5 → polish
        - QJ pass + engagement < 3.0 → warning（不降级）
        Step D — 合并取最严：gate_decision = max_severity(A, B, C)
+       Step E — 计算 revision_scope + failed_dimensions + failed_tracks（详见 gate-decision.md §门控输出增强）
        修订上限兜底：2 次后 overall ≥ 3.0 且无 high violation 且无硬门 fail 且无 substance_violation 且无黄金三章 engagement < 3.0 → force_passed
+
+     **修订子流水线分支**（gate_decision="revise" 且 revision_count < 2 时）：
+
+     5a. **revision_scope = "targeted"**（定向修订，约 35-45K tokens）：
+         适用：无 high_violation、无 platform_hard_gate_fail、无 substance_severe、overall_final ≥ 3.0
+         ```
+         CW(targeted, failed_dimensions) → SR(lite, revision_diff) → Sum(patch, previous_summary/delta) → [QJ(recheck) + CC(recheck) 并行]
+         ```
+         - CW manifest 追加: `revision_scope="targeted"` + `failed_dimensions` + `required_fixes`
+         - CW 输出额外产物: `staging/logs/revision-diff-chapter-{C:03d}.json`（修改段落索引）
+         - SR manifest 追加: `lite_mode=true` + `paths.revision_diff`
+         - Sum 前置检查 diff 行数占比：
+           - diff ≥ 30% → 降级为 Summarizer 全量模式（不传 patch_mode）
+           - diff < 30% → manifest 追加: `patch_mode=true` + `paths.previous_summary` + `paths.previous_delta` + `paths.revision_diff`
+         - QJ manifest 追加: `recheck_mode=true` + `failed_dimensions` + `failed_tracks` + `paths.previous_eval` + `paths.revision_diff`
+         - CC manifest 追加: `recheck_mode=true` + `failed_tracks` + `paths.previous_eval` + `paths.revision_diff`
+         - 若 QJ 输出含 `recheck_escalated: true` → 本次 eval 作废，降级为 revision_scope="full" 重跑完整 QJ+CC
+
+     5b. **revision_scope = "full"**（全量修订，约 90K tokens）：
+         适用：有 high_violation 或 platform_hard_gate_fail 或 substance_severe 或 overall_final < 3.0
+         ```
+         CW(revision) → SR → Sum → [QJ + CC 并行]（与现有行为完全一致）
+         ```
 
   6. 事务提交（staging → 正式目录）:
      - 移动 staging/chapters/chapter-{C:03d}.md → chapters/chapter-{C:03d}.md

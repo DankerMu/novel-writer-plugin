@@ -47,6 +47,12 @@ API Writer (`scripts/api-writer.py`) calls external model API (default: gemini-3
 
 Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite. ContentCritic Track 4 substance violation (any dimension < 3.0) forces revise. QJ tonal_variance < 3.0 forces revise.
 
+**Revision loop optimization** (M9.2): revise triggers a tiered sub-pipeline based on `revision_scope`:
+- `targeted` (no high_violation, no substance_severe, overall ≥ 3.0): `CW(targeted) → SR(lite) → Sum(patch) → [QJ+CC recheck]` (~35-45K tokens)
+- `full` (has high_violation or substance_severe or overall < 3.0): full pipeline re-run (~90K tokens)
+
+Targeted mode passes `failed_dimensions` to CW for scoped edits, uses `lite_mode`/`patch_mode`/`recheck_mode` flags for downstream agents. Max 2 revisions, then force_passed or pause_for_user.
+
 ### 7 Agents
 
 | Agent | Model | Color | Role | Write Access |

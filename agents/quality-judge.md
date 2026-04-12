@@ -56,6 +56,10 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - excitement_type（来自 chapter_contract，可选）
 - narrative_phase（来自 outline `- **Phase**:` 行，可选；值域：期待/试探/受挫/噩梦/爆发/收束）
 - is_golden_chapter（bool，chapter <= 3）
+- recheck_mode（可选，`true` 时进入维度复检模式，仅在修订回环中使用）
+- failed_dimensions（recheck_mode 时必填，需要重新评分的维度名列表，如 `["tonal_variance", "plot_logic"]`）
+- failed_tracks（recheck_mode 时必填，需要复检的 Track 列表，如 `["track1", "track2"]`）
+
 **B. 文件路径**（你需要用 Read 工具自行读取）：
 - `paths.chapter_draft` → 章节全文
 - `paths.style_profile` → 风格指纹 JSON
@@ -71,6 +75,8 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - `paths.platform_guide` → 平台写作指南（可选，M5.2 注入路径；M6.2 启用后用于平台加权评分）
 - `paths.recent_summaries[]` → 近 2 章摘要（按可用性降级：Ch001 为空数组，Ch002 仅含 Ch001，Ch003 含 Ch001+002；路径不存在时跳过该条目）
 - `paths.quality_rubric` → 9 维度评分标准
+- `paths.previous_eval`（recheck_mode 时必填）→ 上次 eval-raw JSON（用于沿用通过维度的分数）
+- `paths.revision_diff`（recheck_mode 时必填）→ 修订 diff JSON（记录修改段落索引）
 
 > **读取优先级**：先读 `chapter_draft`（评估对象），再读 `chapter_contract` + `quality_rubric`（评估标准），最后读其余参照文件。
 
@@ -341,6 +347,41 @@ else:
 ```
 
 > **注意**：读者参与度评估（Track 3）和内容实质性分析（Track 4）已迁移至 ContentCritic agent，与 QualityJudge 并行执行。QualityJudge 仅输出 Track 1+2 结果，编排器负责合并两者的门控信号。
+
+# Recheck 模式（recheck_mode = true）
+
+修订回环中 `revision_scope="targeted"` 时启用，减少重复评估开销。
+
+## 行为变更
+
+1. **Track 1 合规检查**：
+   - 若 `"track1" in failed_tracks` → 全量执行 Track 1（与标准模式一致）
+   - 若 `"track1" not in failed_tracks` → 从 `paths.previous_eval` 读取 `contract_verification`，直接复制到输出（跳过所有 lint 脚本和规范检查）
+   - 特例：format_checks 和 meta_leak_checks 始终对修改段落重新执行（确保修订未引入新格式问题）
+
+2. **Track 2 质量评分**：
+   - 仅对 `failed_dimensions` 中列出的维度重新评分（通读全文但聚焦修改段落）
+   - 其余维度从 `paths.previous_eval.scores` 直接复制（score + weight + reason + evidence 全部沿用）
+   - 重算 `overall_raw` / `overall_weighted` / `overall`（使用混合分数：新评分 + 沿用旧评分）
+
+3. **anti_ai 统计**：
+   - 若 `"style_naturalness" in failed_dimensions` → 全量重新统计
+   - 否则 → 从 previous_eval 沿用
+
+4. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
+   ```json
+   {
+     "recheck_mode": true,
+     "carried_dimensions": ["character", "immersion", "foreshadowing", ...],
+     "rescored_dimensions": ["tonal_variance", "plot_logic"]
+   }
+   ```
+
+## 约束
+
+- recheck_mode 下 `required_fixes` 仅针对 `failed_dimensions` 中仍未通过的维度输出
+- 沿用的维度分数不可修改（即使通读全文时发现新问题——新问题应记入 `risk_flags` 而非降分）
+- 若沿用维度中发现明显新违规（如修订引入了新角色越权），强制升级为 full 模式：输出 `recheck_escalated: true` 并全量重新评估
 
 # Edge Cases
 
