@@ -55,6 +55,8 @@ if has_high_confidence_violation:
     qj_decision = "revise"
 elif platform_hard_gate_fail(eval):
     qj_decision = "revise"
+elif eval.scores.tonal_variance and eval.scores.tonal_variance.score < 3.0:
+    qj_decision = "revise"  # tonal_variance 硬门：语域均匀直接修订
 else:
     if overall_final >= 4.0: qj_decision = "pass"
     elif overall_final >= 3.5: qj_decision = "polish"
@@ -90,7 +92,7 @@ gate_decision = max_severity(qj_decision, substance_decision, engagement_decisio
   - 调用 ChapterWriter 修订模式（Task(subagent_type="chapter-writer", model="opus")）：
     - 输入: chapter_writer_revision_manifest（追加 inline 字段 `required_fixes` + `high_confidence_violations` + `substance_fixes`）
     - 约束：定向修改指定段落，尽量保持其余内容不变
-  - 回到 ChapterWriter(revision+polish) → Summarizer → [QualityJudge + ContentCritic 并行] → 门控
+  - 回到 ChapterWriter(revision) → StyleRefiner → Summarizer → [QualityJudge + ContentCritic 并行] → 门控
 
 - 若 gate_decision="revise" 且 revision_count == 2（次数耗尽）：
   - 若 has_high_confidence_violation=false 且 platform_hard_gate_fail(eval)=false 且 overall_final >= 3.0 且 substance_violation(cc_eval)=false 且 !(is_golden_chapter 且 cc_eval.reader_evaluation.overall_engagement < 3.0)：
@@ -103,7 +105,7 @@ gate_decision = max_severity(qj_decision, substance_decision, engagement_decisio
 ## 其他决策的后续动作
 
 - gate_decision="pass"：直接进入 commit
-- gate_decision="polish"：更新 checkpoint: pipeline_stage="revising" -> ChapterWriter Phase 2 re-run (polish_only) 后进入 commit（不再重复 QJ/CC 以控成本）
+- gate_decision="polish"：更新 checkpoint: pipeline_stage="refining" -> StyleRefiner (polish_only) 后进入 commit（不再重复 QJ/CC 以控成本）
 - gate_decision="pause_for_user" / "pause_for_user_force_rewrite"：释放并发锁（rm -rf .novel.lock）并暂停，等待用户通过 `/novel:start` 决策
 
 ## 写入评估与门控元数据（可追溯）

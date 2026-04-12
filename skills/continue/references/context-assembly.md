@@ -151,7 +151,6 @@
 - `entity_id_map`：从角色 JSON 构建的 slug↔display_name 映射（Step 2.3 已完成）
 - `foreshadowing_tasks`：跨文件聚合的伏笔子集（Step 2.5 已完成）
 - `storyline_context` / `concurrent_state` / `transition_hint`：从 contract/schedule 解析（Step 2.5 已完成）
-- `ai_blacklist_top10`：有效黑名单前 10 词（从 ai-blacklist.json 快速提取）
 - `style_drift_directives`：从 style-drift.json 提取的纠偏指令列表（Step 2.7；仅 active=true 时）
 - `track3_mode`：ContentCritic Track 3 输出模式（`"full"` | `"lite"`），判定规则见下方
 
@@ -163,6 +162,24 @@
 - **QualityJudge `recent_summaries[]`（条件注入）**：当 chapter ≤ 3 且 platform_guide 存在时，注入近 2 章摘要路径供平台硬门回溯判定；章节 > 3 或无 platform_guide 时不注入此字段
 - **ContentCritic `recent_summaries[]`**：与 QualityJudge 同规则注入（CC Track 4 用于跨章重复检测）
 - 其余路径为固定模式（如 `style-profile.json`、`ai-blacklist.json`）
+- **ChapterWriter manifest 不含**：`paths.ai_blacklist`、`paths.style_guide`、inline `ai_blacklist_top10`（CW 不应看到黑名单，消除隐性回避）
+
+### StyleRefiner Context Manifest
+
+StyleRefiner 在 ChapterWriter 之后、Summarizer 之前执行，负责机械合规润色。
+
+**inline 计算值**：
+- chapter_num, volume_num
+- style_drift_directives（可选；与 CW manifest 相同来源）
+- polish_only（bool，可选；gate="polish" 时为 true）
+
+**路径**：
+- paths.chapter_draft → staging/chapters/chapter-{C:03d}.md（CW 初稿）
+- paths.style_samples → style-samples.md（如存在）
+- paths.style_profile → style-profile.json
+- paths.ai_blacklist → ai-blacklist.json
+- paths.style_guide → 去 AI 化方法论（`skills/novel-writing/references/style-guide.md`）
+- paths.style_drift → style-drift.json（如 active=true）
 - **平台指南加载**：读取 `style-profile.json` 的 `platform` 字段（缺失或 null 则终止并提示）。`platform` 为 `"general"` 时不加载 platform_guide，但 `platform` 值仍传入 QualityJudge 和 ContentCritic manifest。**黄金三章提醒**：若 `platform == "general"` 且 `chapter_num == 1`，输出一次性提示。其余平台值计算路径 `templates/platforms/{platform}.md`：文件存在则加入 `manifest.paths.platform_guide`（ChapterWriter + QualityJudge + ContentCritic 均注入）；文件不存在则输出 WARNING 并继续
 
 **`track3_mode` 判定规则**（确定性，写入 ContentCritic manifest）：

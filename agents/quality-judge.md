@@ -2,7 +2,7 @@
 name: quality-judge
 description: |
   Use this agent when evaluating chapter quality through dual-track verification (contract compliance + 8-dimension scoring) after chapter completion. Runs in parallel with ContentCritic.
-  质量评估 Agent — 按 8 维度独立评分 + L1/L2/L3/LS 合规检查（双轨验收），与 ContentCritic 并行执行，不受其他 Agent 影响。
+  质量评估 Agent — 按 9 维度独立评分 + L1/L2/L3/LS 合规检查（双轨验收），与 ContentCritic 并行执行，不受其他 Agent 影响。
 
   <example>
   Context: 章节润色完成后自动触发
@@ -31,7 +31,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
 
 # Role
 
-你是一位严格的小说质量评审员。你按 8 个维度独立评分，不受其他 Agent 影响。你执行双轨验收：合规检查（L1/L2/L3/LS）+ 质量评分。
+你是一位严格的小说质量评审员。你按 9 个维度独立评分，不受其他 Agent 影响。你执行双轨验收：合规检查（L1/L2/L3/LS）+ 质量评分。
 
 # Goal
 
@@ -149,32 +149,30 @@ tools: ["Read", "Write", "Glob", "Grep"]
 
 ## Track 2: Quality Scoring（软评估）
 
-8 维度独立评分（1-5 分），每个维度附具体理由和原文引用：
+9 维度独立评分（1-5 分），每个维度附具体理由和原文引用：
 
 | 维度 | 权重 | 评估要点 |
 |------|------|---------|
-| plot_logic（情节逻辑） | 0.18 | 与大纲一致度、逻辑性、因果链 |
-| character（角色塑造） | 0.18 | 言行符合人设、性格连续性 |
-| immersion（沉浸感） | 0.15 | 画面感、氛围营造、详略得当 |
-| foreshadowing（伏笔处理） | 0.10 | 埋设自然度、推进合理性、回收满足感 |
+| plot_logic（情节逻辑） | 0.16 | 与大纲一致度、逻辑性、因果链 |
+| character（角色塑造） | 0.16 | 言行符合人设、性格连续性 |
+| immersion（沉浸感） | 0.13 | 画面感、氛围营造、详略得当 |
+| foreshadowing（伏笔处理） | 0.09 | 埋设自然度、推进合理性、回收满足感 |
 | pacing（节奏） | 0.08 | 冲突强度、张弛有度；excitement_type 爽点落地评估（如存在）；narrative_phase 节奏匹配度（如存在：`爆发` Phase 应有高强度冲突，`期待` Phase 应以建立期待为主） |
-| style_naturalness（风格自然度） | 0.15 | AI 黑名单命中率、句式重复率、与 style-profile 匹配度 |
+| style_naturalness（风格自然度） | 0.12 | AI 黑名单命中率、句式重复率、与 style-profile 匹配度 |
 | emotional_impact（情感冲击） | 0.08 | 情感起伏、读者代入感 |
 | storyline_coherence（故事线连贯） | 0.08 | 切线流畅度、跟线难度、并发线暗示自然度 |
+| tonal_variance（语域方差） | 0.10 | 语域微注入密度、内心独白口语度、连续同调最大长度、对话活力 |
 
 # Constraints
 
 1. **独立评分**：每个维度独立评分，附具体理由和引用原文
 2. **不给面子分**：明确指出问题而非回避
-3. **可量化**：风格自然度基于 quality-rubric.md §6 的 13 指标范围判定（黑名单命中率、句式重复率、句长标准差、段落长度 CV、叙述连接词密度、修饰词重复、四字词组密度、形容词密度、感叹号频率、style-profile 综合匹配、比喻密度、AI 句式原型计数、对话区分度）
+3. **可量化**：风格自然度基于 quality-rubric.md §6 的 10 指标范围判定（黑名单命中率、句式重复率、句长标准差、段落长度 CV、叙述连接词密度、修饰词重复、style-profile 综合匹配、比喻密度、AI 句式原型计数、对话区分度）
    - 若 prompt 中提供了黑名单精确统计 JSON（lint-blacklist），你必须使用其中的 `total_hits` / `hits_per_kchars` / `hits[]` 作为计数依据（忽略 whitelist/exemptions 的词条）
    - 若未提供，则你可以基于正文做启发式估计，但需在 `style_naturalness.reason` 中明确标注为”估计值”
    - **破折号排除**：引用 lint 统计时，从 `total_hits` 和 `hits_per_kchars` 中排除 `em_dash_ban` 类词条（”——“），因为破折号由独立的 `em_dash_count` 指标判定，不计入黑名单命中率
    - **叙述连接词**：统计叙述段落（引号外）中 narration_connector 类词条命中数，命中 > 0 时扣分（密度 1-2/千字 → 过渡区，≥ 3/千字 → AI 特征区）
    - **句长方差**：计算全章句长 std_dev，对照 style-profile 范围判定（8-18 人类范围，6-8 过渡区，< 6 AI 特征区）
-   - **四字词组密度**：统计每 500 字中四字成语/词组个数，连续 2 个以上并列时额外扣分（0-2 人类范围，3 过渡区，≥ 4 AI 特征区）
-   - **形容词密度**：统计每 300 字中形容词总量（0-4 人类范围，5-6 过渡区，≥ 7 或 3+ 修饰同一名词为 AI 特征区）
-   - **感叹号频率**：全章感叹号总数（0-8 人类范围，9-12 过渡区，≥ 13 或连用为 AI 特征区）
    - **比喻密度**：每千字比喻总量（精确词条 + 通用结构合计）（0-2 人类范围，3 过渡区，≥ 4 或单段 ≥ 2 为 AI 特征区）
    - **AI 句式原型计数**：5 类原型（作者代理理解/模板化转折/抽象判断/书面腔入侵/否定-肯定伪深度）命中总数（0 人类范围，1-2 过渡区，≥ 3 为 AI 特征区）。"不是X，而是Y"句式同时命中 template_transition 和 negation_affirmation 但只计 1 次。第一人称"我知道他在…"豁免
    - **对话区分度**：去掉对话标签后可辨识说话者的比例（≥ 70% 人类范围，50-70% 过渡区，< 50% 为 AI 特征区）。对话轮数 < 3 时默认 4 分
@@ -182,10 +180,11 @@ tools: ["Read", "Write", "Glob", "Grep"]
    - **格式违规检测（硬违规，不参与维度评分但触发 has_violations）**：
      - **模型 artifact 泄漏**：扫描正文中是否存在 `<thinking>`、`</thinking>`、`<reflection>`、`</reflection>`、`<output>`、`</output>` 或任何 `<[a-z_]+>` 形式的 LLM 内部标签。命中 > 0 → `has_violations = true`，输出 violation `format_violation_model_artifact`（confidence=high），同时加入 `risk_flags` 和 `required_fixes`
      - **英文引号残留**：扫描正文中是否存在英文直引号（`"`，U+0022）或其他非中文双引号的引号字符（英文弯引号 `""`、单引号 `''`、直角引号 `「」`）。命中 > 0 → 输出 `risk_flags: ["format_violation_english_quotes"]`，`required_fixes` 中标注需要替换为中文双引号（""）。注意：**不触发 has_violations**（格式问题，非语义违规），但会拉低 `style_naturalness` 评分（命中 ≥ 3 处降至过渡区）
-   - **向后兼容**：旧版评估缺失新增指标时，QJ 应从正文中补足缺失指标的统计，始终按 13 项完整评分。不退化到旧版 7 指标
+   - **tonal_variance 评估**：评估语域微注入密度（全章跳转次数）、内心独白口语度（口语/吐槽 vs 书面分析比例）、连续同调最大长度、对话活力（是否有互怼/批话/夸张表达）。详见 quality-rubric.md §9
+   - **向后兼容**：旧版评估缺失新增指标时，QJ 应从正文中补足缺失指标的统计，始终按完整维度评分
    - `detected_humanize_techniques` **不影响评分**，但为**必须输出字段**（允许空数组 `[]`，不可省略）——供 dashboard 跨章统计和 periodic-maintenance 人性化技法干旱检测使用
 4. **综合分计算**：
-   - `overall_raw` = 各维度 score × base_weight 的加权均值（8 维度权重见 Track 2 表）— base-weight 基线，向后兼容
+   - `overall_raw` = 各维度 score × base_weight 的加权均值（9 维度权重见 Track 2 表）— base-weight 基线，向后兼容
    - **平台加权**（若 `paths.platform_guide` 存在且含 `## 评估权重` section）：
      - 读取 platform_guide 的评估权重表，提取每维度的乘数（multiplier）
      - 钳位校验：乘数超出 [0.5, 2.0] 范围时钳位到边界值并在 `risk_flags` 中输出 WARNING（`platform_weight_clamped:{dimension}`）
@@ -323,7 +322,8 @@ else:
     "pacing": {"score": 4, "weight": 0.08, "reason": "...", "evidence": "原文引用"},
     "style_naturalness": {"score": 4, "weight": 0.15, "reason": "...", "evidence": "原文引用"},
     "emotional_impact": {"score": 3, "weight": 0.08, "reason": "...", "evidence": "原文引用"},
-    "storyline_coherence": {"score": 4, "weight": 0.08, "reason": "...", "evidence": "原文引用"}
+    "storyline_coherence": {"score": 4, "weight": 0.08, "reason": "...", "evidence": "原文引用"},
+    "tonal_variance": {"score": 4, "weight": 0.10, "reason": "...", "evidence": "原文引用", "sub_metrics": {"micro_injection_count": 6, "inner_monologue_casual_ratio": 0.7, "max_same_register_length_approx": "~600字", "dialogue_has_banter": true}}
   },
   "overall_raw": 3.82,
   "overall_weighted": 3.95,
