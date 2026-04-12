@@ -37,11 +37,15 @@ def load_manifest(path: str) -> dict:
         return json.load(f)
 
 
+MAX_INPUT_TOKENS = 120_000  # context window guard
+
+
 def read_file(rel_path: str) -> str | None:
-    """Read a project-relative file. Returns None if missing."""
+    """Read a project-relative file. Returns None if missing (logs warning)."""
     full = PROJECT_ROOT / rel_path
     if full.exists():
         return full.read_text(encoding="utf-8")
+    print(f"[api-writer] WARN: 文件不存在，跳过: {rel_path}", file=sys.stderr)
     return None
 
 
@@ -209,13 +213,7 @@ def call_api(system_prompt: str, user_message: str,
         },
         method="POST",
     )
-    ctx = ssl.create_default_context()
-    try:
-        import certifi
-        ctx.load_verify_locations(certifi.where())
-    except ImportError:
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+    ctx = ssl.create_default_context()  # uses system cert store on macOS/Linux
     with urllib.request.urlopen(req, timeout=600, context=ctx) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -264,6 +262,11 @@ def main():
     print(f"[api-writer] System: {sys_chars} 字 | User: {usr_chars} 字 | ~{est_tokens} tokens")
     print(f"[api-writer] Model: {args.model} | Temperature: {args.temperature}")
 
+    if est_tokens > MAX_INPUT_TOKENS:
+        print(f"[api-writer] Error: 估算 {est_tokens} tokens 超过上限 {MAX_INPUT_TOKENS}，"
+              f"请裁剪 context 或调整 MAX_INPUT_TOKENS", file=sys.stderr)
+        sys.exit(1)
+
     # Dry run — write prompts for inspection
     if args.dry_run:
         dry_dir = PROJECT_ROOT / "staging" / "dry-run"
@@ -281,18 +284,34 @@ def main():
 
     # Call
     print("[api-writer] Calling API...")
-    try:
-        data = call_api(system_prompt, user_message, api_key, args.model, args.temperature)
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        print(f"[api-writer] HTTP {e.code}: {body}", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"[api-writer] Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    retries = 0
+    data = None
+    while retries <= 1:
+        try:
+            data = call_api(system_prompt, user_message, api_key, args.model, args.temperature)
+            break
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="replace")
+            if e.code in (429, 502, 503) and retries == 0:
+                retries += 1
+                import time
+                wait = 5
+                print(f"[api-writer] HTTP {e.code}，{wait}s 后重试...", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            print(f"[api-writer] HTTP {e.code}: {body}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"[api-writer] Error: {e}", file=sys.stderr)
+            sys.exit(1)
 
     # Extract result (reasoning models put thinking in reasoning_content)
-    choice = data["choices"][0]["message"]
+    try:
+        choice = data["choices"][0]["message"]
+    except (KeyError, IndexError, TypeError) as e:
+        print(f"[api-writer] Error: API 返回结构异常: {e}", file=sys.stderr)
+        print(f"[api-writer] Raw: {json.dumps(data, ensure_ascii=False)[:500]}", file=sys.stderr)
+        sys.exit(1)
     text = choice.get("content") or ""
     reasoning = choice.get("reasoning_content") or ""
     if not text and reasoning:
@@ -304,7 +323,7 @@ def main():
     comp_tok = usage.get("completion_tokens", "?")
 
     # Write output
-    out_path = Path(args.output) if args.output else PROJECT_ROOT / "staging" / f"chapter-{chapter:03d}.md"
+    out_path = Path(args.output) if args.output else PROJECT_ROOT / "staging" / "chapters" / f"chapter-{chapter:03d}.md"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(text, encoding="utf-8")
 
