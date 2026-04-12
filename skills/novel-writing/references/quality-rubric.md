@@ -108,9 +108,9 @@
 
 **对话区分度特殊规则**：对话轮数 < 3 时默认 4 分，避免惩罚战斗/动作密集章。
 
-**向后兼容**：旧版评估缺失新增指标（比喻密度、AI 句式原型计数、对话区分度等）时，QJ 应从正文中补足缺失指标的统计，始终按 13 项完整评分。不退化到旧版 7 指标。
+**向后兼容**：旧版评估缺失新增指标（比喻密度、AI 句式原型计数、对话区分度等）时，QJ 应从正文中补足缺失指标的统计，始终按 10 项完整评分。不退化到旧版 7 指标。
 
-**统计辅助字段**：`single_sentence_paragraph_ratio` 记录在 `statistical_profile` 中作为统计参考，不直接参与 13 指标评分。dashboard 可据此跨章追踪段落结构趋势。
+**统计辅助字段**：`single_sentence_paragraph_ratio` 记录在 `statistical_profile` 中作为统计参考，不直接参与 10 指标评分。dashboard 可据此跨章追踪段落结构趋势。
 
 ## 7. 情感冲击（emotional_impact）— 权重 0.08
 
@@ -173,7 +173,7 @@
 
 `overall_weighted = Σ(score_i × multiplier_i) / Σ(multiplier_i)`
 
-乘数即权重（从等权基准 1/8 推导），不叠加 base_weight。范围 [0.5, 2.0]，超出时钳位。
+乘数即权重（从等权基准 1/9 推导），不叠加 base_weight。范围 [0.5, 2.0]，超出时钳位。
 
 无平台时 `overall = overall_raw`；有平台时 `overall = overall_weighted`。门控决策使用 `overall`。
 
@@ -200,7 +200,7 @@
 | 任意 | 有 high-confidence violation | `revise` | `revise` | 强制修订（无论分数多高；仅 confidence="high" 触发，medium/low 记录警告不阻断） |
 | 任意 | 平台硬门任一 fail（Ch001-003 + platform_guide） | `revise` | `revise` | 强制修订（不受 overall 影响） |
 | 4.0-5.0 | 无 violation 且无硬门 fail | `pass` | `pass` | 直接通过 |
-| 3.5-3.9 | 无 violation | `polish` | `polish` | ChapterWriter Phase 2 二次润色后通过 |
+| 3.5-3.9 | 无 violation | `polish` | `polish` | StyleRefiner 二次润色后通过 |
 | 3.0-3.4 | 无 violation | `revise` | `revise` | ChapterWriter（Opus）自动修订（最多 2 轮） |
 | 2.0-2.9 | 无 violation | `review` | `pause_for_user` | 暂停，通知用户审核决定下一步 |
 | < 2.0 | 无 violation | `rewrite` | `pause_for_user_force_rewrite` | 暂停，建议全章重写（等待用户通过 `/novel:start` 决策） |

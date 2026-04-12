@@ -90,7 +90,7 @@
         },
         "scores": {
           "type": "object",
-          "required": ["plot_logic", "character", "immersion", "foreshadowing", "pacing", "style_naturalness", "emotional_impact", "storyline_coherence"],
+          "required": ["plot_logic", "character", "immersion", "foreshadowing", "pacing", "style_naturalness", "emotional_impact", "storyline_coherence", "tonal_variance"],
           "additionalProperties": {
             "type": "object",
             "required": ["score", "weight", "reason", "evidence"],
@@ -114,7 +114,8 @@
             "plot_logic": { "type": "number" },
             "style_naturalness": { "type": "number" },
             "emotional_impact": { "type": "number" },
-            "storyline_coherence": { "type": "number" }
+            "storyline_coherence": { "type": "number" },
+            "tonal_variance": { "type": "number" }
           }
         },
         "overall": { "type": "number", "minimum": 1, "maximum": 5 },

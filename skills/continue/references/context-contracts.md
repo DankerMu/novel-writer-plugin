@@ -33,7 +33,6 @@ chapter_writer_manifest = {
   transition_hint: obj | null,          # 切线过渡
   hard_rules_list: [str],              # L1 禁止项列表（已格式化；仅 established + INTRODUCING 标记的 planned）
   foreshadowing_tasks: [obj],          # 本章伏笔任务子集
-  ai_blacklist_top10: [str],           # 有效黑名单前 10 词
   style_drift_directives: [str] | null, # 漂移纠偏指令（active 时注入）
 
   # ── paths（subagent 自读） ──
@@ -51,9 +50,6 @@ chapter_writer_manifest = {
     character_contracts: ["staging/context/characters/{slug}.json", ...], # canon_status 预过滤后的 staging 副本
     platform_guide: "templates/platforms/{platform}.md",                  # 可选（M5.2；style-profile.platform 非空且文件存在时加载）
     project_brief: "brief.md",
-    ai_blacklist: "ai-blacklist.json",                                        # Phase 2 润色用
-    style_guide: "skills/novel-writing/references/style-guide.md",              # Phase 2 润色参考
-    quality_rubric: "skills/novel-writing/references/quality-rubric.md",          # Phase 2 评分标准参考（含 §6 七指标）
   }
 }
 ```
@@ -69,6 +65,30 @@ chapter_writer_revision_manifest = chapter_writer_manifest + {
   # ── paths 追加 ──
   paths += {
     chapter_draft: "staging/chapters/chapter-{C:03d}.md",  # 待修订的现有正文
+  }
+}
+```
+
+---
+
+## StyleRefiner manifest
+
+```
+style_refiner_manifest = {
+  # ── inline（编排器计算） ──
+  chapter: int,
+  volume: int,
+  style_drift_directives: [str] | null, # 漂移纠偏指令（active 时注入）
+  polish_only: bool | null,             # gate="polish" 时为 true
+
+  # ── paths（subagent 自读） ──
+  paths: {
+    chapter_draft: "staging/chapters/chapter-{C:03d}.md",                   # CW 初稿
+    style_samples: "style-samples.md",                                      # 替换方向参照
+    style_profile: "style-profile.json",                                    # 风格统计指标
+    ai_blacklist: "ai-blacklist.json",                                      # 精确词条黑名单
+    style_guide: "skills/novel-writing/references/style-guide.md",          # 去 AI 化方法论
+    style_drift: "style-drift.json",                                        # 可选
   }
 }
 ```

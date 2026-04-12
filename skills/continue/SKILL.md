@@ -287,8 +287,8 @@ Ch {X}: {字数}字 {分数} {状态} | Ch {X+1}: {字数}字 {分数} {状态} 
 
 ## 约束
 
-- 每章严格按 ChapterWriter(含润色) → Summarizer → [QualityJudge + ContentCritic 并行] 顺序
+- 每章严格按 ChapterWriter → StyleRefiner → Summarizer → [QualityJudge + ContentCritic 并行] 顺序
 - 质量不达标时自动修订最多 2 次
 - 写入使用 staging → commit 事务模式（详见 Step 2-6）
-- **Agent 写入边界**：ChapterWriter/Summarizer 仅写入 `staging/` 目录，QualityJudge 仅写入 `staging/evaluations/chapter-{C:03d}-eval-raw.json`，ContentCritic 仅写入 `staging/evaluations/chapter-{C:03d}-content-eval-raw.json`，正式目录由入口 Skill 在 commit 阶段操作
+- **Agent 写入边界**：ChapterWriter/StyleRefiner/Summarizer 仅写入 `staging/` 目录，QualityJudge 仅写入 `staging/evaluations/chapter-{C:03d}-eval-raw.json`，ContentCritic 仅写入 `staging/evaluations/chapter-{C:03d}-content-eval-raw.json`，正式目录由入口 Skill 在 commit 阶段操作
 - 所有输出使用中文

@@ -31,7 +31,7 @@ Scripts auto-resolve `${SCRIPT_DIR}/../.venv/bin/python3`, falling back to syste
 | L3 Chapter Contracts | `volumes/vol-{V:02d}/chapter-contracts/` | Pre/post conditions, acceptance criteria | Negotiable w/ audit |
 | LS Storyline Specs | `storylines/storylines.json` | Multi-POV constraints, prevents cross-line leaks | Volume-scoped |
 
-Agents validate outputs against these layers. QualityJudge performs dual-track verification: contract compliance (hard gate) + 8-dimension scoring (soft eval). ContentCritic evaluates reader engagement (Track 3) + content substance (Track 4: information density, plot progression, dialogue efficiency).
+Agents validate outputs against these layers. QualityJudge performs dual-track verification: contract compliance (hard gate) + 9-dimension scoring (soft eval, including tonal_variance for register micro-injection density). ContentCritic evaluates reader engagement (Track 3) + content substance (Track 4: information density, plot progression, dialogue efficiency).
 
 ### State Machine
 
@@ -41,22 +41,23 @@ State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current
 
 ### Single-Chapter Pipeline
 
-`ChapterWriter(draft+polish) → Summarizer → [QualityJudge + ContentCritic parallel] → Gate Decision (merge)`
+`ChapterWriter(draft) → StyleRefiner(de-AI polish) → Summarizer → [QualityJudge + ContentCritic parallel] → Gate Decision (merge)`
 
-Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite. ContentCritic Track 4 substance violation (any dimension < 3.0) forces revise.
+Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite. ContentCritic Track 4 substance violation (any dimension < 3.0) forces revise. QJ tonal_variance < 3.0 forces revise.
 
-### 6 Agents
+### 7 Agents
 
 | Agent | Model | Color | Role | Write Access |
 |-------|-------|-------|------|--------------|
 | WorldBuilder | Opus | blue | L1 rules, storylines init, characters (L2 contracts), style extraction | Yes |
 | PlotArchitect | Opus | orange | Volume outlines, L3 contracts, foreshadowing | Yes |
-| ChapterWriter | Opus | green | 2500–3500 char chapters with style exemplars + de-AI polish | Yes |
+| ChapterWriter | Opus | green | 2500–3500 char chapters with register micro-injection (no blacklist visibility) | Yes |
+| StyleRefiner | Sonnet | green | Mechanical de-AI polish: blacklist scan, AI pattern removal, format cleanup | Yes |
 | Summarizer | Opus | cyan | 300-char summaries, state ops, leak detection | Yes |
-| QualityJudge | Opus | purple | Track 1 contract compliance + Track 2 quality scoring | staging/evaluations only |
+| QualityJudge | Opus | purple | Track 1 contract compliance + Track 2 quality scoring (9 dimensions) | staging/evaluations only |
 | ContentCritic | Opus | red | Track 3 reader engagement + Track 4 content substance | staging/evaluations only |
 
-Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config. QualityJudge and ContentCritic run in parallel after Summarizer.
+Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config. ChapterWriter and StyleRefiner run sequentially (same color, never concurrent). QualityJudge and ContentCritic run in parallel after Summarizer.
 
 ### 3 Entry Skills
 
@@ -83,16 +84,16 @@ Shared methodology in `skills/novel-writing/SKILL.md` (passive reference, not us
 
 ### Anti-AI Output (4 Layers)
 
-1. Style anchoring via `style-profile.json` extracted from user samples
-2. Constraint injection: blacklist + character speech patterns + anti-intuitive details
-3. Post-processing: ChapterWriter Phase 2 phrase replacement + style exemplar matching
-4. Detection metrics: blacklist density + adjacent-sentence repetition < 2 + four-char idiom density + adjective density + exclamation frequency (10 metrics total in QJ anti_ai)
+1. Style anchoring via `style-profile.json` + register micro-injection guidance in ChapterWriter
+2. Constraint injection: blacklist + character speech patterns + anti-intuitive details (CW does NOT see blacklist — isolation by design)
+3. Post-processing: StyleRefiner mechanical de-AI polish (blacklist scan, AI pattern removal, dash elimination, connector cleanup)
+4. Detection metrics: blacklist density + adjacent-sentence repetition + simile density + AI sentence pattern count + dialogue distinctiveness + tonal_variance (10 style_naturalness sub-indicators + tonal_variance dimension in QJ)
 
 ### Context Management
 
 - **Manifest mode**: Orchestrator passes file paths; agents read on-demand (not full text injection)
 - **Context assembly**: Deterministic rules extracted to `skills/continue/references/context-assembly.md` (Step 2.0-2.7)
-- **Context budgets**: ~19–24K tokens for ChapterWriter, ~10–12K for Summarizer, ~14-16K for QualityJudge, ~12-14K for ContentCritic
+- **Context budgets**: ~19–24K tokens for ChapterWriter, ~8-10K for StyleRefiner, ~10–12K for Summarizer, ~14-16K for QualityJudge, ~12-14K for ContentCritic
 - **Track 3 tiering**: `track3_mode` (full/lite) — golden/end-of-volume/critical chapters get full Track 3; normal chapters get lite (overall_engagement + reader_feedback only). Track 3 now in ContentCritic, not QualityJudge
 - **Checkpoint recovery**: `/novel:continue` resumes from `pipeline_stage` + `inflight_chapter`
 

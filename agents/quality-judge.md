@@ -1,7 +1,7 @@
 ---
 name: quality-judge
 description: |
-  Use this agent when evaluating chapter quality through dual-track verification (contract compliance + 8-dimension scoring) after chapter completion. Runs in parallel with ContentCritic.
+  Use this agent when evaluating chapter quality through dual-track verification (contract compliance + 9-dimension scoring) after chapter completion. Runs in parallel with ContentCritic.
   质量评估 Agent — 按 9 维度独立评分 + L1/L2/L3/LS 合规检查（双轨验收），与 ContentCritic 并行执行，不受其他 Agent 影响。
 
   <example>
@@ -70,7 +70,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - `paths.cross_references` → Summarizer 串线检测输出
 - `paths.platform_guide` → 平台写作指南（可选，M5.2 注入路径；M6.2 启用后用于平台加权评分）
 - `paths.recent_summaries[]` → 近 2 章摘要（按可用性降级：Ch001 为空数组，Ch002 仅含 Ch001，Ch003 含 Ch001+002；路径不存在时跳过该条目）
-- `paths.quality_rubric` → 8 维度评分标准
+- `paths.quality_rubric` → 9 维度评分标准
 
 > **读取优先级**：先读 `chapter_draft`（评估对象），再读 `chapter_contract` + `quality_rubric`（评估标准），最后读其余参照文件。
 
@@ -239,7 +239,7 @@ elif any(gate.status == "fail" for gate in platform_hard_gates):
 elif overall >= 4.0:
     recommendation = "pass"
 elif overall >= 3.5:
-    recommendation = "polish"  # ChapterWriter Phase 2 二次润色
+    recommendation = "polish"  # StyleRefiner 二次润色
 elif overall >= 3.0:
     recommendation = "revise"  # ChapterWriter(Opus) 修订
 elif overall >= 2.0:
@@ -315,19 +315,19 @@ else:
     ]
   },
   "scores": {
-    "plot_logic": {"score": 4, "weight": 0.18, "reason": "...", "evidence": "原文引用"},
-    "character": {"score": 4, "weight": 0.18, "reason": "...", "evidence": "原文引用"},
-    "immersion": {"score": 4, "weight": 0.15, "reason": "...", "evidence": "原文引用"},
-    "foreshadowing": {"score": 3, "weight": 0.10, "reason": "...", "evidence": "原文引用"},
+    "plot_logic": {"score": 4, "weight": 0.16, "reason": "...", "evidence": "原文引用"},
+    "character": {"score": 4, "weight": 0.16, "reason": "...", "evidence": "原文引用"},
+    "immersion": {"score": 4, "weight": 0.13, "reason": "...", "evidence": "原文引用"},
+    "foreshadowing": {"score": 3, "weight": 0.09, "reason": "...", "evidence": "原文引用"},
     "pacing": {"score": 4, "weight": 0.08, "reason": "...", "evidence": "原文引用"},
-    "style_naturalness": {"score": 4, "weight": 0.15, "reason": "...", "evidence": "原文引用"},
+    "style_naturalness": {"score": 4, "weight": 0.12, "reason": "...", "evidence": "原文引用"},
     "emotional_impact": {"score": 3, "weight": 0.08, "reason": "...", "evidence": "原文引用"},
     "storyline_coherence": {"score": 4, "weight": 0.08, "reason": "...", "evidence": "原文引用"},
     "tonal_variance": {"score": 4, "weight": 0.10, "reason": "...", "evidence": "原文引用", "sub_metrics": {"micro_injection_count": 6, "inner_monologue_casual_ratio": 0.7, "max_same_register_length_approx": "~600字", "dialogue_has_banter": true}}
   },
   "overall_raw": 3.82,
   "overall_weighted": 3.95,
-  "platform_weights": {"pacing": 1.5, "character": 0.8, "emotional_impact": 1.5, "style_naturalness": 0.7, "foreshadowing": 1.0, "plot_logic": 0.8, "immersion": 1.5, "storyline_coherence": 0.8},
+  "platform_weights": {"pacing": 1.5, "character": 0.8, "emotional_impact": 1.5, "style_naturalness": 0.7, "foreshadowing": 1.0, "plot_logic": 0.8, "immersion": 1.5, "storyline_coherence": 0.8, "tonal_variance": 1.0},
   "overall": 3.95,
   "recommendation": "pass | polish | revise | review | rewrite",
   "risk_flags": ["character_speech_missing:protagonist", "foreshadow_premature:ancient_prophecy"],

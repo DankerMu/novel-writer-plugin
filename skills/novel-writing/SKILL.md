@@ -3,7 +3,7 @@ name: novel-writing
 is_user_facing: false
 description: >
   小说创作共享方法论知识库（内部引用，非用户直接调用）。
-  包含卷制滚动工作流、Spec-Driven Writing 四层规范体系、多线叙事管理、去 AI 化四层策略、8 维度质量评分标准。
+  包含卷制滚动工作流、Spec-Driven Writing 四层规范体系、多线叙事管理、去 AI 化四层策略、9 维度质量评分标准。
   This skill is a passive reference library. It should not be triggered by user queries.
   Entry skills (/novel:start, /novel:continue) read its references/ directory
   and inject content into Agent contexts programmatically.
@@ -34,7 +34,7 @@ description: >
 | L2 角色契约 | 能力边界/行为模式 | WorldBuilder（角色模式） → `contracts` | 可变更需走协议 |
 | L3 章节契约 | 前置/后置条件/验收标准 | PlotArchitect → `chapter-contracts/` | 可协商须留痕 |
 
-验收采用四轨制：Track 1 Contract Verification（合规检查 L1/L2/L3/LS，硬门槛）+ Track 2 Quality Scoring（8 维度评分，软评估）由 QualityJudge 执行；Track 3 Reader Engagement（读者参与度）+ Track 4 Content Substance（信息密度/剧情推进/对话效率，硬门槛）由 ContentCritic 并行执行。合规是编译通过，质量是 code review，内容实质是 regression test。
+验收采用四轨制：Track 1 Contract Verification（合规检查 L1/L2/L3/LS，硬门槛）+ Track 2 Quality Scoring（9 维度评分含 tonal_variance，软评估）由 QualityJudge 执行；Track 3 Reader Engagement（读者参与度）+ Track 4 Content Substance（信息密度/剧情推进/对话效率，硬门槛）由 ContentCritic 并行执行。合规是编译通过，质量是 code review，内容实质是 regression test。
 
 ## 多线叙事体系
 
@@ -52,7 +52,7 @@ description: >
 |----|------|--------|
 | L1 风格锚定 | 用户样本 → style-profile.json | WorldBuilder（风格提取模式） |
 | L2 约束注入 | 黑名单 + 语癖 + 反直觉 + 句式多样 | ChapterWriter |
-| L3 后处理 | 替换 AI 用语 + 匹配风格指纹 | ChapterWriter Phase 2 |
+| L3 后处理 | 替换 AI 用语 + 匹配风格指纹 | StyleRefiner |
 | L4 检测度量 | 黑名单命中率 + 句式重复率 + 风格匹配度 | QualityJudge |
 
 核心指标：AI 黑名单命中 < 3 次/千字，相邻 5 句重复句式 < 2。
@@ -61,15 +61,16 @@ description: >
 
 ## 质量评分标准
 
-8 维度加权评分（详见 `references/quality-rubric.md`）：
+9 维度加权评分（详见 `references/quality-rubric.md`）：
 
 | 维度 | 权重 |
 |------|------|
-| 情节逻辑 | 18% |
-| 角色塑造 | 18% |
-| 沉浸感 | 15% |
-| 风格自然度 | 15% |
-| 伏笔处理 | 10% |
+| 情节逻辑 | 16% |
+| 角色塑造 | 16% |
+| 沉浸感 | 13% |
+| 风格自然度 | 12% |
+| 语域方差 | 10% |
+| 伏笔处理 | 9% |
 | 节奏 | 8% |
 | 情感冲击 | 8% |
 | 故事线连贯 | 8% |
