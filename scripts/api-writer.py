@@ -85,8 +85,13 @@ def assemble_user_message(m: dict) -> str:
         if s := read_section(p, "章节契约"):
             parts.append(s)
 
-    # 5. Recent summaries
-    if ps := paths.get("recent_summaries"):
+    # 5. Recent chapters (full text for style continuity; fallback to summaries)
+    if ps := paths.get("recent_chapters"):
+        ps = ps if isinstance(ps, list) else [ps]
+        texts = [f"--- {p} ---\n{c}" for p in ps if (c := read_file(p))]
+        if texts:
+            parts.append("## 近章正文\n\n" + "\n\n".join(texts))
+    elif ps := paths.get("recent_summaries"):
         ps = ps if isinstance(ps, list) else [ps]
         texts = [f"--- {p} ---\n{c}" for p in ps if (c := read_file(p))]
         if texts:

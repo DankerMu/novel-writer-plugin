@@ -158,11 +158,13 @@
 - 确定 `style_samples`：检查 `style-samples.md` 是否存在（项目根目录）。存在则写入 `manifest.paths.style_samples`；不存在则不加入（ChapterWriter 降级为读取 `style-profile.json` 的 `style_exemplars` 字段）
 - 根据 Step 2.4 裁剪规则确定 `character_contracts[]` 和 `character_profiles[]` 的文件路径列表
 - 根据 Step 2.5 注入策略确定 `storyline_memory` / `adjacent_memories[]` 的路径（过滤 dormant 线）
-- 确定 `recent_summaries[]`（近 3 章摘要路径，按时间倒序）
+- 确定 `recent_chapters[]`（近 3 章正文路径，按时间倒序；API Writer 用全文做风格延续）
+- 确定 `recent_summaries[]`（近 3 章摘要路径，按时间倒序；CW fallback/revision 使用）
 - **QualityJudge `recent_summaries[]`（条件注入）**：当 chapter ≤ 3 且 platform_guide 存在时，注入近 2 章摘要路径供平台硬门回溯判定；章节 > 3 或无 platform_guide 时不注入此字段
 - **ContentCritic `recent_summaries[]`**：与 QualityJudge 同规则注入（CC Track 4 用于跨章重复检测）
 - 其余路径为固定模式（如 `style-profile.json`、`ai-blacklist.json`）
-- **ChapterWriter manifest 不含**：`paths.ai_blacklist`、`paths.style_guide`、inline `ai_blacklist_top10`（CW 不应看到黑名单，消除隐性回避）
+- **API Writer manifest 不含**：`paths.ai_blacklist`、`paths.style_guide`、inline `ai_blacklist_top10`（写作者不应看到黑名单，消除隐性回避）
+- **CW fallback manifest**：同上，且使用 `recent_summaries` 替代 `recent_chapters`（CW 上下文预算有限）
 
 ### StyleRefiner Context Manifest
 
