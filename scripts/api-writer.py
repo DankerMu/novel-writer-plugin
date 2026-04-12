@@ -192,7 +192,8 @@ def get_api_key() -> str | None:
 
 
 def call_api(system_prompt: str, user_message: str,
-             api_key: str, model: str, temperature: float) -> dict:
+             api_key: str, model: str, temperature: float,
+             max_tokens: int = 16384) -> dict:
     """POST to API, return parsed JSON response."""
     payload = json.dumps({
         "model": model,
@@ -201,7 +202,7 @@ def call_api(system_prompt: str, user_message: str,
             {"role": "user", "content": user_message},
         ],
         "temperature": temperature,
-        "max_tokens": 32768,
+        "max_tokens": max_tokens,
     }, ensure_ascii=False).encode("utf-8")
 
     req = urllib.request.Request(
@@ -228,6 +229,8 @@ def main():
                      help="温度 (default: 0.85)")
     ap.add_argument("--system-prompt",
                      help=f"System prompt 文件 (default: prompts/api-writer-system.md)")
+    ap.add_argument("--max-tokens", type=int, default=16384,
+                     help="最大输出 tokens (default: 16384)")
     ap.add_argument("--output", help="输出路径 (default: <project>/staging/chapter-{N}.md)")
     ap.add_argument("--dry-run", action="store_true",
                      help="只组装提示词写入 staging/dry-run/，不调 API")
@@ -260,7 +263,7 @@ def main():
     usr_chars = len(user_message)
     est_tokens = int((sys_chars + usr_chars) * 1.5)
     print(f"[api-writer] System: {sys_chars} 字 | User: {usr_chars} 字 | ~{est_tokens} tokens")
-    print(f"[api-writer] Model: {args.model} | Temperature: {args.temperature}")
+    print(f"[api-writer] Model: {args.model} | Temperature: {args.temperature} | Max output: {args.max_tokens}")
 
     if est_tokens > MAX_INPUT_TOKENS:
         print(f"[api-writer] Error: 估算 {est_tokens} tokens 超过上限 {MAX_INPUT_TOKENS}，"
@@ -288,7 +291,8 @@ def main():
     data = None
     while retries <= 1:
         try:
-            data = call_api(system_prompt, user_message, api_key, args.model, args.temperature)
+            data = call_api(system_prompt, user_message, api_key, args.model,
+                           args.temperature, args.max_tokens)
             break
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace")
