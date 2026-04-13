@@ -61,7 +61,7 @@ Codex path: `codex-eval.py --agent` (assemble task content from manifest) → `c
 
 Calibration: `scripts/run-codex-calibration.sh` runs batch Codex eval on M3 dataset. `scripts/lib/calibrate_codex.py` computes 4-way comparison (Codex QJ vs Human, CC vs Human, Codex vs Opus, Summarizer ops). Threshold decision: r≥0.85 + |bias|<0.3 → keep; r≥0.85 + |bias|≥0.3 → adjust; r<0.85 → review. See `docs/runbooks/codex-calibration.md`.
 
-### 7 Agents
+### 6 Agents
 
 | Agent | Model | Color | Role | Write Access |
 |-------|-------|-------|------|--------------|
