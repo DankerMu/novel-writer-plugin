@@ -106,6 +106,8 @@ if len(failed_dimensions) > 0:
     failed_tracks.append("track2")
 if substance_violation(cc_eval):
     failed_tracks.append("track4")
+# 注：Track 3 不通过 failed_tracks 控制。CC recheck 内部根据上次 engagement_override 状态自主判断是否重评 Track 3
+# 注：tonal_variance < 3.0 触发 revise 时，若无其他严重问题则走 targeted（tonal_variance 属于单维度失分，适合定向修订）
 ```
 
 **revision_scope 判定**：
@@ -113,6 +115,8 @@ if substance_violation(cc_eval):
 if gate_decision == "revise":
     if has_high_confidence_violation or platform_hard_gate_fail(eval) or substance_severe(cc_eval) or overall_final < 3.0:
         revision_scope = "full"
+    elif len(failed_dimensions) == 0 and len(failed_tracks) == 0:
+        revision_scope = "full"  # 无明确失分维度时无法定向修订，降级全量
     else:
         revision_scope = "targeted"
 else:
@@ -122,7 +126,7 @@ else:
 ## 自动修订闭环（max revisions = 2）
 
 - 若 gate_decision="revise" 且 revision_count < 2：
-  - 更新 checkpoint: orchestrator_state="CHAPTER_REWRITE", pipeline_stage="revising", revision_count += 1
+  - 更新 checkpoint: orchestrator_state="CHAPTER_REWRITE", pipeline_stage="revising", revision_count += 1, revision_scope=<computed>, failed_dimensions=<computed>, failed_tracks=<computed>
   - 组装修订指令（合并 QJ + CC 来源）：
     - 从 QJ eval: `required_fixes`（主要来源）
     - 从 CC eval: `substance_issues`（severity=high）转化为 `required_fixes` 格式追加

@@ -87,11 +87,12 @@ def extract_style_directives(profile_path: str) -> list[str]:
     slr = sp.get("sentence_length_range")
     if asl and isinstance(asl, (int, float)):
         directives.append(f"平均句长目标: ~{int(asl)} 字，长短句交替制造节奏感")
-    if slr and isinstance(slr, list) and len(slr) == 2 and all(slr):
+    if (slr and isinstance(slr, list) and len(slr) == 2
+            and all(isinstance(x, (int, float)) for x in slr)):
         directives.append(f"句长范围: {slr[0]}-{slr[1]} 字，避免全文句长趋同")
     # Scene description constraint
-    oc = sp.get("override_constraints", {})
-    max_scene = oc.get("max_scene_sentences")
+    oc = sp.get("override_constraints") or {}
+    max_scene = oc.get("max_scene_sentences") if isinstance(oc, dict) else None
     if max_scene and isinstance(max_scene, int):
         directives.append(f"场景描写 ≤ {max_scene} 句，优先用动作推进")
     return directives

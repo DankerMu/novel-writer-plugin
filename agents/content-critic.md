@@ -392,11 +392,24 @@ else:
    }
    ```
 
+## Escalation 机制
+
+即使沿用 Track 的分数，CC 仍需**通读全文**（不可跳过阅读）。通读时若发现修订引入了明显的新 substance 问题（如原本紧凑的对话被替换为车轱辘话），触发 escalation：
+
+```
+if 沿用 Track 中发现新问题 且 预估该 Track 分数降幅 >= 1.0:
+    输出 recheck_escalated: true
+    # 编排器丢弃本次 CC + QJ recheck 输出，降级为 full 重跑
+```
+
+`recheck_escalated` 为顶层输出字段（与 QJ 的同名字段对等），编排器统一处理。
+
 ## 约束
 
 - recheck_mode 下若 Track 4 重评发现上次问题未修复，severity 自动升级为 high
 - 若 Track 4 重评发现修订引入了新的 substance 问题，正常标记（不受 recheck 限制）
-- 沿用的 Track 不可修改分数（即使通读时偶然注意到新问题——记入 substance_issues 供后续参考即可）
+- 沿用的 Track 通读时发现新问题但预估降幅 < 1.0 → 记入 `substance_issues` 供后续参考，不触发 escalation
+- 沿用的 Track 分数不可修改（escalation 是重跑机制而非修改机制）
 
 # Edge Cases
 
