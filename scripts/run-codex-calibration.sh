@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-CODEX_TIMEOUT="${CODEX_TIMEOUT:-3600}"
+CODEX_TIMEOUT="${CODEX_TIMEOUT:-3600}"  # seconds (timeout command uses seconds)
 
 usage() {
   cat >&2 <<'EOF'
@@ -116,8 +116,11 @@ if [ -n "$chapters_arg" ]; then
   # Parse comma-separated list
   IFS=',' read -ra chapters <<< "$chapters_arg"
 else
-  # Extract chapter numbers from labels JSONL
-  mapfile -t chapters < <(
+  # Extract chapter numbers from labels JSONL (no mapfile — macOS Bash 3.2 compat)
+  chapters=()
+  while IFS= read -r ch; do
+    chapters+=("$ch")
+  done < <(
     "$PYTHON" -c "
 import json, sys
 seen = set()
@@ -185,26 +188,45 @@ for ch_raw in "${chapters[@]}"; do
     continue
   fi
 
-  # (e) Run Codex QJ
+  # (e-f) Run Codex QJ + CC in parallel (background + wait)
   qj_prompt="$project_dir/staging/prompts/chapter-${ch_pad}-quality-judge.md"
+  cc_prompt="$project_dir/staging/prompts/chapter-${ch_pad}-content-critic.md"
+  qj_ok=true
+  cc_ok=true
+
   if [ ! -f "$qj_raw" ]; then
-    echo "  running Codex QJ..."
-    if ! timeout "$CODEX_TIMEOUT" codeagent-wrapper --backend codex - "$project_dir" < "$qj_prompt"; then
+    echo "  running Codex QJ (background)..."
+    timeout "$CODEX_TIMEOUT" codeagent-wrapper --backend codex - "$project_dir" < "$qj_prompt" &
+    qj_pid=$!
+  else
+    qj_pid=""
+  fi
+
+  if [ ! -f "$cc_raw" ]; then
+    echo "  running Codex CC (background)..."
+    timeout "$CODEX_TIMEOUT" codeagent-wrapper --backend codex - "$project_dir" < "$cc_prompt" &
+    cc_pid=$!
+  else
+    cc_pid=""
+  fi
+
+  # Wait for both
+  if [ -n "${qj_pid:-}" ]; then
+    if ! wait "$qj_pid"; then
       echo "  [WARN] Codex QJ failed for chapter $ch" >&2
-      failed_chapters+=("$ch")
-      continue
+      qj_ok=false
+    fi
+  fi
+  if [ -n "${cc_pid:-}" ]; then
+    if ! wait "$cc_pid"; then
+      echo "  [WARN] Codex CC failed for chapter $ch" >&2
+      cc_ok=false
     fi
   fi
 
-  # (f) Run Codex CC
-  cc_prompt="$project_dir/staging/prompts/chapter-${ch_pad}-content-critic.md"
-  if [ ! -f "$cc_raw" ]; then
-    echo "  running Codex CC..."
-    if ! timeout "$CODEX_TIMEOUT" codeagent-wrapper --backend codex - "$project_dir" < "$cc_prompt"; then
-      echo "  [WARN] Codex CC failed for chapter $ch" >&2
-      failed_chapters+=("$ch")
-      continue
-    fi
+  if [ "$qj_ok" = false ] || [ "$cc_ok" = false ]; then
+    failed_chapters+=("$ch")
+    continue
   fi
 
   # (g) Validate QJ output
