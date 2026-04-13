@@ -363,6 +363,10 @@ def validate_quality_judge(project_root: Path, chapter: int) -> list[str]:
             errors.append("missing: contract_verification.has_violations")
         elif not isinstance(cv["has_violations"], bool):
             errors.append("contract_verification.has_violations: expected bool")
+        if "has_warnings" not in cv:
+            errors.append("missing: contract_verification.has_warnings")
+        elif not isinstance(cv["has_warnings"], bool):
+            errors.append("contract_verification.has_warnings: expected bool")
 
     # scores
     scores = data.get("scores")
@@ -373,13 +377,9 @@ def validate_quality_judge(project_root: Path, chapter: int) -> list[str]:
             if key not in scores:
                 errors.append(f"missing: scores.{key}")
             elif isinstance(scores[key], dict):
-                errors.extend(_check_score(scores[key], "score"))
-                # Re-label errors with full path
-                for i in range(len(errors)):
-                    if errors[i] == "missing: score":
-                        errors[i] = f"missing: scores.{key}.score"
-                    elif errors[i].startswith("score:"):
-                        errors[i] = f"scores.{key}.{errors[i]}"
+                s_errs = _check_score(scores[key], "score")
+                for e in s_errs:
+                    errors.append(f"scores.{key}.{e}")
             elif isinstance(scores[key], (int, float)):
                 if not (1 <= scores[key] <= 5):
                     errors.append(f"scores.{key}: {scores[key]} out of range [1, 5]")
@@ -434,12 +434,9 @@ def validate_content_critic(project_root: Path, chapter: int) -> list[str]:
         if not isinstance(re_val, dict):
             errors.append("reader_evaluation: expected object or null")
         else:
-            errors.extend(_check_score(re_val, "overall_engagement"))
-            for i in range(len(errors)):
-                if errors[i].startswith("missing: overall_engagement"):
-                    errors[i] = "missing: reader_evaluation.overall_engagement"
-                elif errors[i].startswith("overall_engagement:"):
-                    errors[i] = f"reader_evaluation.{errors[i]}"
+            oe_errs = _check_score(re_val, "overall_engagement")
+            for e in oe_errs:
+                errors.append(f"reader_evaluation.{e}")
 
     # content_substance (object or null)
     cs = data.get("content_substance")
@@ -491,6 +488,8 @@ def validate_content_critic(project_root: Path, chapter: int) -> list[str]:
                 errors.append("missing: content_substance.content_substance_overall")
             elif not isinstance(cso, (int, float)):
                 errors.append("content_substance.content_substance_overall: expected number")
+            elif not (1 <= cso <= 5):
+                errors.append(f"content_substance.content_substance_overall: {cso} out of range [1, 5]")
 
             # has_substance_violation
             hsv = cs.get("has_substance_violation")
@@ -548,7 +547,7 @@ def validate_sliding_window(project_root: Path) -> list[str]:
     if s is None:
         errors.append("missing: summary")
     elif isinstance(s, dict):
-        for k in ("issues_total", "auto_fixable_count"):
+        for k in ("issues_total", "auto_fixable_count", "high_severity_unfixed"):
             v = s.get(k)
             if v is None:
                 errors.append(f"missing: summary.{k}")
