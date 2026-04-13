@@ -58,10 +58,50 @@ def read_section(rel_path: str, label: str) -> str | None:
     return None
 
 
+def extract_style_directives(profile_path: str) -> list[str]:
+    """Extract quantitative writing directives from style-profile.json."""
+    content = read_file(profile_path)
+    if not content:
+        return []
+    try:
+        sp = json.loads(content)
+    except json.JSONDecodeError:
+        return []
+    directives = []
+    # Dialogue ratio → explicit target range
+    dr = sp.get("dialogue_ratio")
+    if dr and isinstance(dr, (int, float)) and dr > 0:
+        lo = max(int((dr - 0.05) * 100), 15)
+        hi = min(int((dr + 0.05) * 100), 60)
+        directives.append(
+            f"对话占比目标: {lo}-{hi}%（含直接引语 + 角色互动），低于{lo - 5}%视为不合格"
+        )
+    # Inner monologue density from tonal_variance expectations
+    rm = sp.get("register_mixing")
+    if rm in ("high", "medium"):
+        directives.append(
+            "主角内心独白（含吐槽/自嘲）每 200-300 字至少出现 1 处，不可连续 500 字纯叙述无内心反应"
+        )
+    # Sentence length guidance
+    asl = sp.get("avg_sentence_length")
+    slr = sp.get("sentence_length_range")
+    if asl and isinstance(asl, (int, float)):
+        directives.append(f"平均句长目标: ~{int(asl)} 字，长短句交替制造节奏感")
+    if slr and isinstance(slr, list) and len(slr) == 2 and all(slr):
+        directives.append(f"句长范围: {slr[0]}-{slr[1]} 字，避免全文句长趋同")
+    # Scene description constraint
+    oc = sp.get("override_constraints", {})
+    max_scene = oc.get("max_scene_sentences")
+    if max_scene and isinstance(max_scene, int):
+        directives.append(f"场景描写 ≤ {max_scene} 句，优先用动作推进")
+    return directives
+
+
 def assemble_user_message(m: dict) -> str:
     """Turn manifest + files into a single user message."""
     parts: list[str] = []
     paths = m.get("paths", {})
+    style_directives: list[str] = []
 
     # --- File-backed sections (by read priority) ---
 
@@ -74,6 +114,7 @@ def assemble_user_message(m: dict) -> str:
     if p := paths.get("style_profile"):
         if s := read_section(p, "风格指纹"):
             parts.append(s)
+        style_directives = extract_style_directives(p)
 
     # 3. Style drift (optional)
     if p := paths.get("style_drift"):
@@ -170,14 +211,18 @@ def assemble_user_message(m: dict) -> str:
     vol = m.get("volume", "?")
     sl = m.get("storyline_id", "?")
 
+    reqs = [
+        "字数 2500-3500 字",
+        "完成章节契约中所有 required objectives",
+        f"输出格式：`# 第 {ch} 章 章名` + 正文",
+        "只输出章节正文，不要输出其他内容",
+    ]
+    reqs.extend(style_directives)
+
     parts.append(
         f"## 写作指令\n\n"
         f"请续写第 {ch} 章（第 {vol} 卷，故事线 {sl}）。\n\n"
-        f"要求：\n"
-        f"- 字数 2500-3500 字\n"
-        f"- 完成章节契约中所有 required objectives\n"
-        f"- 输出格式：`# 第 {ch} 章 章名` + 正文\n"
-        f"- 只输出章节正文，不要输出其他内容"
+        f"要求：\n" + "\n".join(f"- {r}" for r in reqs)
     )
 
     return "\n\n---\n\n".join(parts)
