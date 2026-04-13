@@ -201,11 +201,11 @@
 | 任意 | 平台硬门任一 fail（Ch001-003 + platform_guide） | `revise` | `revise` | 强制修订（不受 overall 影响） |
 | 4.0-5.0 | 无 violation 且无硬门 fail | `pass` | `pass` | 直接通过 |
 | 3.5-3.9 | 无 violation | `polish` | `polish` | StyleRefiner 二次润色后通过 |
-| 3.0-3.4 | 无 violation | `revise` | `revise` | ChapterWriter（Opus）自动修订（最多 2 轮） |
+| 3.0-3.4 | 无 violation | `revise` | `revise` | 自动修订（定向 1 轮 + 直接修复兜底；全量最多 2 轮） |
 | 2.0-2.9 | 无 violation | `review` | `pause_for_user` | 暂停，通知用户审核决定下一步 |
 | < 2.0 | 无 violation | `rewrite` | `pause_for_user_force_rewrite` | 暂停，建议全章重写（等待用户通过 `/novel:start` 决策） |
 
-**修订上限兜底**：修订 2 次后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail 且无 ContentCritic substance_violation 且无黄金三章 engagement < 3.0 → `force_passed=true`，允许提交（避免无限循环）。
+**修订上限兜底**：定向修订 1 轮后未通过 → 直接修复模式（Task agent + SR + Sum，跳过 QJ/CC）+ `force_passed=true`。全量修订 2 轮后若 overall ≥ 3.0 且无 high-confidence violation 且无平台硬门 fail 且无 ContentCritic substance_violation 且无黄金三章 engagement < 3.0 → `force_passed=true`，允许提交（避免无限循环）。
 
 ## 读者体验门控（ContentCritic Track 3）
 

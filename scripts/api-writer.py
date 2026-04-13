@@ -68,14 +68,6 @@ def extract_style_directives(profile_path: str) -> list[str]:
     except json.JSONDecodeError:
         return []
     directives = []
-    # Dialogue ratio → explicit target range
-    dr = sp.get("dialogue_ratio")
-    if dr and isinstance(dr, (int, float)) and dr > 0:
-        lo = max(int((dr - 0.05) * 100), 15)
-        hi = min(int((dr + 0.05) * 100), 60)
-        directives.append(
-            f"对话占比目标: {lo}-{hi}%（含直接引语 + 角色互动），低于{lo - 5}%视为不合格"
-        )
     # Inner monologue density from tonal_variance expectations
     rm = sp.get("register_mixing")
     if rm in ("high", "medium"):

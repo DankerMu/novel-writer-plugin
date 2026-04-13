@@ -31,15 +31,15 @@
   - `sentence_dev = abs(curr.avg_sentence_length - base.avg_sentence_length) / base.avg_sentence_length`
   - `dialogue_dev = abs(curr.dialogue_ratio - base.dialogue_ratio) / base.dialogue_ratio`
 - 漂移判定：
-  - `sentence_dev > 0.20` 或 `dialogue_dev > 0.15` -> drift=true
-  - 回归判定：`sentence_dev < 0.10` 且 `dialogue_dev < 0.10` -> recovered=true
+  - `sentence_dev > 0.20` -> drift=true（句长为硬指标）
+  - `dialogue_dev > 0.15` -> 仅记录 `dialogue_drift_note`（对话比例因章节类型自然浮动，不触发漂移警告；叙事章可低至 ~15%，互动密集章可达 ~50%）
+  - 回归判定：`sentence_dev < 0.10` -> recovered=true（仅基于句长判定回归）
 - drift=true：
   - 写入/更新 `style-drift.json`（按文件协议；active=true）
-  - drifts[].directive 生成规则（最多 3 条，短句可执行）：
+  - drifts[].directive 生成规则（最多 2 条，短句可执行）：
     - 句长偏长：强调短句/动作推进/拆句
     - 句长偏短：允许适度长句与节奏变化（但仍以 style-profile 为准）
-    - 对话偏少：强调通过对话推进（交给 ChapterWriter；StyleRefiner 不得硬造新对白）
-    - 对话偏多：加强叙述性承接与内心活动（不删对白，仅调整段落与叙述衔接）
+    - 注：对话比例不参与漂移触发，其偏移仅记录为 `dialogue_drift_note`（供人工参考）
 - recovered=true：
   - 清除纠偏：删除 `style-drift.json` 或标记 `active=false`，并写入 `cleared_at/cleared_reason="metrics_recovered"`
 - 超时清除：若当前章 - `style-drift.json.detected_chapter` > 15（即纠偏指令已注入超过 15 章仍未回归），自动标记 `active=false`，`cleared_reason="stale_timeout"`

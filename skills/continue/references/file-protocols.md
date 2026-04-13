@@ -13,9 +13,9 @@
   "detected_chapter": 25,
   "window": [21, 25],
   "drifts": [
-    {"metric": "avg_sentence_length", "baseline": 18, "current": 24, "directive": "句子过长，回归短句节奏"},
-    {"metric": "dialogue_ratio", "baseline": 0.4, "current": 0.28, "directive": "对话偏少，增加角色互动"}
+    {"metric": "avg_sentence_length", "baseline": 18, "current": 24, "directive": "句子过长，回归短句节奏"}
   ],
+  "dialogue_drift_note": {"baseline": 0.4, "current": 0.28, "note": "对话比例低于基线，仅供参考"},
   "injected_to": ["ChapterWriter"],
   "created_at": "2026-02-24T05:00:00Z",
   "cleared_at": null,

@@ -244,6 +244,50 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - `high`：直接拉低维度分 ≤ 2，或该问题段落占全章 > 20%
 - `medium`：影响阅读体验但单独不会触发硬门
 
+# Track 5: POV 知识边界检查（POV Knowledge Boundary Check）
+
+以读者视角检测 **POV 角色不应知道的信息泄漏到叙述层** 的问题。
+
+> **backfill 模式**（`mode == "track3_backfill"`）时跳过 Track 5。
+
+## 检查方法
+
+1. 从 `paths.chapter_contract` 确定本章 POV 角色
+2. 从 `paths.character_contracts[]` 读取该 POV 角色的 `known_facts[]`（已由编排器 canon_status 预过滤）
+3. 扫描正文的 **POV 叙述层**（旁白 + POV 角色内心独白 + POV 角色对话），检测以下两类问题：
+   - **术语越界**：POV 叙述中出现的专有名词/概念，在角色 `known_facts` 中无对应条目，且不属于常识范畴——说明角色不应该知道这个词（如角色尚未得知金手指的名称，但叙述中直接使用了该名称）
+   - **信息越界**：POV 叙述中角色表现出不应拥有的信息（如知道其他故事线中才揭示的事件、提前知晓谜底）
+4. **排除范围**：
+   - 其他角色对话中使用的术语/信息（对方可能知道）
+   - `chapter_outline_block` 中标注为本章揭示的信息
+   - `introducing: true` 的 known_facts（本章首次展现的认知）
+
+## 输出
+
+```json
+{
+  "pov_boundary_issues": [
+    {
+      "type": "term_leak | info_leak",
+      "severity": "high | medium",
+      "location": "paragraph_N",
+      "term_or_info": "万象熔炉",
+      "pov_character": "梁汉",
+      "description": "POV叙述中使用了'万象熔炉'，但角色此时尚不知道胸口热源的名称",
+      "evidence": "原文引用片段（≤80字）",
+      "fix_suggestion": "改用角色当前认知中的描述（如'胸口那股灼热'）"
+    }
+  ],
+  "pov_boundary_clean": true | false
+}
+```
+
+- `severity="high"`：明确的术语/信息越界，角色不可能知道
+- `severity="medium"`：可能越界但存在合理解释（如角色可能从上下文推断）
+- `pov_boundary_clean`：无 high severity 问题时为 true
+
+> **注意**：此检查不需要额外的 schema 字段或 manifest 字段——CC 直接从角色 known_facts 和章节 POV 上下文推断知识边界。outline/大纲中的作者视角术语不构成角色视角的合法来源。
+
 # Gate Impact（门控影响）
 
 ContentCritic 不直接输出 recommendation——由编排器合并 QJ 和 CC 的结果做最终门控决策。CC 输出以下信号供编排器使用：
@@ -256,6 +300,15 @@ has_substance_violation = any(dimension.score < 3 for dimension in [information_
 
 - `has_substance_violation == true` → 编排器强制 `gate_decision = "revise"`，不可跳过
 - `content_substance_overall < 2.0` → 编排器强制 `gate_decision = "pause_for_user"`
+
+## Track 5 POV 边界硬门
+
+```
+has_pov_violation = any(issue.severity == "high" for issue in pov_boundary_issues)
+```
+
+- `has_pov_violation == true` → 编排器强制 `gate_decision = "revise"`（POV 越界等同于内容实质性违规）
+- CC 输出中 severity=high 的 `pov_boundary_issues` 自动转化为 `required_fixes` 供 ChapterWriter 修订
 
 ## Track 3 engagement overlay（只降级不升级）
 
@@ -345,6 +398,10 @@ else:
         "fix_suggestion": "第 2 轮后引入新信息（如第三方介入/新情报到达）打破僵局，或让一方在压力下软化/硬化"
       }
     ]
+  },
+  "pov_boundary": {
+    "pov_boundary_issues": [],
+    "pov_boundary_clean": true
   }
 }
 ```

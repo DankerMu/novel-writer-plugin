@@ -21,6 +21,7 @@
 
 - `substance_violation(cc_eval)` := 任一 content_substance.{information_density, plot_progression, dialogue_efficiency}.score < 3
 - `substance_severe(cc_eval)` := content_substance.content_substance_overall < 2.0
+- `pov_violation(cc_eval)` := cc_eval.pov_boundary 存在 且 任一 pov_boundary_issues[].severity == "high"（POV 知识越界 → 等同 substance_violation 触发 revise）
 - `engagement_override(cc_eval, qj_decision)`:
   ```
   if cc_eval.reader_evaluation == null:
@@ -64,8 +65,8 @@ else:
     elif overall_final >= 2.0: qj_decision = "pause_for_user"
     else: qj_decision = "pause_for_user_force_rewrite"
 
-# Step B: CC 内容实质性硬门（Track 4）
-if substance_violation(cc_eval):
+# Step B: CC 内容实质性硬门（Track 4 + Track 5）
+if substance_violation(cc_eval) or pov_violation(cc_eval):
     substance_decision = "revise"
 elif substance_severe(cc_eval):
     substance_decision = "pause_for_user"
@@ -123,11 +124,11 @@ else:
     revision_scope = null  # 非 revise 不需要
 ```
 
-## 自动修订闭环（max revisions = 2）
+## 自动修订闭环（targeted: 1 轮 + 直接修复 | full: max 2 轮）
 
 > **修订禁用 API Writer**：修订子流水线（targeted/full）**必须**使用 ChapterWriter Agent（`Task(subagent_type="chapter-writer")`），**不得**调用 API Writer（`scripts/api-writer.py`）。API Writer 仅用于 Step 1 的初始稿件生成。原因：修订需要读取上次评估结果（`required_fixes`/`failed_dimensions`）做定向修改，CW 的 Read 工具集成和 revision manifest 支持是必需的；API Writer 无法消费这些输入。
 
-- 若 gate_decision="revise" 且 revision_count < 2：
+- 若 gate_decision="revise" 且可进入修订（定向: `revision_count < 1`；全量: `revision_count < 2`）：
   - 更新 checkpoint: orchestrator_state="CHAPTER_REWRITE", pipeline_stage="revising", revision_count += 1, revision_scope=<computed>, failed_dimensions=<computed>, failed_tracks=<computed>
   - 组装修订指令（合并 QJ + CC 来源）：
     - 从 QJ eval: `required_fixes`（主要来源）
@@ -140,7 +141,7 @@ else:
 
   适用条件：无 high_violation、无 platform_hard_gate_fail、无 substance_severe、overall_final ≥ 3.0
 
-  子流水线：`CW(targeted) → SR(lite) → Sum(patch) → [QJ/CC recheck]`
+  子流水线：`CW(targeted) → SR(lite) → [Sum(patch) ∥ QJ(recheck) ∥ CC(recheck)]`
 
   1. **ChapterWriter 定向修改**：
      - 输入 manifest 追加: `failed_dimensions` + `required_fixes` + `revision_scope="targeted"`
@@ -186,7 +187,20 @@ else:
      - 约束：定向修改指定段落，尽量保持其余内容不变
   2. 回到 ChapterWriter(revision) → StyleRefiner → Summarizer → [QualityJudge + ContentCritic 并行] → 门控
 
-- 若 gate_decision="revise" 且 revision_count == 2（次数耗尽）：
+- 若 gate_decision="revise" 且定向修订已耗尽（`revision_scope == "targeted"` 且 `revision_count >= 1`）：
+  - **直接修复模式**（轻量级，跳过完整评估流水线）：
+    1. 更新 checkpoint: `pipeline_stage="direct_fixing"`, `revision_count += 1`
+    2. 组装修订指令（同上：合并 QJ+CC 的 `required_fixes`）
+    3. 派发 Task agent（通用类型，model="sonnet"）：
+       - 输入: `staging/chapters/chapter-{C:03d}.md` + `required_fixes` + `failed_dimensions`
+       - 指令: 严格按 `required_fixes` 做最小编辑，不改动未提及段落
+       - 输出: 覆写 `staging/chapters/chapter-{C:03d}.md`
+    4. SR(lite): 对修复后章节做黑名单/格式检查
+    5. Sum(patch): 更新 summary（diff 检查同定向修订规则）
+    6. 标记 `force_passed=true`，进入 commit
+  - **不执行 QJ/CC 复检**——定向修订已完成一轮含完整评估的子流水线，直接修复仅针对明确的 required_fixes，额外评估 ROI 过低
+
+- 若 gate_decision="revise" 且全量修订已耗尽（`revision_scope == "full"` 且 `revision_count >= 2`）：
   - 若 has_high_confidence_violation=false 且 platform_hard_gate_fail(eval)=false 且 overall_final >= 3.0 且 substance_violation(cc_eval)=false 且 !(is_golden_chapter 且 cc_eval.reader_evaluation.overall_engagement < 3.0)：
     - 设置 force_passed=true，允许提交（避免无限循环）
     - 记录：eval metadata + log 中标记 force_passed=true

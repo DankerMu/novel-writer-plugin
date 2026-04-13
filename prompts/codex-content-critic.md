@@ -191,6 +191,32 @@
 - `high`：直接拉低维度分 ≤ 2，或该问题段落占全章 > 20%
 - `medium`：影响阅读体验但单独不会触发硬门
 
+# Track 5: POV 知识边界检查（POV Knowledge Boundary Check）
+
+以读者视角检测 POV 角色不应知道的信息泄漏到叙述层的问题。
+
+> **backfill 模式**时跳过 Track 5。
+
+## 检查方法
+
+1. 从章节契约确定本章 POV 角色
+2. 从角色契约读取该 POV 角色的 `known_facts[]`
+3. 扫描正文 POV 叙述层（旁白 + POV 角色内心独白 + POV 角色对话），检测：
+   - **术语越界**：POV 叙述中出现角色 known_facts 无对应条目的专有名词（非常识），说明角色不应知道此词
+   - **信息越界**：POV 叙述中角色表现出不应拥有的信息
+4. **排除**：其他角色对话、outline 标注为本章揭示的信息、`introducing: true` 的 known_facts
+
+## 输出
+
+```json
+{
+  "pov_boundary_issues": [
+    {"type": "term_leak | info_leak", "severity": "high | medium", "location": "paragraph_N", "term_or_info": "万象熔炉", "pov_character": "梁汉", "description": "...", "evidence": "原文≤80字", "fix_suggestion": "..."}
+  ],
+  "pov_boundary_clean": true | false
+}
+```
+
 # Gate Impact（门控影响）
 
 ContentCritic 不直接输出 recommendation——由编排器合并 QJ 和 CC 的结果做最终门控决策。CC 输出以下信号供编排器使用：
@@ -203,6 +229,14 @@ has_substance_violation = any(dimension.score < 3 for dimension in [information_
 
 - `has_substance_violation == true` → 编排器强制 `gate_decision = "revise"`，不可跳过
 - `content_substance_overall < 2.0` → 编排器强制 `gate_decision = "pause_for_user"`
+
+## Track 5 POV 边界硬门
+
+```
+has_pov_violation = any(issue.severity == "high" for issue in pov_boundary_issues)
+```
+
+- `has_pov_violation == true` → 编排器强制 `gate_decision = "revise"`
 
 ## Track 3 engagement overlay（只降级不升级）
 
