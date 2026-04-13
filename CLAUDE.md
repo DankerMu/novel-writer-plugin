@@ -37,13 +37,13 @@ Agents validate outputs against these layers. QualityJudge performs dual-track v
 
 
 
-State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current_volume`, `last_completed_chapter`, `pipeline_stage`, `inflight_chapter`, `eval_backend` (optional, "codex" or "opus", default "opus").
+State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current_volume`, `last_completed_chapter`, `pipeline_stage`, `inflight_chapter`, `eval_backend` ("codex" or "opus", default "codex" — `/novel:start` 初始化时自动写入).
 
 ### Single-Chapter Pipeline
 
 `API Writer(draft, fallback CW) → StyleRefiner(de-AI polish) → Summarizer → [QualityJudge + ContentCritic parallel] → Gate Decision (merge)`
 
-API Writer (`scripts/api-writer.py`) calls external model API (default: gemini-3.1-pro-preview) with pure creative system prompt (`prompts/api-writer-system.md`), bypassing Claude Code's engineering-focused system prompt. Falls back to ChapterWriter agent on API failure. CW agent remains available for revision/polish passes (targeted edits benefit from Claude Code's tool integration).
+API Writer (`scripts/api-writer.py`) calls external model API (default: gemini-3-flash-preview) with pure creative system prompt (`prompts/api-writer-system.md`), bypassing Claude Code's engineering-focused system prompt. Falls back to ChapterWriter agent on API failure. CW agent remains available for revision/polish passes (targeted edits benefit from Claude Code's tool integration).
 
 Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite. ContentCritic Track 4 substance violation (any dimension < 3.0) forces revise. QJ tonal_variance < 3.0 forces revise.
 

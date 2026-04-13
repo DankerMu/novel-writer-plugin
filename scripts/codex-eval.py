@@ -321,19 +321,91 @@ def validate_summarizer(project_root: Path, chapter: int) -> list[str]:
         if err:
             errors.append(err)
         elif delta is not None:
+            # Required top-level fields
+            if "chapter" not in delta:
+                errors.append("delta: missing chapter")
+            elif not isinstance(delta["chapter"], int):
+                errors.append("delta: chapter must be int")
+            if "base_state_version" not in delta:
+                errors.append("delta: missing base_state_version")
+            elif not isinstance(delta["base_state_version"], int):
+                errors.append("delta: base_state_version must be int")
+            if "storyline_id" not in delta:
+                errors.append("delta: missing storyline_id")
+            elif not isinstance(delta["storyline_id"], str):
+                errors.append("delta: storyline_id must be string")
+
+            # ops validation
+            valid_top = ("characters", "items", "locations", "factions",
+                         "world_state", "active_foreshadowing")
             if "ops" not in delta:
                 errors.append("delta: missing ops")
+            elif not isinstance(delta["ops"], list):
+                errors.append("delta: ops must be array")
             else:
                 for i, op in enumerate(delta["ops"]):
-                    op_val = op.get("op") if isinstance(op, dict) else None
+                    if not isinstance(op, dict):
+                        errors.append(f"delta: ops[{i}] must be object")
+                        continue
+                    op_val = op.get("op")
                     if op_val not in DELTA_OPS:
                         errors.append(f"delta: ops[{i}] invalid op '{op_val}'")
+                        continue
+                    if "path" not in op:
+                        errors.append(f"delta: ops[{i}] missing path")
+                    elif not isinstance(op["path"], str):
+                        errors.append(f"delta: ops[{i}] path must be string")
+                    elif op_val == "foreshadow":
+                        if "value" not in op:
+                            errors.append(f"delta: ops[{i}] foreshadow missing value")
+                        elif op["value"] not in ("planted", "advanced", "resolved"):
+                            errors.append(
+                                f"delta: ops[{i}] foreshadow value '{op['value']}'"
+                                " must be planted|advanced|resolved")
+                        if "detail" not in op:
+                            errors.append(f"delta: ops[{i}] foreshadow missing detail")
+                    else:
+                        parts = op["path"].split(".")
+                        if not (2 <= len(parts) <= 4):
+                            errors.append(
+                                f"delta: ops[{i}] path depth {len(parts)}"
+                                " out of range [2,4]")
+                        elif parts[0] not in valid_top:
+                            errors.append(
+                                f"delta: ops[{i}] path top-level '{parts[0]}'"
+                                f" not in {valid_top}")
+                        if "value" not in op:
+                            errors.append(f"delta: ops[{i}] missing value")
+
+            # canon_hints validation
+            valid_hint_types = ("world_rule", "ability", "known_fact", "relationship")
+            valid_conf = ("high", "medium")
             if "canon_hints" not in delta:
                 errors.append("delta: missing canon_hints")
+            elif not isinstance(delta["canon_hints"], list):
+                errors.append("delta: canon_hints must be array")
+            else:
+                for i, hint in enumerate(delta["canon_hints"]):
+                    if not isinstance(hint, dict):
+                        errors.append(f"delta: canon_hints[{i}] must be object")
+                        continue
+                    for field in ("type", "hint", "confidence", "evidence"):
+                        if field not in hint:
+                            errors.append(f"delta: canon_hints[{i}] missing {field}")
+                    h_type = hint.get("type")
+                    if h_type is not None and h_type not in valid_hint_types:
+                        errors.append(
+                            f"delta: canon_hints[{i}] type '{h_type}'"
+                            f" not in {valid_hint_types}")
+                    h_conf = hint.get("confidence")
+                    if h_conf is not None and h_conf not in valid_conf:
+                        errors.append(
+                            f"delta: canon_hints[{i}] confidence '{h_conf}'"
+                            f" not in {valid_conf}")
 
             # Check storyline memory if storyline_id present
             sid = delta.get("storyline_id")
-            if sid:
+            if sid and isinstance(sid, str):
                 mem_path = base / "storylines" / sid / "memory.md"
                 if not mem_path.exists():
                     errors.append(f"missing: {mem_path.relative_to(project_root)}")

@@ -125,6 +125,8 @@ else:
 
 ## 自动修订闭环（max revisions = 2）
 
+> **修订禁用 API Writer**：修订子流水线（targeted/full）**必须**使用 ChapterWriter Agent（`Task(subagent_type="chapter-writer")`），**不得**调用 API Writer（`scripts/api-writer.py`）。API Writer 仅用于 Step 1 的初始稿件生成。原因：修订需要读取上次评估结果（`required_fixes`/`failed_dimensions`）做定向修改，CW 的 Read 工具集成和 revision manifest 支持是必需的；API Writer 无法消费这些输入。
+
 - 若 gate_decision="revise" 且 revision_count < 2：
   - 更新 checkpoint: orchestrator_state="CHAPTER_REWRITE", pipeline_stage="revising", revision_count += 1, revision_scope=<computed>, failed_dimensions=<computed>, failed_tracks=<computed>
   - 组装修订指令（合并 QJ + CC 来源）：
