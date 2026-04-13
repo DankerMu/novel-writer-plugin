@@ -479,7 +479,11 @@ def build_concurrent_state(
     if schedule is None:
         return {}
 
-    active = schedule.get("active_storylines", [])
+    raw_active = schedule.get("active_storylines", [])
+    active = [
+        e["storyline_id"] if isinstance(e, dict) else e
+        for e in raw_active
+    ]
     dormant = set(schedule.get("dormant_storylines", []))
     state: Dict[str, str] = {}
 
