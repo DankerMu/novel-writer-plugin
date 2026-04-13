@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sliding Window Continuity Report",
+  "description": "滑窗一致性校验报告，由 Codex 生成，编排器消费",
+  "type": "object",
+  "required": ["window", "alignment_checks", "continuity_issues", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "window": {
+      "type": "object",
+      "required": ["start", "end", "volume"],
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "窗口起始章节号"
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "窗口结束章节号"
+        },
+        "volume": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "卷号"
+        }
+      }
+    },
+    "alignment_checks": {
+      "type": "array",
+      "description": "正文与契约/大纲对齐问题",
+      "items": {
+        "type": "object",
+        "required": ["chapter", "check_type", "detail", "severity", "auto_fixable"],
+        "additionalProperties": false,
+        "properties": {
+          "chapter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "问题所在章节号"
+          },
+          "check_type": {
+            "type": "string",
+            "enum": [
+              "contract_event_missing",
+              "contract_conflict_missing",
+              "outline_mismatch",
+              "acceptance_criteria_fail",
+              "foreshadow_missing"
+            ],
+            "description": "对齐检查类型"
+          },
+          "detail": {
+            "type": "string",
+            "description": "问题描述，含具体证据（原文引用）"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["high", "medium"],
+            "description": "严重程度：high 影响剧情连贯性，medium 影响细节一致性"
+          },
+          "auto_fixable": {
+            "type": "boolean",
+            "description": "是否可自动修复"
+          }
+        }
+      }
+    },
+    "continuity_issues": {
+      "type": "array",
+      "description": "跨章连续性问题",
+      "items": {
+        "type": "object",
+        "required": ["chapter_range", "issue_type", "detail", "severity", "auto_fixable"],
+        "additionalProperties": false,
+        "properties": {
+          "chapter_range": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "问题涉及的章节范围 [起始章, 结束章]"
+          },
+          "issue_type": {
+            "type": "string",
+            "enum": [
+              "character_position",
+              "timeline_contradiction",
+              "world_rule_violation",
+              "foreshadow_inconsistency",
+              "cross_line_leak"
+            ],
+            "description": "连续性问题类型"
+          },
+          "detail": {
+            "type": "string",
+            "description": "问题描述，含具体证据（章节号 + 原文引用）"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["high", "medium"],
+            "description": "严重程度：high 影响剧情连贯性，medium 影响细节一致性"
+          },
+          "auto_fixable": {
+            "type": "boolean",
+            "description": "是否可自动修复"
+          },
+          "current_text": {
+            "type": "string",
+            "description": "当前有问题的原文片段（auto_fixable=true 时必填）"
+          },
+          "suggested_fix": {
+            "type": "string",
+            "description": "建议的修复文本（auto_fixable=true 时必填）"
+          },
+          "fix_chapter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "需修复的目标章节号（auto_fixable=true 时必填）"
+          },
+          "fix_location": {
+            "type": "string",
+            "description": "修复位置描述，如 paragraph_1（auto_fixable=true 时必填）"
+          }
+        },
+        "if": {
+          "properties": { "auto_fixable": { "const": true } }
+        },
+        "then": {
+          "required": ["chapter_range", "issue_type", "detail", "severity", "auto_fixable", "current_text", "suggested_fix", "fix_chapter", "fix_location"]
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["issues_total", "auto_fixable_count", "high_severity_unfixed"],
+      "additionalProperties": false,
+      "properties": {
+        "issues_total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "问题总数（alignment_checks + continuity_issues）"
+        },
+        "auto_fixable_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "可自动修复的问题数"
+        },
+        "high_severity_unfixed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "高严重级且不可自动修复的问题数"
+        }
+      }
+    }
+  }
+}
