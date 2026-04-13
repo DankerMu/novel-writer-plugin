@@ -165,24 +165,25 @@ for ch_raw in "${chapters[@]}"; do
     continue
   fi
 
-  # (b) Check manifest exists
-  manifest="$project_dir/staging/manifests/chapter-${ch_pad}-manifest.json"
-  if [ ! -f "$manifest" ]; then
-    echo "  [WARN] manifest not found: $manifest" >&2
+  # (b) Check per-agent manifests exist
+  qj_manifest="$project_dir/staging/manifests/chapter-${ch_pad}-quality-judge.json"
+  cc_manifest="$project_dir/staging/manifests/chapter-${ch_pad}-content-critic.json"
+  if [ ! -f "$qj_manifest" ] || [ ! -f "$cc_manifest" ]; then
+    echo "  [WARN] per-agent manifest not found (expected $qj_manifest and $cc_manifest)" >&2
     failed_chapters+=("$ch")
     continue
   fi
 
   # (c-d) Assemble task content for QJ and CC
   echo "  assembling QJ task content..."
-  if ! "$PYTHON" "$PLUGIN_ROOT/scripts/codex-eval.py" "$manifest" --agent quality-judge --project "$project_dir"; then
+  if ! "$PYTHON" "$PLUGIN_ROOT/scripts/codex-eval.py" "$qj_manifest" --agent quality-judge --project "$project_dir"; then
     echo "  [WARN] QJ assembly failed for chapter $ch" >&2
     failed_chapters+=("$ch")
     continue
   fi
 
   echo "  assembling CC task content..."
-  if ! "$PYTHON" "$PLUGIN_ROOT/scripts/codex-eval.py" "$manifest" --agent content-critic --project "$project_dir"; then
+  if ! "$PYTHON" "$PLUGIN_ROOT/scripts/codex-eval.py" "$cc_manifest" --agent content-critic --project "$project_dir"; then
     echo "  [WARN] CC assembly failed for chapter $ch" >&2
     failed_chapters+=("$ch")
     continue

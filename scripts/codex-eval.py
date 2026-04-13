@@ -356,6 +356,10 @@ def validate_summarizer(project_root: Path, chapter: int) -> list[str]:
                     elif not isinstance(op["path"], str):
                         errors.append(f"delta: ops[{i}] path must be string")
                     elif op_val == "foreshadow":
+                        if "." in op["path"]:
+                            errors.append(
+                                f"delta: ops[{i}] foreshadow path must be"
+                                " single-level ID (no dots)")
                         if "value" not in op:
                             errors.append(f"delta: ops[{i}] foreshadow missing value")
                         elif op["value"] not in ("planted", "advanced", "resolved"):
@@ -392,6 +396,8 @@ def validate_summarizer(project_root: Path, chapter: int) -> list[str]:
                     for field in ("type", "hint", "confidence", "evidence"):
                         if field not in hint:
                             errors.append(f"delta: canon_hints[{i}] missing {field}")
+                        elif field in ("hint", "evidence") and not isinstance(hint[field], str):
+                            errors.append(f"delta: canon_hints[{i}] {field} must be string")
                     h_type = hint.get("type")
                     if h_type is not None and h_type not in valid_hint_types:
                         errors.append(

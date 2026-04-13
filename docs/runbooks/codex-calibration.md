@@ -11,8 +11,8 @@
 
 ### Step 1: 准备 Manifests
 
-确保每章有 `staging/manifests/chapter-{C:03d}-manifest.json`。
-如果不存在，通过 `/novel:continue` 的 Step 2 context assembly 生成。
+确保每章有 5 个 per-agent manifest 文件：`staging/manifests/chapter-{C:03d}-{agent}.json`（agent = chapter-writer / style-refiner / summarizer / quality-judge / content-critic）。
+如果不存在，通过 `/novel:continue` 的 Step 2a 组装器 Task agent 生成。
 
 ### Step 2: 运行批量评估
 
