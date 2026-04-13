@@ -1,5 +1,7 @@
 # Checkpoint 恢复
 
+> **权威来源**：`skills/continue/references/checkpoint-recovery.md`（含最新 pipeline_stage 枚举 + 定向修订并行恢复 + direct_fixing 阶段）。本 runbook 为简化版操作指南，不覆盖全部恢复分支。
+
 ## Trigger
 
 `/novel:continue` 启动时检测到以下任一情况：
