@@ -184,6 +184,27 @@ def build_output_section(agent: str, manifest: dict) -> str:
     return "\n".join(lines)
 
 
+def stage_plugin_files(agent: str, project_root: Path) -> None:
+    """Copy plugin files needed by Codex into staging/plugin/ under project root."""
+    import shutil
+    plugin_dir = project_root / "staging" / "plugin"
+
+    # Prompt spec
+    prompt_src = PLUGIN_ROOT / "prompts" / f"codex-{agent}.md"
+    prompt_dst = plugin_dir / "prompts" / f"codex-{agent}.md"
+    prompt_dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(prompt_src, prompt_dst)
+
+    # Lint scripts (QJ only)
+    if agent == "quality-judge":
+        scripts_dst = plugin_dir / "scripts"
+        scripts_dst.mkdir(parents=True, exist_ok=True)
+        for s in QJ_LINT_SCRIPTS:
+            src = PLUGIN_ROOT / "scripts" / s
+            if src.exists():
+                shutil.copy2(src, scripts_dst / s)
+
+
 def assemble_task_content(agent: str, manifest: dict) -> str:
     """Assemble full task content markdown for a given agent."""
     parts: list[str] = []
@@ -197,9 +218,8 @@ def assemble_task_content(agent: str, manifest: dict) -> str:
     }
     parts.append(f"请读取以下评估规范，然后执行{agent_cn[agent]}。")
 
-    # Section 1: prompt reference (absolute path — Codex 工作目录是项目根，非插件目录)
-    prompt_path = PLUGIN_ROOT / "prompts" / f"codex-{agent}.md"
-    parts.append(f"## 评估规范\n请读取: {prompt_path}")
+    # Section 1: prompt reference (project-relative — files staged to staging/plugin/)
+    parts.append(f"## 评估规范\n请读取: staging/plugin/prompts/codex-{agent}.md")
 
     # Section 2: file paths
     paths = manifest.get("paths", {})
@@ -211,7 +231,7 @@ def assemble_task_content(agent: str, manifest: dict) -> str:
     # Section 3: lint scripts (QJ only)
     if agent == "quality-judge":
         draft = paths.get("chapter_draft", "staging/chapters/chapter-???.md")
-        lint_lines = [f"- bash {PLUGIN_ROOT / 'scripts' / s} {draft}" for s in QJ_LINT_SCRIPTS]
+        lint_lines = [f"- bash staging/plugin/scripts/{s} {draft}" for s in QJ_LINT_SCRIPTS]
         lint_lines.append("（将 lint 结果用于 contract_verification 对应 checks）")
         parts.append(f"## 需要执行的 lint 脚本\n" + "\n".join(lint_lines))
 
@@ -258,7 +278,8 @@ def agent_mode(args):
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / out_name
 
-    # Assemble and write
+    # Stage plugin files into project, then assemble
+    stage_plugin_files(agent, project_root)
     content = assemble_task_content(agent, manifest)
     out_path.write_text(content, encoding="utf-8")
 
