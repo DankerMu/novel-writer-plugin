@@ -76,45 +76,47 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 
 恢复章完成 commit 后，再继续从 `last_completed_chapter + 1` 续写后续章节，直到累计提交 N 章（包含恢复章）。
 
-### Step 2: 组装 Context（委托 + 校验）
+### Step 2: 组装 Context（脚本组装 + agent 审查 + 主控校验）
 
-将完整 context 组装（Steps 2.1-2.7）委托给 Task agent 执行，主控仅做结果校验。规则的权威来源为 [`references/context-assembly.md`](references/context-assembly.md)（Step 2.0-2.7）。
+使用 Python 脚本完成确定性 manifest 组装（json.dumps 保证 JSON 序列化正确），再由 Task agent 审查输出，主控做结构校验。规则的权威来源为 [`references/context-assembly.md`](references/context-assembly.md)（Step 2.0-2.7）。
 
-> 收益：主控不再读取 outline/rules.json/characters/*.json/storylines/ 等源文件，context 窗口占用从 ~3-5K tokens 降至 ~500 tokens（仅校验结果）。
+> 收益：消除 LLM 手工拼 JSON 导致的双引号转义错误；主控不再读取源文件，context 窗口占用 ~500 tokens。
 
-**Step 2a: 委托组装**
+**Step 2a: 脚本组装 + agent 审查**
 
-派发 Task agent（通用类型，model="sonnet"）执行 context 组装：
+派发 Task agent（通用类型，model="sonnet"）执行以下两步：
 
 ```
 Task prompt：
-  你是 context 组装器。请严格按照规则文档组装本章所有 agent manifest。
+  你是 context 组装审查器。先调脚本组装 manifest，再审查输出。
 
-  输入参数：
-  - chapter_num = {C}, volume_num = {V}
-  - eval_backend = "{eval_backend}"
-  - revision_state = {revision_scope, failed_dimensions, failed_tracks, required_fixes}
-    （修订时传入，否则 null）
+  ## 第一步：调脚本组装
 
-  规则文档（必须 Read）：
-  - references/context-assembly.md（Steps 2.0-2.7 确定性规则）
-  - references/context-contracts.md（各 agent manifest 字段契约）
+  执行以下命令：
+  bash: python3 ${CLAUDE_PLUGIN_ROOT}/scripts/assemble-manifests.py \
+    -c {C} -v {V} -p {PROJECT_ROOT} \
+    --eval-backend {eval_backend} \
+    {--revision 'JSON字符串' 如果 revision_state 非 null}
 
-  输出（JSON，写入 staging/manifests/）：
-  - chapter-{C:03d}-chapter-writer.json
-  - chapter-{C:03d}-style-refiner.json
-  - chapter-{C:03d}-summarizer.json
-  - chapter-{C:03d}-quality-judge.json
-  - chapter-{C:03d}-content-critic.json
+  脚本输出 5 个 manifest JSON 到 staging/manifests/。
+  若脚本以非 0 退出：报告 stderr 错误信息，不继续审查。
 
-  约束：
-  - 同一输入 → 同一输出（确定性）
-  - 缺关键文件（outline/契约/角色）→ 报错并列出缺失项
-  - canon_status 预过滤后的角色 JSON 写入 staging/context/characters/
-  - 修订模式下，在对应 manifest 中追加 revision 相关字段（required_fixes 等）
+  ## 第二步：审查输出
+
+  Read 每个 staging/manifests/chapter-{C:03d}-*.json，抽查：
+  1. JSON 可解析（脚本用 json.dumps，理论上必定合法，但确认无误）
+  2. chapter_outline_block 内容与 outline.md 对应区块一致
+  3. storyline_id 与大纲/契约一致
+  4. paths 中引用的文件存在（抽查 3-5 个关键路径）
+  5. entity_id_map 角色名与 characters/active/ 一致
+  6. hard_rules_list 条目数与 world/rules.json 中 hard+established 数量匹配
+  7. 修订模式下，CW manifest 含 required_fixes / chapter_draft 字段
+
+  发现问题 → 报告具体字段和期望值（不自己手动修 JSON）。
+  全部通过 → 报告 "审查通过"。
 ```
 
-> **修订回环复用**：gate_decision="revise" 时，重新派发 Step 2a 并传入 `revision_state`，组装器自动在 CW manifest 追加修订字段。主控不需要自行 patch manifest。
+> **修订回环复用**：gate_decision="revise" 时，重新派发 Step 2a 并传入 `revision_state`（作为 `--revision` JSON 参数），脚本自动在 CW manifest 追加修订字段。主控不需要自行 patch manifest。
 
 **Step 2b: 主控校验**（manifest 结构校验，不读源文件）
 

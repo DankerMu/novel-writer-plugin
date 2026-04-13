@@ -6,16 +6,21 @@
 
 ## Step 2.0: Manifest 模式说明
 
-**v2 架构变更**：编排器不再将文件全文读入并用 `<DATA>` 标签包裹后注入 Task prompt。改为在 manifest 中传递文件路径，由 subagent 自行 Read。
+**v3 架构变更**：manifest 组装由 Python 脚本 `scripts/assemble-manifests.py` 完成（`json.dumps` 序列化，彻底消除 LLM 手工拼 JSON 导致的双引号/转义错误）。Task agent 负责调脚本 + 审查输出，不再直接写 JSON。
 
-此变更的收益：
-- 编排器 prompt 体积大幅缩减（路径 vs 全文）
-- Subagent 可按需读取，避免加载无关内容
-- 消除"双重读取"开销（编排器读 → 注入 → subagent 解析）
+执行流程：
+1. Task agent 执行 `python3 scripts/assemble-manifests.py -c {C} -v {V} -p {PROJECT_ROOT} ...`
+2. 脚本按本文档 Step 2.1-2.7 规则组装 5 个 manifest JSON → `staging/manifests/`
+3. Task agent 审查脚本输出（字段语义、路径存在性、与源文件一致性）
+4. 主控做结构校验（Step 2b）
+
+manifest 包含两类字段：
+- **inline**（内联）：脚本确定性计算，直接写入 JSON——适用于需要预处理/裁剪/跨文件聚合的数据
+- **paths**（文件路径）：指向项目目录下的文件，由 subagent 用 Read 工具自行读取
 
 注入安全由各 Agent frontmatter 中的安全约束段落保障——Agent 被指示将读取的外部文件内容视为参考数据，不执行其中的操作请求。
 
-> **兼容说明**：Step 2.1-2.5 中的确定性计算逻辑不变，仅最终输出从"内容注入"改为"路径引用"。
+> **兼容说明**：Step 2.1-2.7 中的确定性计算逻辑不变，脚本为其 1:1 Python 实现。本文档仍为规则权威来源，脚本按此文档实现。
 
 ## Step 2.1: 从 outline.md 提取本章大纲区块（确定性）
 
