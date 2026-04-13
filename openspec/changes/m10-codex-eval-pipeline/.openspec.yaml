@@ -1,0 +1,5 @@
+id: m10-codex-eval-pipeline
+title: Codex 化评估管线（Summarizer + QJ + CC → Codex Backend）
+status: proposed
+created: 2026-04-12
+milestone: M10
