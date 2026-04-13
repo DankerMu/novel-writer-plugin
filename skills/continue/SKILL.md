@@ -202,20 +202,23 @@ for chapter_num in range(start, start + remaining_N):
      更新 checkpoint: pipeline_stage = "drafted"
 
   3. QualityJudge + ContentCritic **并行**评估
-     **预处理**（两个 Agent 共用，执行一次；eval_backend="codex" 时预处理结果注入 manifest，Codex 自行执行 lint）：
+     **预处理 — 草稿依赖字段补丁**（两个 Agent 共用，执行一次；在 SR 完成后、QJ/CC 调度前执行）：
+
+     > Step 2a 的 manifest 仅含项目静态数据（路径 + 确定性计算值），不含草稿依赖的 lint/NER 结果。以下预处理在草稿产出后执行，将结果**原地 patch 到已有的 QJ manifest 文件**（`staging/manifests/chapter-{C:03d}-quality-judge.json`，JSON merge，不重新组装）。eval_backend="codex" 时 patch 后由 codex-eval.py 读取注入 task content。
+
      （可选确定性工具）中文 NER 实体抽取：
        - 若存在 `${CLAUDE_PLUGIN_ROOT}/scripts/run-ner.sh`：
          - 执行：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/run-ner.sh staging/chapters/chapter-{C:03d}.md`
-         - 若退出码为 0 且 stdout 为合法 JSON → 记为 `ner_entities_json`，写入 quality_judge_manifest.ner_entities
-       - 若脚本不存在/失败/输出非 JSON → `ner_entities_json = null`，不得阻断流水线
+         - 若退出码为 0 且 stdout 为合法 JSON → patch 到 QJ manifest: `ner_entities = <json>`
+       - 若脚本不存在/失败/输出非 JSON → 不 patch（字段保持缺失），不得阻断流水线
      （可选）注入最近一致性检查摘要：
-       - 若存在 `logs/continuity/latest.json`：裁剪并注入 quality_judge_manifest.continuity_report_summary
-       - 否则 → null
+       - 若存在 `logs/continuity/latest.json`：裁剪并 patch 到 QJ manifest: `continuity_report_summary = <trimmed>`
+       - 否则 → 不 patch
      （可选确定性工具）黑名单精确命中统计：
        - 若存在 `${CLAUDE_PLUGIN_ROOT}/scripts/lint-blacklist.sh`：
          - 执行：`bash ${CLAUDE_PLUGIN_ROOT}/scripts/lint-blacklist.sh staging/chapters/chapter-{C:03d}.md ai-blacklist.json`
-         - 若退出码为 0 且 stdout 为合法 JSON → 写入 quality_judge_manifest.blacklist_lint
-       - 否则 → null
+         - 若退出码为 0 且 stdout 为合法 JSON → patch 到 QJ manifest: `blacklist_lint = <json>`
+       - 否则 → 不 patch
 
      **按 eval_backend 分支派发**:
 
