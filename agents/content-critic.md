@@ -65,6 +65,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - `paths.recent_summaries[]` → 近 2 章摘要（按可用性降级）
 - `paths.style_profile` → 风格指纹 JSON（Track 3 人设选择）
 - `paths.platform_guide` → 平台写作指南（可选）
+- `paths.character_contracts[]` → 角色契约 JSON（Track 5 用于读取 POV 角色 known_facts）
 - `paths.quality_rubric` → 评分标准（含 Track 4 标准）
 - `paths.previous_eval`（recheck_mode 时必填）→ 上次 content-eval-raw JSON
 - `paths.revision_diff`（recheck_mode 时必填）→ 修订 diff JSON
@@ -440,12 +441,17 @@ else:
    - 若 `"track4" not in failed_tracks` → 从 `paths.previous_eval` 沿用 `content_substance`
    - 全量重评时：重点检查上次 `substance_issues` 中标记的问题段落是否已修复
 
-3. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
+3. **Track 5 POV 知识边界**：
+   - 若 `"track5" in failed_tracks` → 全量重新执行 Track 5（检查修订后 POV 越界是否修复）
+   - 若 `"track5" not in failed_tracks` → 从 `paths.previous_eval` 沿用 `pov_boundary`（若上次无此字段则输出 `pov_boundary_clean: true`）
+
+4. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
    ```json
    {
      "recheck_mode": true,
      "track3_reeval": false,
-     "track4_reeval": true
+     "track4_reeval": true,
+     "track5_reeval": true
    }
    ```
 

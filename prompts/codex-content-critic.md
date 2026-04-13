@@ -326,6 +326,10 @@ else:
         "fix_suggestion": "第 2 轮后引入新信息（如第三方介入/新情报到达）打破僵局，或让一方在压力下软化/硬化"
       }
     ]
+  },
+  "pov_boundary": {
+    "pov_boundary_issues": [],
+    "pov_boundary_clean": true
   }
 }
 ```
@@ -364,12 +368,17 @@ else:
    - 若 `"track4" not in failed_tracks` → 从上次评估结果沿用 `content_substance`
    - 全量重评时：重点检查上次 `substance_issues` 中标记的问题段落是否已修复
 
-3. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
+3. **Track 5 POV 知识边界**：
+   - 若 `"track5" in failed_tracks` → 全量重新执行 Track 5（检查修订后 POV 越界是否修复）
+   - 若 `"track5" not in failed_tracks` → 沿用上次 `pov_boundary`（无此字段则输出 `pov_boundary_clean: true`）
+
+4. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
    ```json
    {
      "recheck_mode": true,
      "track3_reeval": false,
-     "track4_reeval": true
+     "track4_reeval": true,
+     "track5_reeval": true
    }
    ```
 

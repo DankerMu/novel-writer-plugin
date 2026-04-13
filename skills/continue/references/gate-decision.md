@@ -87,7 +87,7 @@ gate_decision = max_severity(qj_decision, substance_decision, engagement_decisio
 
 ```
 failed_dimensions = []   # QJ Track 2 中 score < 3.5 的维度名列表（仅 gate_decision in ["revise","polish"] 时计算）
-failed_tracks = []       # 需要复检的 Track 列表（"track1" | "track2" | "track4"）
+failed_tracks = []       # 需要复检的 Track 列表（"track1" | "track2" | "track4" | "track5"）
 revision_scope = "full"  # "targeted" | "full"
 ```
 
@@ -107,6 +107,8 @@ if len(failed_dimensions) > 0:
     failed_tracks.append("track2")
 if substance_violation(cc_eval):
     failed_tracks.append("track4")
+if pov_violation(cc_eval):
+    failed_tracks.append("track5")
 # 注：Track 3 不通过 failed_tracks 控制。CC recheck 内部根据上次 engagement_override 状态自主判断是否重评 Track 3
 # 注：tonal_variance < 3.0 触发 revise 时，若无其他严重问题则走 targeted（tonal_variance 属于单维度失分，适合定向修订）
 ```
