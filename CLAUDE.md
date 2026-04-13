@@ -53,7 +53,13 @@ Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 revi
 
 Targeted mode passes `failed_dimensions` to CW for scoped edits, uses `lite_mode`/`patch_mode`/`recheck_mode` flags for downstream agents. Max 2 revisions, then force_passed or pause_for_user.
 
-**Eval backend** (M10): Summarizer/QJ/CC/sliding-window can run via Codex (`eval_backend: "codex"` in checkpoint) or Opus agents (`eval_backend: "opus"`, default). Codex path uses `codex-eval.py` to assemble task content + `codeagent-wrapper --backend codex` for execution + `codex-eval.py --validate` for output validation. Writing pipeline (API Writer/CW/SR) is unaffected. Config is global per project, no runtime fallback.
+**Eval backend** (M10): Summarizer/QJ/CC/sliding-window can run via Codex or Opus agents. New projects default to `eval_backend: "codex"` in checkpoint. Config is global per project, no runtime fallback between backends.
+
+Codex path: `codex-eval.py --agent` (assemble task content from manifest) → `codeagent-wrapper --backend codex` (Codex execution) → `codex-eval.py --validate` (staging output validation). Codex prompts live in `prompts/codex-{agent}.md`, adapted from agent specs without YAML frontmatter or Claude Code tool refs. Writing pipeline (API Writer/CW/SR) is unaffected.
+
+**codeagent-wrapper constraints**: Do not kill long-running processes (wastes API cost). Timeouts: Summarizer/QJ/CC 3600s, sliding-window 7200s (via `CODEX_TIMEOUT` env). SESSION_ID from wrapper logged for audit/resume.
+
+Calibration: `scripts/run-codex-calibration.sh` runs batch Codex eval on M3 dataset. `scripts/lib/calibrate_codex.py` computes 4-way comparison (Codex QJ vs Human, CC vs Human, Codex vs Opus, Summarizer ops). Threshold decision: r≥0.85 + |bias|<0.3 → keep; r≥0.85 + |bias|≥0.3 → adjust; r<0.85 → review. See `docs/runbooks/codex-calibration.md`.
 
 ### 7 Agents
 
@@ -67,7 +73,7 @@ Targeted mode passes `failed_dimensions` to CW for scoped edits, uses `lite_mode
 | QualityJudge | Opus | purple | Track 1 contract compliance + Track 2 quality scoring (9 dimensions) | staging/evaluations only |
 | ContentCritic | Opus | red | Track 3 reader engagement + Track 4 content substance | staging/evaluations only |
 
-Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config. ChapterWriter and StyleRefiner run sequentially (same color, never concurrent). QualityJudge and ContentCritic run in parallel after Summarizer.
+Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config. ChapterWriter and StyleRefiner run sequentially (same color, never concurrent). QualityJudge and ContentCritic run in parallel after Summarizer. When `eval_backend="codex"`, Summarizer/QJ/CC use Codex prompts (`prompts/codex-*.md`) via codeagent-wrapper instead of Claude Code Task agents.
 
 ### 3 Entry Skills
 
@@ -114,6 +120,7 @@ Shared methodology in `skills/novel-writing/SKILL.md` (passive reference, not us
 - JSON schemas: `eval/schema/`
 - Smoke test fixtures: `eval/fixtures/`
 - Calibration measures Pearson correlation between QualityJudge and human scores
+- Codex calibration: `scripts/run-codex-calibration.sh` + `eval/calibration/` reports
 
 ## Runbooks
 
@@ -124,6 +131,8 @@ Standardized failure-handling guides in `docs/runbooks/`:
 - `checkpoint-recovery.md` — Checkpoint 损坏或中断恢复路径
 - `foreshadow-lifecycle.md` — 伏笔全生命周期（planted→advanced→resolved）
 - `cross-volume-handoff.md` — 跨卷衔接数据流与检查清单
+- `codex-calibration.md` — Codex 评估管线校准流程（6 步：准备→批量评估→阅读报告→阈值决策→Summarizer 验证→切换）
+- `codex-eval-troubleshooting.md` — Codex 评估管线故障排查（超时/校验失败/backend 切换/并行冲突）
 
 ## Quality Aggregation
 

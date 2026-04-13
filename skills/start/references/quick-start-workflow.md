@@ -116,7 +116,7 @@
    - `style-profile.json`：从 `style-profile-template.json` 复制（后续由 WorldBuilder 风格提取模式填充）。将 Step B 采集的 `platform` 值写入 `style-profile.json` 的 `platform` 字段（必填，不可为 null）
    - `ai-blacklist.json`：从 `ai-blacklist.json` 复制
 3. **初始化最小可运行文件**（模板复制后立即创建，确保后续 Agent 可正常读取）：
-   - `.checkpoint.json`：`{"last_completed_chapter": 0, "current_volume": 0, "orchestrator_state": "QUICK_START", "pipeline_stage": null, "inflight_chapter": null, "quick_start_step": "C", "revision_count": 0, "pending_actions": [], "last_checkpoint_time": "<now>"}`
+   - `.checkpoint.json`：`{"last_completed_chapter": 0, "current_volume": 0, "orchestrator_state": "QUICK_START", "pipeline_stage": null, "inflight_chapter": null, "quick_start_step": "C", "revision_count": 0, "pending_actions": [], "eval_backend": "codex", "last_checkpoint_time": "<now>"}`
    - `state/current-state.json`：`{"schema_version": 1, "state_version": 0, "last_updated_chapter": 0, "characters": {}, "world_state": {}, "active_foreshadowing": []}`
    - `foreshadowing/global.json`：`{"foreshadowing": []}`
    - `storylines/storyline-spec.json`：`{"spec_version": 1, "rules": []}` （WorldBuilder 初始化后由入口 Skill 填充默认 LS-001~005）
