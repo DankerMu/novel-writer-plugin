@@ -197,8 +197,9 @@ def assemble_task_content(agent: str, manifest: dict) -> str:
     }
     parts.append(f"请读取以下评估规范，然后执行{agent_cn[agent]}。")
 
-    # Section 1: prompt reference
-    parts.append(f"## 评估规范\n请读取: prompts/codex-{agent}.md")
+    # Section 1: prompt reference (absolute path — Codex 工作目录是项目根，非插件目录)
+    prompt_path = PLUGIN_ROOT / "prompts" / f"codex-{agent}.md"
+    parts.append(f"## 评估规范\n请读取: {prompt_path}")
 
     # Section 2: file paths
     paths = manifest.get("paths", {})
@@ -210,7 +211,7 @@ def assemble_task_content(agent: str, manifest: dict) -> str:
     # Section 3: lint scripts (QJ only)
     if agent == "quality-judge":
         draft = paths.get("chapter_draft", "staging/chapters/chapter-???.md")
-        lint_lines = [f"- bash scripts/{s} {draft}" for s in QJ_LINT_SCRIPTS]
+        lint_lines = [f"- bash {PLUGIN_ROOT / 'scripts' / s} {draft}" for s in QJ_LINT_SCRIPTS]
         lint_lines.append("（将 lint 结果用于 contract_verification 对应 checks）")
         parts.append(f"## 需要执行的 lint 脚本\n" + "\n".join(lint_lines))
 
