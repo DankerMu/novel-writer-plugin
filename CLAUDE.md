@@ -37,7 +37,7 @@ Agents validate outputs against these layers. QualityJudge performs dual-track v
 
 
 
-State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current_volume`, `last_completed_chapter`, `pipeline_stage`, `inflight_chapter`.
+State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current_volume`, `last_completed_chapter`, `pipeline_stage`, `inflight_chapter`, `eval_backend` (optional, "codex" or "opus", default "opus").
 
 ### Single-Chapter Pipeline
 
@@ -52,6 +52,8 @@ Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 revi
 - `full` (has high_violation or substance_severe or overall < 3.0): full pipeline re-run (~90K tokens)
 
 Targeted mode passes `failed_dimensions` to CW for scoped edits, uses `lite_mode`/`patch_mode`/`recheck_mode` flags for downstream agents. Max 2 revisions, then force_passed or pause_for_user.
+
+**Eval backend** (M10): Summarizer/QJ/CC/sliding-window can run via Codex (`eval_backend: "codex"` in checkpoint) or Opus agents (`eval_backend: "opus"`, default). Codex path uses `codex-eval.py` to assemble task content + `codeagent-wrapper --backend codex` for execution + `codex-eval.py --validate` for output validation. Writing pipeline (API Writer/CW/SR) is unaffected. Config is global per project, no runtime fallback.
 
 ### 7 Agents
 
