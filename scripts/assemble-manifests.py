@@ -18,7 +18,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, NoReturn, Optional, Tuple
 
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 
@@ -27,7 +27,7 @@ PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 # Helpers
 # ---------------------------------------------------------------------------
 
-def die(msg: str, code: int = 1) -> None:
+def die(msg: str, code: int = 1) -> NoReturn:
     print(f"[assemble] FATAL: {msg}", file=sys.stderr)
     raise SystemExit(code)
 
@@ -106,36 +106,19 @@ def extract_md_section(text: str, heading: str) -> str:
 # Step 2.1: outline extraction
 # ---------------------------------------------------------------------------
 
-def scan_outline_storylines(text: str) -> Dict[int, str]:
-    """Build {chapter_num: storyline_id} from outline."""
+def _scan_outline_field(text: str, field: str) -> Dict[int, str]:
+    """Build {chapter_num: field_value} by scanning outline key-value lines."""
     lines = text.splitlines()
     cur_ch: Optional[int] = None
     result: Dict[int, str] = {}
+    pat = re.compile(rf"^- \*\*{re.escape(field)}\*\*[:：]\s*(.+)")
     for line in lines:
         m = re.match(r"^### 第 (\d+) 章", line)
         if m:
             cur_ch = int(m.group(1))
             continue
         if cur_ch is not None:
-            m2 = re.match(r"^- \*\*Storyline\*\*[:：]\s*(.+)", line)
-            if m2:
-                result[cur_ch] = m2.group(1).strip()
-                cur_ch = None
-    return result
-
-
-def scan_outline_state_changes(text: str) -> Dict[int, str]:
-    """Build {chapter_num: StateChanges value} from outline."""
-    lines = text.splitlines()
-    cur_ch: Optional[int] = None
-    result: Dict[int, str] = {}
-    for line in lines:
-        m = re.match(r"^### 第 (\d+) 章", line)
-        if m:
-            cur_ch = int(m.group(1))
-            continue
-        if cur_ch is not None:
-            m2 = re.match(r"^- \*\*StateChanges\*\*[:：]\s*(.+)", line)
+            m2 = pat.match(line)
             if m2:
                 result[cur_ch] = m2.group(1).strip()
                 cur_ch = None
@@ -202,8 +185,8 @@ def extract_chapter_outline(root: Path, volume: int, chapter: int) -> dict:
         "outline_keys": keys,
         "all_chapters": all_chapters,
         "outline_text": text,
-        "outline_storylines": scan_outline_storylines(text),
-        "outline_state_changes": scan_outline_state_changes(text),
+        "outline_storylines": _scan_outline_field(text, "Storyline"),
+        "outline_state_changes": _scan_outline_field(text, "StateChanges"),
     }
 
 
@@ -323,6 +306,12 @@ def parse_md_contract(text: str) -> dict:
         for line in crit.splitlines()
         if (m := re.match(r"^\d+\.\s*(.+)", line))
     ]
+
+    # Warn on critical empty sections (heading typo detection)
+    if not result.get("acceptance_criteria"):
+        warn("契约「验收标准」section 为空——检查标题是否有排版差异")
+    if not info_sec:
+        warn("契约「基本信息」section 为空——检查标题是否有排版差异")
 
     return result
 
@@ -553,7 +542,9 @@ def build_memory_paths(
     if schedule:
         for evt in schedule.get("convergence_events", []):
             cr = evt.get("chapter_range", [])
-            if isinstance(cr, list) and len(cr) == 2 and cr[0] <= chapter <= cr[1]:
+            if (isinstance(cr, list) and len(cr) == 2
+                    and isinstance(cr[0], int) and isinstance(cr[1], int)
+                    and cr[0] <= chapter <= cr[1]):
                 for sid in evt.get("involved_storylines", []):
                     if sid != storyline_id and sid not in dormant:
                         adj_ids.add(sid)
@@ -582,7 +573,7 @@ def build_foreshadowing_tasks(root: Path, volume: int,
                 items = data.get("items")
                 if isinstance(items, list):
                     return items
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, Exception) as e:
+        except Exception as e:  # any failure → fallback to rule-based filtering
             warn(f"query-foreshadow.sh 失败，回退规则过滤: {e}")
 
     # Rule-based fallback
@@ -599,6 +590,7 @@ def build_foreshadowing_tasks(root: Path, volume: int,
 
     def in_range(rng: Any, c: int) -> bool:
         return (isinstance(rng, list) and len(rng) == 2
+                and isinstance(rng[0], int) and isinstance(rng[1], int)
                 and rng[0] <= c <= rng[1])
 
     candidates: Dict[str, dict] = {}
@@ -676,7 +668,8 @@ def convergence_chapters(root: Path, volume: int) -> set:
     chs: set[int] = set()
     for evt in schedule.get("convergence_events", []):
         cr = evt.get("chapter_range", [])
-        if isinstance(cr, list) and len(cr) == 2:
+        if (isinstance(cr, list) and len(cr) == 2
+                and isinstance(cr[0], int) and isinstance(cr[1], int)):
             chs.update(range(cr[0], cr[1] + 1))
     return chs
 
@@ -758,9 +751,12 @@ def assemble_all(
 
     is_golden = chapter <= 3 and pg_path is not None
     conv_chs = convergence_chapters(root, volume)
+    has_convergence = bool(conv_chs)
     is_critical = (chapter in (ch_start, ch_end)
                    or chapter in conv_chs
-                   or chapter % 10 == 0)
+                   or (not has_convergence
+                       and chapter % 10 == 1
+                       and chapter != ch_start))
     t3_mode = "full" if (is_golden or chapter == ch_end or is_critical) else "lite"
 
     excitement = contract.get("excitement_type")
@@ -780,9 +776,10 @@ def assemble_all(
     prev_sum_rel = f"summaries/chapter-{chapter-1:03d}-summary.md"
     has_prev_sum = (root / prev_sum_rel).exists()
 
-    # Helper: add optional key to dict only if value is truthy
+    # Helper: add optional key only when value is present
+    # (None, empty list, empty string → omit; 0 and False are preserved)
     def opt(d: dict, k: str, v: Any) -> None:
-        if v:
+        if v is not None and v != [] and v != "":
             d[k] = v
 
     # ============================================================
@@ -820,6 +817,7 @@ def assemble_all(
     # Revision
     if revision:
         scope = revision.get("revision_scope", "full")
+        cw["revision_scope"] = scope
         if scope == "targeted":
             cw["required_fixes"] = revision.get("required_fixes", [])
             cw["failed_dimensions"] = revision.get("failed_dimensions", [])
@@ -889,6 +887,7 @@ def assemble_all(
         },
     }
     opt(qj, "excitement_type", excitement)
+    opt(qj, "narrative_phase", phase)
     opt(qj["paths"], "world_rules", rules_path)
     if has_prev_sum:
         qj["paths"]["prev_summary"] = prev_sum_rel
