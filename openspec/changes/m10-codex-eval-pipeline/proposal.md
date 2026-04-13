@@ -45,55 +45,103 @@ prompts/
 └── codex-sliding-window.md      # 基于 SKILL.md Step 8 滑窗校验流程
 ```
 
-与 `api-writer-system.md` 同模式：纯分析指令，去掉 YAML frontmatter、Claude Code 工具引用、Read/Write 指令。替换为"你会收到以下文件内容"的被动输入模式。
+与 `api-writer-system.md` 同模式：纯分析指令，去掉 YAML frontmatter、Claude Code 工具引用、Read/Write 指令。
 
-**关键差异**：Codex prompt 中硬约束"仅使用 user message 中提供的文件内容，不自行读取其他文件"。
+**关键差异**：prompt 文件本身不含文件内容——通过 `codeagent-wrapper` 的 `@file` 语法在 task content 中引用，由 codeagent 运行时解析注入。prompt 文件只包含角色定义、评估流程、输出格式规范。
 
-### 3. 调用链：codex-eval.py + codeagent skill
+### 3. 调用链：codex-eval.py + codeagent-wrapper
 
-**调用链**：`SKILL.md 编排器 → codex-eval.py（组装） → codeagent skill（执行） → 编排器（校验 + 写入）`
+**调用链**：`SKILL.md 编排器 → codex-eval.py（组装 task content） → codeagent-wrapper（Bash 执行） → 编排器（校验 + 写入）`
 
-`codeagent` 是已安装的外部 skill，支持 Codex/Claude/Gemini 多后端 + @file 引用 + 结构化输出。**必须通过 codeagent 调用 Codex**，不直接调 Codex CLI——codeagent 封装了进程管理、超时、输出捕获等基础设施。
+`codeagent-wrapper` 是已安装的 CLI 工具，封装 Codex/Claude/Gemini 多后端的进程管理、超时、输出捕获。**必须通过 codeagent-wrapper 调用 Codex**。
 
-#### Step A: codex-eval.py 组装 prompt（Bash 调用）
+**调用格式**（HEREDOC 语法）：
+```bash
+codeagent-wrapper --backend codex - <project_root> <<'EOF'
+<task content with @file references>
+EOF
+```
+
+#### Step A: codex-eval.py 组装 task content
 
 ```
 scripts/codex-eval.py <manifest.json> --agent summarizer|quality-judge|content-critic|sliding-window --project <path>
 ```
 
 职责**仅限组装**，不调用任何外部模型：
-- 读取 manifest JSON，将 `paths` 中的文件路径解析为绝对路径
-- 读取各路径的文件内容，按 section 拼接（与 api-writer.py 的 `assemble_user_message()` 同模式）
-- 组装完整 prompt 文件写入 `staging/prompts/chapter-{C:03d}-{agent}.md`（system prompt 内容 + user message 内容合并为一个 prompt 文件，codeagent 消费）
-- 输出 prompt 文件路径到 stdout（供编排器捕获）
+- 读取 manifest JSON
+- 生成 task content 文件到 `staging/prompts/chapter-{C:03d}-{agent}.md`，包含：
+  - `@prompts/codex-{agent}.md` 引用（评估规范 prompt）
+  - manifest `paths` 中各路径转换为 `@path` 引用（如 `@staging/chapters/chapter-048.md`）
+  - manifest inline 值直接内联（chapter_num、hard_rules_list 等）
+- 输出 task content 文件路径到 stdout
 - 退出码：0 = 组装成功，1 = manifest 缺必要字段或文件不存在
 
-#### Step B: codeagent skill 执行（Skill 调用）
+**生成的 task content 示例**（QJ）：
+```markdown
+## 评估规范
+@prompts/codex-quality-judge.md
 
-编排器捕获 Step A 的 prompt 路径后，调用：
+## 章节全文
+@staging/chapters/chapter-048.md
 
+## 章节契约
+@volumes/vol-01/chapter-contracts/chapter-048.md
+
+## 风格指纹
+@style-profile.json
+
+## AI 黑名单
+@ai-blacklist.json
+
+## 评分标准
+@skills/novel-writing/references/quality-rubric.md
+
+## 前章摘要
+@summaries/chapter-047-summary.md
+
+## 角色档案
+@characters/active/chen-yuan.md
+@characters/active/su-yao.md
+
+## 内联数据
+- 章节号: 48
+- 卷号: 1
+- platform: qidian
+- is_golden_chapter: false
+- hard_rules_list:
+  - 修炼者突破金丹需要灵气浓度≥3级
+  - 禁地不可擅入
+
+## 输出要求
+以 JSON 格式输出评估结果，schema 见评估规范中的 Format section。
+仅输出 JSON，不要输出其他内容。
 ```
-Skill("codeagent", args="--backend codex @staging/prompts/chapter-048-quality-judge.md")
+
+#### Step B: codeagent-wrapper 执行（Bash 调用）
+
+编排器读取 Step A 生成的 task content 文件，通过 Bash 调用 codeagent-wrapper：
+
+```bash
+codeagent-wrapper --backend codex - <project_root> < staging/prompts/chapter-048-quality-judge.md
 ```
 
-codeagent 负责：
-- 调用 Codex CLI，传入 @file 引用的 prompt
-- 管理进程生命周期（超时、异常退出）
-- 捕获 Codex 的结构化输出并返回
+- working_dir 设为项目根目录 → `@` 路径基于项目根解析
+- codeagent-wrapper 管理进程生命周期（超时默认 2h，可通过 `CODEX_TIMEOUT` 调整）
+- stdout 返回 Codex 输出文本 + SESSION_ID
 
 #### Step C: 编排器校验 + 写入
 
-编排器从 codeagent 返回结果中提取 JSON，执行 schema 校验：
-- **JSON 提取**：从 codeagent 输出中提取 JSON 块（```json ``` 围栏或裸 JSON 对象）
-- **Schema 校验**：调用 `codex-eval.py --validate <json_file> --schema quality-judge` 检查必填字段、枚举值、数值范围
-- 校验通过 → 写入 `staging/` 对应路径
-- 校验失败 → 按 Step 1.6 重试一次
+编排器从 codeagent-wrapper stdout 中提取 JSON，写入临时文件后调用校验：
 
-`codex-eval.py --validate` 模式：
+```bash
+python3 ${PLUGIN_ROOT}/scripts/codex-eval.py --validate <temp.json> --schema quality-judge
 ```
-scripts/codex-eval.py --validate <output.json> --schema summarizer|quality-judge|content-critic|sliding-window
-```
-- 退出码：0 = pass，1 = fail（stderr 输出具体缺失/违规字段列表）
+
+- 退出码 0 → 校验通过，移入 `staging/evaluations/chapter-{C:03d}-eval-raw.json`
+- 退出码 1 → 校验失败，stderr 输出缺失/违规字段，按重试流程处理
+
+`codex-eval.py --validate` 校验内容：必填字段存在性 + 枚举值合法性 + 数值范围（scores 1-5）。不做深层语义校验。
 
 ### 4. 修改 continue/SKILL.md 调度方式
 
@@ -102,25 +150,36 @@ scripts/codex-eval.py --validate <output.json> --schema summarizer|quality-judge
 ```python
 if eval_backend == "codex":
     # Step 2: Summarizer
-    #   A. 组装 prompt
-    prompt_path = Bash("python3 ${PLUGIN_ROOT}/scripts/codex-eval.py manifest.json --agent summarizer --project <root>").stdout.strip()
-    #   B. codeagent 执行
-    result = Skill("codeagent", args=f"--backend codex @{prompt_path}")
+    #   A. 组装 task content
+    Bash("python3 ${PLUGIN_ROOT}/scripts/codex-eval.py manifest.json --agent summarizer --project <root>")
+    #   B. codeagent-wrapper 执行
+    Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/chapter-048-summarizer.md",
+         timeout=3600000)  # 中等复杂度 1h
     #   C. 提取 JSON + 校验 + 写入 staging/
-    Write(staging_path, extracted_json)
-    Bash(f"python3 ${{PLUGIN_ROOT}}/scripts/codex-eval.py --validate {staging_path} --schema summarizer")
+    Bash("python3 ${PLUGIN_ROOT}/scripts/codex-eval.py --validate <temp.json> --schema summarizer")
 
-    # Step 3: QJ + CC 并行（两个 Skill 调用并行发起）
-    #   A. 组装两个 prompt（并行 Bash）
-    qj_prompt = Bash("... --agent quality-judge ...").stdout.strip()
-    cc_prompt = Bash("... --agent content-critic ...").stdout.strip()
-    #   B. 并行 codeagent 调用
-    qj_result = Skill("codeagent", args=f"--backend codex @{qj_prompt}")   # 并行 ┐
-    cc_result = Skill("codeagent", args=f"--backend codex @{cc_prompt}")   # 并行 ┘
+    # Step 3: QJ + CC 并行
+    #   A. 组装两个 task content（并行 Bash）
+    Bash("... --agent quality-judge ...")   # 并行 ┐
+    Bash("... --agent content-critic ...")  # 并行 ┘
+    #   B. codeagent-wrapper --parallel 一次调用跑两个任务
+    Bash("""codeagent-wrapper --parallel --backend codex <<'EOF'
+---TASK---
+id: qj
+backend: codex
+workdir: <root>
+---CONTENT---
+$(cat staging/prompts/chapter-048-quality-judge.md)
+---TASK---
+id: cc
+backend: codex
+workdir: <root>
+---CONTENT---
+$(cat staging/prompts/chapter-048-content-critic.md)
+EOF""", timeout=3600000)
     #   C. 各自校验 + 写入 staging/
 
 else:  # eval_backend == "opus" 或缺失
-    # 现有 Task 路径不变
     Task(subagent_type="summarizer", model="opus")
     Task(subagent_type="quality-judge", model="opus")   # 并行
     Task(subagent_type="content-critic", model="opus")  # 并行
@@ -130,16 +189,17 @@ else:  # eval_backend == "opus" 或缺失
 
 ```python
 if eval_backend == "codex":
-    # 1. 组装滑窗 prompt（窗口内 10 章原文 + 契约 + 大纲 + 世界规则 + 角色档案）
-    sw_prompt = Bash("python3 ${PLUGIN_ROOT}/scripts/codex-eval.py sliding-window-manifest.json --agent sliding-window --project <root>").stdout.strip()
-    # 2. codeagent 执行分析
-    sw_result = Skill("codeagent", args=f"--backend codex @{sw_prompt}")
+    # 1. 组装滑窗 task content
+    Bash("python3 ${PLUGIN_ROOT}/scripts/codex-eval.py sliding-window-manifest.json --agent sliding-window --project <root>")
+    # 2. codeagent-wrapper 执行分析
+    Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/sliding-window.md",
+         timeout=7200000)  # 复杂任务 2h（10 章原文）
     # 3. 提取报告 JSON + 校验
-    Bash(f"python3 ${{PLUGIN_ROOT}}/scripts/codex-eval.py --validate {report_path} --schema sliding-window")
+    Bash("python3 ${PLUGIN_ROOT}/scripts/codex-eval.py --validate <report.json> --schema sliding-window")
     # 4. 编排器读取报告，对 auto_fixable issues 使用 Edit 工具修复章节原文
     # 5. 不可自动修复的问题列出并提示用户
 else:
-    # 现有 agent 驱动流程不变（编排器内联执行）
+    # 现有 agent 驱动流程不变
 ```
 
 **滑窗拆分设计**：当前滑窗是"分析 + 自动修复"一体化。Codex 化后拆分为：
@@ -208,28 +268,39 @@ def validate_sliding_window(data: dict) -> list[str]: ...
 
 ### 7. 并行执行
 
-QJ + CC 的 prompt 组装（Step A）通过两个并行 Bash 完成，codeagent 调用（Step B）通过两个并行 Skill 调用完成：
+QJ + CC 使用 `codeagent-wrapper --parallel` 原生并行模式，一次 Bash 调用完成：
 
+```bash
+codeagent-wrapper --parallel --backend codex <<'EOF'
+---TASK---
+id: qj
+backend: codex
+workdir: <project_root>
+---CONTENT---
+$(cat staging/prompts/chapter-048-quality-judge.md)
+---TASK---
+id: cc
+backend: codex
+workdir: <project_root>
+---CONTENT---
+$(cat staging/prompts/chapter-048-content-critic.md)
+EOF
 ```
-# Step A: 并行组装 prompt
-Bash("... --agent quality-judge ...")  # tool call 1 ┐
-Bash("... --agent content-critic ...") # tool call 2 ┘ 并行
 
-# Step B: 并行 codeagent 调用
-Skill("codeagent", args="--backend codex @qj-prompt.md")  # tool call 1 ┐
-Skill("codeagent", args="--backend codex @cc-prompt.md")   # tool call 2 ┘ 并行
-```
-
-与当前两个并行 Task 同构——Claude Code 原生支持同一消息中多个 tool call 并行执行。
+- 两个任务无依赖关系（`dependencies` 不设置），codeagent-wrapper 自动并行调度
+- 默认 summary 输出模式（context-efficient），调试时可加 `--full-output`
+- 可通过 `CODEAGENT_MAX_PARALLEL_WORKERS=2` 限制并发
 
 ### 8. 错误处理
 
 与现有 Step 1.6 对齐：
-- **codeagent 调用失败**（Codex 超时 / 返回非 JSON）→ 编排器自动重试一次（重新调用 Skill("codeagent")，不重新组装 prompt）
-- **schema 校验失败**（codex-eval.py --validate 退出码 1）→ 编排器自动重试一次（从 Step B 重跑 codeagent）
+- **codeagent-wrapper 失败**（Codex 超时 / 进程崩溃 / 返回非 JSON）→ 编排器自动重试一次（重新 Bash 调用 codeagent-wrapper，prompt 文件已在磁盘上不需重新组装）
+- **schema 校验失败**（codex-eval.py --validate 退出码 1）→ 编排器自动重试一次（从 Step B 重跑 codeagent-wrapper）
 - 重试仍失败 → `orchestrator_state = "ERROR_RETRY"`，暂停等用户决策
 - **不做运行时降级到 Opus**——eval_backend 是全局配置，不在单次失败时切换（分数分布不兼容）
 - 用户可手动在 `.checkpoint.json` 中将 `eval_backend` 改回 `"opus"` 后重试
+- **超时设置**：`CODEX_TIMEOUT` 按任务复杂度配置——Summarizer/QJ/CC 各 3600000ms (1h)，滑窗 7200000ms (2h)
+- **关键**：不得 kill codeagent-wrapper 进程（长时间运行是正常的，强杀浪费 API 成本且丢失进度）
 
 ### 9. recheck_mode（M9.2）兼容
 
