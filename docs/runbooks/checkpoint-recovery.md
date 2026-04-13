@@ -54,7 +54,7 @@
 
 ### Checkpoint 损坏重建
 
-当 `.checkpoint.json` 缺失或解析失败时：扫描 `chapters/` 确定 `last_completed_chapter`，扫描 `volumes/` 确定 `current_volume`，检查 `staging/` 残留决定 `pipeline_stage`。重建最小字段集：`schema_version: 2`, `orchestrator_state: "WRITING"`, `pipeline_stage: "committed"`, `inflight_chapter: null`, `revision_count: 0`。
+当 `.checkpoint.json` 缺失或解析失败时：扫描 `chapters/` 确定 `last_completed_chapter`，扫描 `volumes/` 确定 `current_volume`，检查 `staging/` 残留决定 `pipeline_stage`。重建最小字段集：`schema_version: 2`, `orchestrator_state: "WRITING"`, `pipeline_stage: "committed"`, `inflight_chapter: null`, `revision_count: 0`, `eval_backend: "codex"`（若项目之前使用 Codex 后端；不确定时设为 `"opus"` 最安全）。
 
 ## Acceptance
 
