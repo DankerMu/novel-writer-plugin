@@ -125,10 +125,10 @@ for agent in [chapter-writer, style-refiner, summarizer, quality-judge, content-
   path = staging/manifests/chapter-{C:03d}-{agent}.json
   1. 文件存在 + JSON 可解析
   2. 必需字段：chapter (int), volume (int)
-  3. CW/Sum/QJ: storyline_id (string) 非空
-  4. CW: chapter_outline_block (string) 非空
-  5. paths 对象存在且 paths.style_profile 文件存在
-  6. entity_id_map 至少 1 条（CW/Sum manifest）
+  3. CW/Sum: storyline_id (string) 非空
+  4. CW/QJ/CC: chapter_outline_block (string) 非空
+  5. CW/SR/QJ/CC: paths 对象存在且 paths.style_profile 文件存在
+  6. Sum: entity_id_map 至少 1 条
 ```
 
 校验任一失败 → 按 Step 1.6 错误处理。全部通过 → 进入 Step 3。

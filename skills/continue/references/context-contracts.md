@@ -34,6 +34,7 @@ chapter_writer_manifest = {
   hard_rules_list: [str],              # L1 禁止项列表（已格式化；仅 established + INTRODUCING 标记的 planned）
   foreshadowing_tasks: [obj],          # 本章伏笔任务子集
   style_drift_directives: [str] | null, # 漂移纠偏指令（active 时注入）
+  narrative_phase: str | null,         # 从大纲 Phase 行提取（期待/试探/受挫/噩梦/爆发/收束；可选）
 
   # ── paths（subagent 自读） ──
   paths: {
@@ -134,7 +135,8 @@ quality_judge_manifest = {
   continuity_report_summary: obj | null,         # logs/continuity/latest.json 裁剪
   platform: str,                                  # 从 style-profile.json 提取（fanqie | qidian | jinjiang | general | 自定义），必填不可为 null
   excitement_type: [str] | null,                 # 从 chapter_contract 提取（可选）
-  is_golden_chapter: bool,                       # chapter <= 3
+  is_golden_chapter: bool,                       # chapter <= 3 且 platform_guide 存在
+  narrative_phase: str | null,                      # 从大纲 Phase 行提取（期待/试探/受挫/噩梦/爆发/收束；可选）
   narration_only_lint: obj | null,                  # lint-blacklist.sh 的 narration_only_stats 输出
 
   # ── paths ──
@@ -145,7 +147,7 @@ quality_judge_manifest = {
     chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md",  # Markdown优先，回退.json
     world_rules: "world/rules.json",                                  # 可选
     prev_summary: "summaries/chapter-{C-1:03d}-summary.md",           # 可选（首章无）
-    recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 近 2 章摘要（始终注入；按可用性降级）
+    recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 近 2 章摘要（条件注入：chapter ≤ 3 且 platform_guide 存在时；按可用性降级）
     character_profiles: ["characters/active/{slug}.md", ...],          # 裁剪后选取（叙述档案）
     character_contracts: ["staging/context/characters/{slug}.json", ...], # canon_status 预过滤后的 staging 副本（L2 结构化契约）
     storyline_spec: "storylines/storyline-spec.json",                  # 可选
@@ -178,7 +180,7 @@ content_critic_manifest = {
     chapter_draft: "staging/chapters/chapter-{C:03d}.md",
     chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md",  # Track 4 剧情推进对照
     prev_summary: "summaries/chapter-{C-1:03d}-summary.md",           # 可选（Track 4 跨章重复检测）
-    recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 近 2 章摘要
+    recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 近 2 章摘要（条件注入：同 QJ 规则）
     style_profile: "style-profile.json",                              # Track 3 人设
     platform_guide: "templates/platforms/{platform}.md",              # 可选
     quality_rubric: "skills/novel-writing/references/quality-rubric.md",
