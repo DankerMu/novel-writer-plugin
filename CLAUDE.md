@@ -53,7 +53,7 @@ Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 revi
 
 Targeted mode passes `failed_dimensions` to CW for scoped edits, uses `lite_mode`/`patch_mode`/`recheck_mode` flags for downstream agents. Max 2 revisions, then force_passed or pause_for_user.
 
-**Eval backend** (M10): Summarizer/QJ/CC/sliding-window can run via Codex or Opus agents. New projects default to `eval_backend: "codex"` in checkpoint. Config is global per project, no runtime fallback between backends.
+**Eval backend** (M10, v3.0.0): Summarizer/QJ/CC/sliding-window can run via Codex or Opus agents. New projects default to `eval_backend: "codex"` in checkpoint. Config is global per project, no runtime fallback between backends.
 
 Codex path: `codex-eval.py --agent` (assemble task content from manifest) → `codeagent-wrapper --backend codex` (Codex execution) → `codex-eval.py --validate` (staging output validation). Codex prompts live in `prompts/codex-{agent}.md`, adapted from agent specs without YAML frontmatter or Claude Code tool refs. Writing pipeline (API Writer/CW/SR) is unaffected.
 
