@@ -266,8 +266,8 @@ def main():
     ap = argparse.ArgumentParser(description="API Writer — 纯净环境章节写作")
     ap.add_argument("manifest", help="Context manifest JSON 路径")
     ap.add_argument("--project", help="小说项目根目录（manifest 中的路径相对于此目录）")
-    ap.add_argument("--model", default="gemini-3-flash-preview",
-                     help="模型名称 (default: gemini-3-flash-preview)")
+    ap.add_argument("--model", default="gemini-3.1-pro-preview",
+                     help="模型名称 (default: gemini-3.1-pro-preview)")
     ap.add_argument("--temperature", type=float, default=0.85,
                      help="温度 (default: 0.85)")
     ap.add_argument("--system-prompt",
