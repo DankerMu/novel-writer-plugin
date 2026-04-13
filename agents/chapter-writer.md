@@ -244,5 +244,11 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - **修订模式**：manifest 中会追加以下字段：
   - `required_fixes`（inline）：`[{target, instruction}]` 格式的最小修订指令列表
   - `high_confidence_violations`（inline）：高置信度违约条目
+  - `revision_scope`（inline，可选）：`"targeted"` | `"full"`
+  - `failed_dimensions`（inline，可选，revision_scope="targeted" 时提供）：QJ 失分维度列表
   - `paths.chapter_draft`：指向现有正文
-  - 读取优先级调整：先读 `chapter_draft`（现有正文），再��� `required_fixes` 定位需修改段落，最后读 style_profile 确保修订风格一致。定向修改指定段落，保持其余内容不变
+  - 读取优先级调整：先读 `chapter_draft`（现有正文），再读 `required_fixes` 定位需修改段落，最后读 style_profile 确保修订风格一致。定向修改指定段落，保持其余内容不变
+  - **revision_scope="targeted" 时额外约束**：
+    - 严禁重写 `required_fixes` 未提及的段落（即使你认为可以改进）
+    - 额外输出 `staging/logs/revision-diff-chapter-{C:03d}.json`：`{"modified_paragraphs": [3, 7, 12], "total_paragraphs": 45}`
+    - 修改幅度自检：若修改段落数 > 总段落数 30%，标注 `"scope_warning": "exceeded_30pct"`

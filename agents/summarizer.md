@@ -50,12 +50,18 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - foreshadowing_tasks（本章伏笔任务列表）
 - entity_id_map（slug_id → display_name 映射表，用于正文中文名 → ops path 转换）
 - hints（可选，ChapterWriter 输出的自然语言变更提示）
+- patch_mode（可选，`true` 时进入增量更新模式，仅在修订回环中使用）
 
 **B. 文件路径**（你需要用 Read 工具自行读取）：
 - `paths.chapter_draft` → 章节全文（staging/chapters/chapter-{C:03d}.md）
 - `paths.current_state` → 当前状态 JSON（state/current-state.json）
+- `paths.previous_summary`（patch_mode 时必填）→ 上次生成的章节摘要
+- `paths.previous_delta`（patch_mode 时必填）→ 上次生成的状态增量 JSON
+- `paths.revision_diff`（patch_mode 时必填）→ 修订 diff JSON（记录修改段落索引）
 
 # Process
+
+## 标准模式（patch_mode 缺失或为 false）
 
 1. 通读章节全文，标记关键情节转折、重要对话和角色决定
 2. 提取伏笔变更（埋设/推进/回收），与伏笔任务交叉核对
@@ -66,6 +72,37 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 6.5. **识别 Canon Hints**：扫描本章正文，识别叙事中首次确立的世界规则或角色能力/已知事实/关系。仅从正文推断（不读取 rules.json 或角色 JSON），输出轻量级提示供编排器 commit 阶段做确定性升级
 7. 生成对应故事线的更新后记忆内容（≤500 字）
 8. 标注下一章必须知道的 3-5 个关键信息点
+
+## Patch 模式（patch_mode = true，修订回环专用）
+
+适用场景：章节经过定向修订（revision_scope="targeted"），修改行数 < 30%，核心事件未变。
+
+1. 读取 `paths.revision_diff` 确定修改段落索引列表
+2. 读取 `paths.previous_summary` 和 `paths.previous_delta` 作为基线
+3. 仅通读修改段落及其上下文（前后各 1 段），判断是否改变了关键事件/伏笔/状态
+4. **摘要增量更新**：
+   - 若修改未改变关键事件 → 保持 previous_summary 不变，直接复制输出
+   - 若修改影响了事件描述 → 仅更新受影响的事件条目，保留其余
+5. **Ops 增量更新**：
+   - 保留 previous_delta 中与未修改段落相关的 ops
+   - 仅对修改段落重新提取 ops（新增/修改/删除）
+   - 合并后输出完整 delta（base_state_version 不变）
+6. **Canon Hints 增量**：
+   - 仅检查新增/修改段落中是否有新确立的规则/能力
+   - 保留 previous_delta 中与未修改段落相关的 canon_hints
+7. **Crossref 决策**：
+   - 若修改段落不涉及其他故事线的实体 → 沿用上次 crossref 输出
+   - 若修改涉及跨线实体 → 仅对修改段落重新检测，与旧 crossref 合并
+8. **Memory 更新**：仅在修改影响了关键事实时更新线级记忆
+
+输出格式与标准模式完全一致（7 部分），但 delta.json 追加 metadata 标记：
+```json
+{
+  "patch_mode": true,
+  "modified_paragraphs": [5, 7, 12],
+  "carried_from_previous": true
+}
+```
 
 # Constraints
 

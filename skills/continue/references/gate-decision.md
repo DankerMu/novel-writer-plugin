@@ -80,19 +80,109 @@ gate_decision = max_severity(qj_decision, substance_decision, engagement_decisio
 # engagement_decision == "warning" 时不参与 max_severity，仅 append risk_flag
 ```
 
+## 门控输出增强（failed_dimensions + revision_scope）
+
+门控决策除 `gate_decision` 外，额外输出以下字段供修订子流水线使用：
+
+```
+failed_dimensions = []   # QJ Track 2 中 score < 3.5 的维度名列表（仅 gate_decision in ["revise","polish"] 时计算）
+failed_tracks = []       # 需要复检的 Track 列表（"track1" | "track2" | "track4"）
+revision_scope = "full"  # "targeted" | "full"
+```
+
+**failed_dimensions 计算**：
+```
+for dim in eval.scores:
+    if eval.scores[dim].score < 3.5:
+        failed_dimensions.append(dim)
+```
+
+**failed_tracks 计算**：
+```
+failed_tracks = []
+if has_high_confidence_violation or platform_hard_gate_fail(eval):
+    failed_tracks.append("track1")
+if len(failed_dimensions) > 0:
+    failed_tracks.append("track2")
+if substance_violation(cc_eval):
+    failed_tracks.append("track4")
+# 注：Track 3 不通过 failed_tracks 控制。CC recheck 内部根据上次 engagement_override 状态自主判断是否重评 Track 3
+# 注：tonal_variance < 3.0 触发 revise 时，若无其他严重问题则走 targeted（tonal_variance 属于单维度失分，适合定向修订）
+```
+
+**revision_scope 判定**：
+```
+if gate_decision == "revise":
+    if has_high_confidence_violation or platform_hard_gate_fail(eval) or substance_severe(cc_eval) or overall_final < 3.0:
+        revision_scope = "full"
+    elif len(failed_dimensions) == 0 and len(failed_tracks) == 0:
+        revision_scope = "full"  # 无明确失分维度时无法定向修订，降级全量
+    else:
+        revision_scope = "targeted"
+else:
+    revision_scope = null  # 非 revise 不需要
+```
+
 ## 自动修订闭环（max revisions = 2）
 
 - 若 gate_decision="revise" 且 revision_count < 2：
-  - 更新 checkpoint: orchestrator_state="CHAPTER_REWRITE", pipeline_stage="revising", revision_count += 1
+  - 更新 checkpoint: orchestrator_state="CHAPTER_REWRITE", pipeline_stage="revising", revision_count += 1, revision_scope=<computed>, failed_dimensions=<computed>, failed_tracks=<computed>
   - 组装修订指令（合并 QJ + CC 来源）：
     - 从 QJ eval: `required_fixes`（主要来源）
     - 从 CC eval: `substance_issues`（severity=high）转化为 `required_fixes` 格式追加
     - 从 CC eval: `reader_evaluation.reader_feedback` + `reader_evaluation.suspicious_skim_paragraphs`（如存在）追加到修订指令
     - `track3_mode == "lite"` 时 `suspicious_skim_paragraphs` 不可用，仅注入 `reader_feedback`
-  - 调用 ChapterWriter 修订模式（Task(subagent_type="chapter-writer", model="opus")）：
-    - 输入: chapter_writer_revision_manifest（追加 inline 字段 `required_fixes` + `high_confidence_violations` + `substance_fixes`）
-    - 约束：定向修改指定段落，尽量保持其余内容不变
-  - 回到 ChapterWriter(revision) → StyleRefiner → Summarizer → [QualityJudge + ContentCritic 并行] → 门控
+  - **按 `revision_scope` 分发修订子流水线**：
+
+  ### revision_scope = "targeted"（定向修订）
+
+  适用条件：无 high_violation、无 platform_hard_gate_fail、无 substance_severe、overall_final ≥ 3.0
+
+  子流水线：`CW(targeted) → SR(lite) → Sum(patch) → [QJ/CC recheck]`
+
+  1. **ChapterWriter 定向修改**：
+     - 输入 manifest 追加: `failed_dimensions` + `required_fixes` + `revision_scope="targeted"`
+     - 约束：仅修改 `required_fixes` 指定的段落，严禁重写未提及段落
+     - 输出：修改后的 staging/chapters/chapter-{C:03d}.md + `staging/logs/revision-diff-chapter-{C:03d}.json`（记录修改段落索引）
+
+  2. **StyleRefiner lite 模式**：
+     - 输入 manifest 追加: `lite_mode=true` + `revision_diff_path`（指向 revision-diff JSON）
+     - 行为：仅扫描被修改的段落做黑名单/格式检查，跳过全文统一处理
+     - 输出：同正常模式（覆写 chapter + changes log）
+
+  3. **Summarizer patch 模式**：
+     - 前置检查：计算 diff 行数占比（`修改行数 / 总行数`）
+       - 若 diff ≥ 30%：降级为 Summarizer 全量模式
+       - 若 diff < 30%：进入 patch 模式
+     - 输入 manifest 追加: `patch_mode=true` + `previous_summary_path` + `previous_delta_path` + `revision_diff_path`
+     - 行为：读取旧 summary + delta，仅对修改部分做增量更新
+       - summary：保留未变部分，仅更新涉及修改段落的描述
+       - ops[]：仅追加/修改因修改产生的新状态变更
+       - canon_hints：仅检查新增/修改段落
+       - crossref：沿用上次结果（除非修改涉及跨线实体）
+     - 输出：同正常模式（summary + delta + crossref + memory）
+
+  4. **QJ/CC recheck 模式**（并行）：
+     - 输入 manifest 追加: `recheck_mode=true` + `previous_eval_path` + `failed_dimensions` + `failed_tracks` + `revision_diff_path`
+     - QJ 行为：
+       - Track 1：若 "track1" in failed_tracks → 全量复检合规；否则沿用上次 contract_verification
+       - Track 2：仅对 `failed_dimensions` 中的维度重新评分，其余维度分数从 `previous_eval` 直接复制
+       - 重算 overall_raw / overall_weighted（使用混合分数）
+     - CC 行为：
+       - Track 3：若上次有 engagement_override → 重新评估；否则沿用
+       - Track 4：若 "track4" in failed_tracks → 全量复检实质性；否则沿用上次 content_substance
+     - 输出格式：同正常模式（完整 eval JSON，但 metadata 标记 `recheck_mode: true, carried_dimensions: [...]`）
+
+  ### revision_scope = "full"（全量修订）
+
+  适用条件：有 high_violation 或 platform_hard_gate_fail 或 substance_severe 或 overall_final < 3.0
+
+  子流水线：`CW → SR → Sum → [QJ+CC]`（与现有行为完全一致）
+
+  1. 调用 ChapterWriter 修订模式（Task(subagent_type="chapter-writer", model="opus")）：
+     - 输入: chapter_writer_revision_manifest（追加 inline 字段 `required_fixes` + `high_confidence_violations` + `substance_fixes`）
+     - 约束：定向修改指定段落，尽量保持其余内容不变
+  2. 回到 ChapterWriter(revision) → StyleRefiner → Summarizer → [QualityJudge + ContentCritic 并行] → 门控
 
 - 若 gate_decision="revise" 且 revision_count == 2（次数耗尽）：
   - 若 has_high_confidence_violation=false 且 platform_hard_gate_fail(eval)=false 且 overall_final >= 3.0 且 substance_violation(cc_eval)=false 且 !(is_golden_chapter 且 cc_eval.reader_evaluation.overall_engagement < 3.0)：
@@ -119,5 +209,5 @@ gate_decision = max_severity(qj_decision, substance_decision, engagement_decisio
   - metadata 至少包含：
     - judges: {primary:{model,overall,overall_raw,overall_weighted?}, secondary?:{model,overall,overall_raw,overall_weighted?}, used, overall_final}
     - content_critic: {model, content_substance_overall, overall_engagement（如有）}
-    - gate: {decision: gate_decision, revisions: revision_count, force_passed: bool, substance_violation: bool}
+    - gate: {decision: gate_decision, revisions: revision_count, force_passed: bool, substance_violation: bool, revision_scope: "targeted"|"full"|null, failed_dimensions: [...], failed_tracks: [...]}
 - 删除 staging/evaluations/chapter-{C:03d}-eval-raw.json 和 staging/evaluations/chapter-{C:03d}-content-eval-raw.json（清理中间文件）

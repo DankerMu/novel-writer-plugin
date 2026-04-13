@@ -55,6 +55,8 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - is_golden_chapter（bool，chapter <= 3）
 - track3_mode（`"full"` | `"lite"`，控制 Track 3 输出详细度；缺失视为 full）
 - mode（可选，`"track3_backfill"` 时仅执行 Track 3，跳过 Track 4）
+- recheck_mode（可选，`true` 时进入维度复检模式，仅在修订回环中使用）
+- failed_tracks（recheck_mode 时必填，需要复检的 Track 列表，如 `["track4"]`）
 
 **B. 文件路径**（你需要用 Read 工具自行读取）：
 - `paths.chapter_draft` → 章节全文
@@ -64,6 +66,8 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - `paths.style_profile` → 风格指纹 JSON（Track 3 人设选择）
 - `paths.platform_guide` → 平台写作指南（可选）
 - `paths.quality_rubric` → 评分标准（含 Track 4 标准）
+- `paths.previous_eval`（recheck_mode 时必填）→ 上次 content-eval-raw JSON
+- `paths.revision_diff`（recheck_mode 时必填）→ 修订 diff JSON
 
 > **读取优先级**：先读 `chapter_draft`（评估对象），再读 `chapter_contract` + `quality_rubric`（评估标准），最后读其余参照文件。
 
@@ -362,6 +366,50 @@ else:
 - 仅执行 Track 3（跳过 Track 4）
 - **不写入** staging 文件，在 Task 文本输出中返回 `reader_evaluation` JSON 块
 - `content_substance` 输出为 null
+
+# Recheck 模式（recheck_mode = true）
+
+修订回环中 `revision_scope="targeted"` 时启用，减少重复评估开销。
+
+## 行为变更
+
+1. **Track 3 读者参与度**：
+   - 若上次评估触发了 `engagement_override`（engagement < 3.0 for golden, or < 2.5 for pass）→ 全量重新评估 Track 3（修订后需确认读者体验改善）
+   - 若上次 Track 3 未触发任何 override → 从 `paths.previous_eval` 沿用 `reader_evaluation`（跳过重新阅读）
+   - 沿用时输出与上次完全相同的 `reader_evaluation` 块
+
+2. **Track 4 内容实质性**：
+   - 若 `"track4" in failed_tracks` → 全量重新评估 Track 4（通读全文，聚焦修改段落）
+   - 若 `"track4" not in failed_tracks` → 从 `paths.previous_eval` 沿用 `content_substance`
+   - 全量重评时：重点检查上次 `substance_issues` 中标记的问题段落是否已修复
+
+3. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
+   ```json
+   {
+     "recheck_mode": true,
+     "track3_reeval": false,
+     "track4_reeval": true
+   }
+   ```
+
+## Escalation 机制
+
+即使沿用 Track 的分数，CC 仍需**通读全文**（不可跳过阅读）。通读时若发现修订引入了明显的新 substance 问题（如原本紧凑的对话被替换为车轱辘话），触发 escalation：
+
+```
+if 沿用 Track 中发现新问题 且 预估该 Track 分数降幅 >= 1.0:
+    输出 recheck_escalated: true
+    # 编排器丢弃本次 CC + QJ recheck 输出，降级为 full 重跑
+```
+
+`recheck_escalated` 为顶层输出字段（与 QJ 的同名字段对等），编排器统一处理。
+
+## 约束
+
+- recheck_mode 下若 Track 4 重评发现上次问题未修复，severity 自动升级为 high
+- 若 Track 4 重评发现修订引入了新的 substance 问题，正常标记（不受 recheck 限制）
+- 沿用的 Track 通读时发现新问题但预估降幅 < 1.0 → 记入 `substance_issues` 供后续参考，不触发 escalation
+- 沿用的 Track 分数不可修改（escalation 是重跑机制而非修改机制）
 
 # Edge Cases
 
