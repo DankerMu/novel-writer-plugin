@@ -305,7 +305,13 @@
           "properties": {
             "decision": { "enum": ["pass", "polish", "revise", "pause_for_user", "pause_for_user_force_rewrite"] },
             "revisions": { "type": "integer", "minimum": 0 },
-            "force_passed": { "type": "boolean" }
+            "force_passed": { "type": "boolean" },
+            "trivial_fix": { "type": "boolean" },
+            "patched_dimensions": { "type": "array", "items": { "type": "string" } },
+            "substance_violation": { "type": "boolean" },
+            "revision_scope": { "type": ["string", "null"], "enum": ["trivial", "targeted", "full", null] },
+            "failed_dimensions": { "type": "array", "items": { "type": "string" } },
+            "failed_tracks": { "type": "array", "items": { "type": "string" } }
           }
         }
       }

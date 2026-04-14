@@ -48,7 +48,7 @@ API Writer (`scripts/api-writer.py`) calls external model API (default: gemini-3
 Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite. ContentCritic Track 4 substance violation (any dimension < 3.0) forces revise. Track 6 logic_review severity=high forces revise. QJ tonal_variance < 3.0 forces revise.
 
 **Revision loop optimization** (M9.2): revise triggers a tiered sub-pipeline based on `revision_scope`:
-- `trivial` (≤1 failed_dimension, no failed_tracks, overall ≥ 3.5): `CW(targeted) → SR(lite) → force_passed` (~15-20K tokens, skip QJ/CC recheck)
+- `trivial` (≤1 failed_dimension, no failed_tracks, overall ≥ 3.5, excludes structural dims plot_logic/storyline_coherence/tonal_variance and golden-chapter engagement override): `CW(targeted) → SR(lite) → force_passed` (~15-20K tokens, skip QJ/CC recheck)
 - `targeted` (no high_violation, no substance_severe, overall ≥ 3.0, not trivial): `CW(targeted) → SR(lite) → [QJ(recheck) ∥ CC(recheck)]` (~35-45K tokens)
 - `full` (has high_violation or substance_severe or overall < 3.0): `CW → SR → [QJ+CC]` re-run (~90K tokens)
 

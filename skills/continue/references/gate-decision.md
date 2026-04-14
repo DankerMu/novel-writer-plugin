@@ -113,7 +113,7 @@ if pov_violation(cc_eval):
 if logic_violation(cc_eval):
     failed_tracks.append("track6")
 # 注：Track 3 不通过 failed_tracks 控制。CC recheck 内部根据上次 engagement_override 状态自主判断是否重评 Track 3
-# 注：tonal_variance < 3.0 触发 revise 时，若无其他严重问题则走 targeted（tonal_variance 属于单维度失分，适合定向修订）
+# 注：tonal_variance < 3.0 触发 revise 时，若无其他严重问题则走 targeted（tonal_variance 属于单维度失分，适合定向修订，但不走 trivial——需复检确认语域修复效果）
 ```
 
 **revision_scope 判定**：
@@ -124,7 +124,14 @@ if gate_decision == "revise":
     elif len(failed_dimensions) == 0 and len(failed_tracks) == 0:
         revision_scope = "full"  # 无明确失分维度时无法定向修订，降级全量
     elif len(failed_dimensions) <= 1 and len(failed_tracks) == 0 and overall_final >= 3.5:
-        revision_scope = "trivial"  # 单维度边缘失分，修补必然小改动，跳过复检
+        failed_dim = failed_dimensions[0] if len(failed_dimensions) == 1 else null
+        # 防护：结构性维度 / tonal_variance 硬门 / 黄金三章参与度降级 → 不走 trivial
+        if failed_dim in ["plot_logic", "storyline_coherence", "tonal_variance"]:
+            revision_scope = "targeted"  # 结构性/语域问题需复检确认
+        elif engagement_decision == "revise":
+            revision_scope = "targeted"  # 黄金三章参与度 < 3.0 需复检
+        else:
+            revision_scope = "trivial"  # 表层维度边缘失分，跳过复检
     else:
         revision_scope = "targeted"
 else:
@@ -147,7 +154,7 @@ else:
 
   ### revision_scope = "trivial"（轻量修订）
 
-  适用条件：len(failed_dimensions) <= 1 且 len(failed_tracks) == 0 且 overall_final >= 3.5
+  适用条件：len(failed_dimensions) <= 1 且 len(failed_tracks) == 0 且 overall_final >= 3.5 且失分维度不在 [plot_logic, storyline_coherence, tonal_variance] 且 engagement_decision != "revise"
 
   子流水线：`CW(targeted) → SR(lite) → force_passed`（约 15-20K tokens）
 
@@ -234,4 +241,9 @@ else:
     - judges: {primary:{model,overall,overall_raw,overall_weighted?}, secondary?:{model,overall,overall_raw,overall_weighted?}, used, overall_final}
     - content_critic: {model, content_substance_overall, overall_engagement（如有）}
     - gate: {decision: gate_decision, revisions: revision_count, force_passed: bool, trivial_fix: bool, patched_dimensions: [...], substance_violation: bool, revision_scope: "trivial"|"targeted"|"full"|null, failed_dimensions: [...], failed_tracks: [...]}
+- **trivial 修订的 eval 组装**（revision_scope="trivial" 时，CW+SR 后无 QJ/CC 复检）：
+  - 读取**初次评估**的 eval-raw.json 和 content-eval-raw.json（这两份文件在 trivial 修订期间不会被覆写，因为 QJ/CC 未重跑）
+  - eval_used / content_eval 直接沿用初次评估内容（不修改分数）
+  - metadata.gate 追加: `trivial_fix: true`, `patched_dimensions: [<failed_dimensions>]`
+  - 其余 metadata 字段（judges、content_critic）沿用初次评估值
 - 删除 staging/evaluations/chapter-{C:03d}-eval-raw.json 和 staging/evaluations/chapter-{C:03d}-content-eval-raw.json（清理中间文件）

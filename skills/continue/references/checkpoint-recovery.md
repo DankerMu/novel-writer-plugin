@@ -16,7 +16,8 @@
   - 若 `staging/logs/style-refiner-chapter-{C:03d}-changes.json` 不存在 → 从 StyleRefiner 重启
   - 若已存在 → 从 QualityJudge + ContentCritic 并行恢复
 - `pipeline_stage == "refined"`:
-  - 检查 QJ/CC 输出存在性——QJ（`staging/evaluations/chapter-{C:03d}-eval-raw.json`）、CC（`staging/evaluations/chapter-{C:03d}-content-eval-raw.json`）；仅重跑输出缺失的 agent（并行）；均存在 → 跳至门控决策（`pipeline_stage = "judged"`）
+  - 若 `revision_scope == "trivial"`：跳过 QJ/CC，直接组装 eval 元数据（沿用上轮 eval-raw + trivial_fix 标记）→ force_passed → Summarizer
+  - 否则：检查 QJ/CC 输出存在性——QJ（`staging/evaluations/chapter-{C:03d}-eval-raw.json`）、CC（`staging/evaluations/chapter-{C:03d}-content-eval-raw.json`）；仅重跑输出缺失的 agent（并行）；均存在 → 跳至门控决策（`pipeline_stage = "judged"`）
 - `pipeline_stage == "judged"` → 读取 eval-raw（QJ）和 content-eval-raw（CC），执行门控决策；任一文件不存在或 JSON 无效 → 降级到 `pipeline_stage == "refined"`（从 QJ+CC 重新评估）；gate 通过后从 Summarizer 恢复
 - `pipeline_stage == "summarized"` → Summarizer 已完成（gate 通过后），直接进入事务提交（commit）
 - `pipeline_stage == "revising"` → 修订中断，从 ChapterWriter 重启（保留 revision_count 以防无限循环；`revision_scope=="trivial"` 时 CW+SR 完成后跳过 QJ/CC 直接 force_passed）

@@ -845,7 +845,7 @@ def assemble_all(
     opt(sr, "style_drift_directives", drift_dirs)
     opt(sr["paths"], "style_samples", samples_path)
     opt(sr["paths"], "style_drift", drift_path)
-    if revision and revision.get("revision_scope") == "targeted":
+    if revision and revision.get("revision_scope") in ("targeted", "trivial"):
         sr["lite_mode"] = True
 
     # ============================================================
@@ -863,7 +863,7 @@ def assemble_all(
             "current_state": "state/current-state.json",
         },
     }
-    if revision and revision.get("revision_scope") == "targeted":
+    if revision and revision.get("revision_scope") in ("targeted", "trivial"):
         sm["patch_mode"] = True
 
     # ============================================================

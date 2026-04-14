@@ -234,7 +234,7 @@ for chapter_num in range(start, start + remaining_N):
      > **修订禁用 API Writer**：以下修订子流水线**必须**使用 ChapterWriter Agent，**不得**调用 API Writer。API Writer 仅用于上方 Step 1 的初始稿件生成。修订前先重新派发 manifest 组装器（传入 `revision_state`），获取含修订字段的 manifest 后再启动子流水线。
 
      3t. **revision_scope = "trivial"**（轻量修订，约 15-20K tokens）：
-         适用：len(failed_dimensions) <= 1 且 len(failed_tracks) == 0 且 overall_final >= 3.5
+         适用：len(failed_dimensions) <= 1 且 len(failed_tracks) == 0 且 overall_final >= 3.5 且失分维度不在 [plot_logic, storyline_coherence, tonal_variance] 且 engagement_decision != "revise"
          ```
          CW(targeted) → SR(lite) → force_passed
          ```
@@ -280,8 +280,9 @@ for chapter_num in range(start, start + remaining_N):
          CW(revision) → SR → [QJ + CC 并行]
          ```
 
-  4. Summarizer → 生成摘要 + 权威状态增量（仅 gate_decision in ["pass", "polish"] 时执行）
+  4. Summarizer → 生成摘要 + 权威状态增量（仅 gate_decision in ["pass", "polish"] 时执行，含 trivial/targeted 的 force_passed）
      > **Sum 在 gate 之后**：仅对通过质量门控的终稿生成摘要，避免对被拒章节浪费 token。修订子流水线（3a/3b）中不调用 Sum——修订后重新进入 Step 2 → Step 3 → gate，通过后才执行 Step 4。
+     > **Patch 模式**：trivial/targeted 修订的 force_passed 章节，Summarizer 使用 `patch_mode=true`（由 `assemble-manifests.py` 根据 `revision_scope in ["trivial", "targeted"]` 自动注入），仅增量更新被修改段落影响的事实，不重跑全章分析。
      **执行流程**（Codex 优先，失败 fallback Opus Task agent）：
      4a. 组装 task content:
          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py staging/manifests/chapter-{C:03d}-summarizer.json --agent summarizer --project <root>")`
