@@ -183,6 +183,8 @@ content_critic_manifest = {
     recent_summaries: ["summaries/chapter-{C-2:03d}-summary.md", ...], # 近 2 章摘要（条件注入：同 QJ 规则）
     style_profile: "style-profile.json",                              # Track 3 人设
     platform_guide: "templates/platforms/{platform}.md",              # 可选
+    character_contracts: ["characters/active/{slug}.json", ...],      # Track 5 POV 角色 known_facts
+    recent_chapters: ["chapters/chapter-{C-1:03d}.md", ...],         # Track 6 近 3 章全文（跨章逻辑审查）
     quality_rubric: "skills/novel-writing/references/quality-rubric.md",
   }
 }
@@ -213,6 +215,8 @@ ContentCritic 将评估结果直接写入 `staging/evaluations/chapter-{C:03d}-c
 关键返回字段：
 - `reader_evaluation` — Track 3 读者参与度评估。`track3_mode == "full"` 时含全部字段；`"lite"` 时仅含 overall_engagement + reader_feedback。Track 3 失败时为 null
 - `content_substance` — Track 4 内容实质性评估（information_density / plot_progression / dialogue_efficiency + content_substance_overall + has_substance_violation + substance_issues[]）。`mode == "track3_backfill"` 时为 null
+- `pov_boundary` — Track 5 POV 知识边界检查（pov_boundary_issues[] + pov_boundary_clean）。backfill 时为 null
+- `logic_review` — Track 6 跨章逻辑审查（issue list，格式同 substance_issues + cross_reference）。backfill 时为 null，近章不足时为空数组
 
 ---
 
@@ -223,7 +227,7 @@ ContentCritic 将评估结果直接写入 `staging/evaluations/chapter-{C:03d}-c
 - `content_eval` = ContentCritic 原始输出
 - `metadata.judges.overall_final` = 编排器计算值（普通章 = primary.overall；关键章 = min(primary.overall, secondary.overall)）
 - `metadata.content_critic` = {model, content_substance_overall, overall_engagement}
-- `metadata.gate` = {decision, revisions, force_passed, substance_violation}
+- `metadata.gate` = {decision, revisions, force_passed, substance_violation, pov_violation, logic_violation}
 
 ---
 

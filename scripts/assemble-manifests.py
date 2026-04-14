@@ -930,6 +930,8 @@ def assemble_all(
     if is_golden and pg_path and recent_sum2:
         cc["paths"]["recent_summaries"] = recent_sum2
     opt(cc["paths"], "platform_guide", pg_path)
+    opt(cc["paths"], "character_contracts", char_contracts)
+    opt(cc["paths"], "recent_chapters", recent_ch)
     if revision and revision.get("revision_scope") == "targeted":
         cc["recheck_mode"] = True
 

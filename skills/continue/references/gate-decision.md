@@ -207,7 +207,7 @@ else:
   - **不执行 QJ/CC 复检**——定向修订已完成一轮含完整评估的子流水线，直接修复仅针对明确的 required_fixes，额外评估 ROI 过低
 
 - 若 gate_decision="revise" 且全量修订已耗尽（`revision_scope == "full"` 且 `revision_count >= 2`）：
-  - 若 has_high_confidence_violation=false 且 platform_hard_gate_fail(eval)=false 且 overall_final >= 3.0 且 substance_violation(cc_eval)=false 且 !(is_golden_chapter 且 cc_eval.reader_evaluation.overall_engagement < 3.0)：
+  - 若 has_high_confidence_violation=false 且 platform_hard_gate_fail(eval)=false 且 overall_final >= 3.0 且 substance_violation(cc_eval)=false 且 pov_violation(cc_eval)=false 且 logic_violation(cc_eval)=false 且 !(is_golden_chapter 且 cc_eval.reader_evaluation.overall_engagement < 3.0)：
     - 设置 force_passed=true，允许提交（避免无限循环）
     - 记录：eval metadata + log 中标记 force_passed=true
     - 将 gate_decision 覆写为 "pass"

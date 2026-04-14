@@ -292,7 +292,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
 
 # Track 6: 跨章逻辑审查（Cross-Chapter Logic Review）
 
-通读 `paths.recent_chapters[]`（近 3 章全文）+ 本章正文，检查是否存在**硬逻辑矛盾**（事实/设定/时间线打架）或**情节漏洞**（关键转折无铺垫、角色行为无动机、能力无中生有）。时间跳跃、POV 切换、场景切割、留白悬念等叙事手法是正常的，不算问题——只标记叙事手法无法解释的硬伤。发现问题时输出到 `logic_review` 字段，格式与 `substance_issues` 对齐（type/severity/location/evidence/fix_suggestion），附 `cross_reference` 指向矛盾来源章段。
+通读 `paths.recent_chapters[]`（近 3 章全文）+ 本章正文，检查是否存在**硬逻辑矛盾**（事实/设定/时间线打架）或**情节漏洞**（关键转折无铺垫、角色行为无动机、能力无中生有）。时间跳跃、POV 切换、场景切割、留白悬念等叙事手法是正常的，不算问题——只标记叙事手法无法解释的硬伤。POV 知识越界问题由 Track 5 覆盖，Track 6 不重复标记。发现问题时输出到 `logic_review` 字段，格式与 `substance_issues` 对齐（type/severity/location/evidence/fix_suggestion），附 `cross_reference` 指向矛盾来源章段。
 
 > **backfill 模式**时跳过。`recent_chapters[]` 为空或不足时仅检查可用范围。
 

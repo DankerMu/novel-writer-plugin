@@ -12,11 +12,13 @@
 
 # Goal
 
-根据 task content 中提供的 context manifest，执行两项评估：
+根据 task content 中提供的 context manifest，执行四项评估：
 - **Track 3**：读者参与度评估（第一人称读者视角）
 - **Track 4**：内容实质性分析（信息密度/剧情推进/对话效率）
+- **Track 5**：POV 知识边界检查
+- **Track 6**：跨章逻辑审查（通读近 3 章全文，检测硬矛盾和情节漏洞）
 
-读取文件时的优先级：先读章节正文（评估对象），再读章节契约 + 评分标准（评估标准），最后读其余参照文件。
+读取文件时的优先级：先读章节正文（评估对象），再读章节契约 + 评分标准（评估标准），然后读近章全文（Track 6），最后读其余参照文件。
 
 # Track 3: 读者参与度评估（Reader Engagement）
 
@@ -217,6 +219,12 @@
 }
 ```
 
+# Track 6: 跨章逻辑审查（Cross-Chapter Logic Review）
+
+通读 `paths.recent_chapters[]`（近 3 章全文）+ 本章正文，检查是否存在**硬逻辑矛盾**（事实/设定/时间线打架）或**情节漏洞**（关键转折无铺垫、角色行为无动机、能力无中生有）。时间跳跃、POV 切换、场景切割、留白悬念等叙事手法是正常的，不算问题——只标记叙事手法无法解释的硬伤。POV 知识越界问题由 Track 5 覆盖，Track 6 不重复标记。发现问题时输出到 `logic_review` 字段，格式与 `substance_issues` 对齐（type/severity/location/evidence/fix_suggestion），附 `cross_reference` 指向矛盾来源章段。
+
+> **backfill 模式**时跳过。`recent_chapters[]` 为空或不足时仅检查可用范围。
+
 # Gate Impact（门控影响）
 
 ContentCritic 不直接输出 recommendation——由编排器合并 QJ 和 CC 的结果做最终门控决策。CC 输出以下信号供编排器使用：
@@ -238,6 +246,10 @@ has_pov_violation = any(issue.severity == "high" for issue in pov_boundary_issue
 
 - `has_pov_violation == true` → 编排器强制 `gate_decision = "revise"`
 
+## Track 6 逻辑审查
+
+`logic_review` 中 severity=high 的 issue → 编排器强制 `gate_decision = "revise"`，自动转化为 `required_fixes`。
+
 ## Track 3 engagement overlay（只降级不升级）
 
 编排器根据 CC 输出的 `overall_engagement` + QJ 的 `qj_decision` 合并门控：
@@ -257,12 +269,14 @@ else:
 
 当 CC 触发门控降级时：
 - Track 4 的 `substance_issues`（severity=high）自动转化为 `required_fixes` 供 ChapterWriter 修订
+- Track 6 的 `logic_review`（severity=high）自动转化为 `required_fixes` 供 ChapterWriter 修订
 - Track 3 的 `reader_feedback` + `suspicious_skim_paragraphs`（如存在）追加到修订指令
 
 ## force_passed 约束
 
 修订 2 次后的 force_passed 条件追加：
 - 且无 Track 4 substance_violation（任一维度 < 3 不允许 force_passed）
+- 且无 Track 6 logic_review 中 severity=high 的 issue
 - 且无黄金三章 engagement < 3.0
 
 # Constraints
@@ -330,7 +344,8 @@ else:
   "pov_boundary": {
     "pov_boundary_issues": [],
     "pov_boundary_clean": true
-  }
+  },
+  "logic_review": []
 }
 ```
 
@@ -372,13 +387,18 @@ else:
    - 若 `"track5" in failed_tracks` → 全量重新执行 Track 5（检查修订后 POV 越界是否修复）
    - 若 `"track5" not in failed_tracks` → 沿用上次 `pov_boundary`（无此字段则输出 `pov_boundary_clean: true`）
 
-4. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
+4. **Track 6 逻辑审查**：
+   - 若 `"track6" in failed_tracks` → 重新执行 Track 6（通读近章 + 修订后正文）
+   - 若 `"track6" not in failed_tracks` → 沿用上次 `logic_review`
+
+5. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
    ```json
    {
      "recheck_mode": true,
      "track3_reeval": false,
      "track4_reeval": true,
-     "track5_reeval": true
+     "track5_reeval": true,
+     "track6_reeval": false
    }
    ```
 
