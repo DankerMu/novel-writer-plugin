@@ -66,11 +66,12 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - `paths.style_profile` → 风格指纹 JSON（Track 3 人设选择）
 - `paths.platform_guide` → 平台写作指南（可选）
 - `paths.character_contracts[]` → 角色契约 JSON（Track 5 用于读取 POV 角色 known_facts）
+- `paths.recent_chapters[]` → 近 3 章正文路径（按时间倒序；Track 6 跨章逻辑审查用；首章为空数组）
 - `paths.quality_rubric` → 评分标准（含 Track 4 标准）
 - `paths.previous_eval`（recheck_mode 时必填）→ 上次 content-eval-raw JSON
 - `paths.revision_diff`（recheck_mode 时必填）→ 修订 diff JSON
 
-> **读取优先级**：先读 `chapter_draft`（评估对象），再读 `chapter_contract` + `quality_rubric`（评估标准），最后读其余参照文件。
+> **读取优先级**：先读 `chapter_draft`（评估对象），再读 `chapter_contract` + `quality_rubric`（评估标准），然后读 `recent_chapters[]`（Track 6 跨章审查），最后读其余参照文件。
 
 # Track 3: 读者参与度评估（Reader Engagement）
 
@@ -289,6 +290,12 @@ tools: ["Read", "Write", "Glob", "Grep"]
 
 > **注意**：此检查不需要额外的 schema 字段或 manifest 字段——CC 直接从角色 known_facts 和章节 POV 上下文推断知识边界。outline/大纲中的作者视角术语不构成角色视角的合法来源。
 
+# Track 6: 跨章逻辑审查（Cross-Chapter Logic Review）
+
+通读 `paths.recent_chapters[]`（近 3 章全文）+ 本章正文，检查是否存在**硬逻辑矛盾**（事实/设定/时间线打架）或**情节漏洞**（关键转折无铺垫、角色行为无动机、能力无中生有）。时间跳跃、POV 切换、场景切割、留白悬念等叙事手法是正常的，不算问题——只标记叙事手法无法解释的硬伤。发现问题时输出到 `logic_review` 字段，格式与 `substance_issues` 对齐（type/severity/location/evidence/fix_suggestion），附 `cross_reference` 指向矛盾来源章段。
+
+> **backfill 模式**时跳过。`recent_chapters[]` 为空或不足时仅检查可用范围。
+
 # Gate Impact（门控影响）
 
 ContentCritic 不直接输出 recommendation——由编排器合并 QJ 和 CC 的结果做最终门控决策。CC 输出以下信号供编排器使用：
@@ -311,6 +318,10 @@ has_pov_violation = any(issue.severity == "high" for issue in pov_boundary_issue
 - `has_pov_violation == true` → 编排器强制 `gate_decision = "revise"`（POV 越界等同于内容实质性违规）
 - CC 输出中 severity=high 的 `pov_boundary_issues` 自动转化为 `required_fixes` 供 ChapterWriter 修订
 
+## Track 6 逻辑审查
+
+`logic_review` 中 severity=high 的 issue → 编排器强制 `gate_decision = "revise"`，自动转化为 `required_fixes`。
+
 ## Track 3 engagement overlay（只降级不升级）
 
 编排器根据 CC 输出的 `overall_engagement` + QJ 的 `qj_decision` 合并门控：
@@ -330,12 +341,14 @@ else:
 
 当 CC 触发门控降级时：
 - Track 4 的 `substance_issues`（severity=high）自动转化为 `required_fixes` 供 ChapterWriter 修订
+- Track 6 的 `logic_review`（severity=high）自动转化为 `required_fixes` 供 ChapterWriter 修订
 - Track 3 的 `reader_feedback` + `suspicious_skim_paragraphs`（如存在）追加到修订指令
 
 ## force_passed 约束
 
 修订 2 次后的 force_passed 条件追加：
 - 且无 Track 4 substance_violation（任一维度 < 3 不允许 force_passed）
+- 且无 Track 6 logic_review 中 severity=high 的 issue
 - 且无黄金三章 engagement < 3.0
 
 # Constraints
@@ -345,7 +358,7 @@ else:
 3. **与 QJ 不重叠**：不评价 L1/L2/L3/LS 合规性、style_naturalness（anti-AI 指标）、伏笔合理性等 QJ 专属维度
 4. **Track 3 与 Track 4 互补不重复**：Track 3 的 skip_urge 从"想不想跳"的感受出发，Track 4 的 information_density 从"有没有信息增量"的分析出发——视角不同，结论可能不同（如：渲染段落虽然空洞但读者觉得好看不想跳）
 5. **setup 章宽容**：Track 3 hook_effectiveness 降低期望；Track 4 plot_progression 允许「铺垫型推进」（信息布局、伏笔埋设、势力暗示视为有效推进）
-6. **evidence 必须引用原文**：所有维度的 evidence 和 substance_issues 必须引用正文具体片段
+6. **evidence 必须引用原文**：所有维度的 evidence 和 issue 必须引用正文具体片段
 
 # Format
 
@@ -403,7 +416,8 @@ else:
   "pov_boundary": {
     "pov_boundary_issues": [],
     "pov_boundary_clean": true
-  }
+  },
+  "logic_review": []
 }
 ```
 
@@ -421,9 +435,9 @@ else:
 > lite 模式下 Track 4 仍正常输出完整内容（不精简）。
 
 **backfill 模式**（`mode == "track3_backfill"`）：
-- 仅执行 Track 3（跳过 Track 4）
+- 仅执行 Track 3（跳过 Track 4/5/6）
 - **不写入** staging 文件，在 Task 文本输出中返回 `reader_evaluation` JSON 块
-- `content_substance` 输出为 null
+- `content_substance`、`pov_boundary`、`logic_review` 输出为 null
 
 # Recheck 模式（recheck_mode = true）
 
@@ -445,13 +459,18 @@ else:
    - 若 `"track5" in failed_tracks` → 全量重新执行 Track 5（检查修订后 POV 越界是否修复）
    - 若 `"track5" not in failed_tracks` → 从 `paths.previous_eval` 沿用 `pov_boundary`（若上次无此字段则输出 `pov_boundary_clean: true`）
 
-4. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
+4. **Track 6 逻辑审查**：
+   - 若 `"track6" in failed_tracks` → 重新执行 Track 6（通读近章 + 修订后正文）
+   - 若 `"track6" not in failed_tracks` → 沿用上次 `logic_review`
+
+5. **输出格式**：与标准模式完全一致，额外在顶层追加 metadata：
    ```json
    {
      "recheck_mode": true,
      "track3_reeval": false,
      "track4_reeval": true,
-     "track5_reeval": true
+     "track5_reeval": true,
+     "track6_reeval": false
    }
    ```
 
@@ -484,3 +503,4 @@ if 沿用 Track 中发现新问题 且 预估该 Track 分数降幅 >= 1.0:
 - **自定义平台（Track 3）**：非标准 platform 值使用通用「普通读者」人设
 - **修订后重评**：ChapterWriter 修订后重新评估时，应与前次评估对比确认问题已修复
 - **章节正文过短（< 500 字）**：Track 3 输出 null（无法产生有效读者体验），Track 4 正常执行但 information_density 额外宽容（短章可能是过渡章）
+- **Track 6 近章不足**：首章或 `recent_chapters[]` 为空时 `logic_review` 输出空数组，不因参照不足报 issue

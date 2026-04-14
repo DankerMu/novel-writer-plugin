@@ -167,6 +167,7 @@ manifest 包含两类字段：
 - 确定 `recent_summaries[]`（近 3 章摘要路径，按时间倒序；CW fallback/revision 使用）
 - **QualityJudge `recent_summaries[]`（条件注入）**：当 chapter ≤ 3 且 platform_guide 存在时，注入近 2 章摘要路径供平台硬门回溯判定；章节 > 3 或无 platform_guide 时不注入此字段
 - **ContentCritic `recent_summaries[]`**：与 QualityJudge 同规则注入（CC Track 4 用于跨章重复检测）
+- **ContentCritic `recent_chapters[]`**：注入近 3 章正文路径（与 API Writer 同源），CC Track 6 跨章逻辑审查需通读全文
 - 其余路径为固定模式（如 `style-profile.json`、`ai-blacklist.json`）
 - **API Writer manifest 不含**：`paths.ai_blacklist`、`paths.style_guide`、inline `ai_blacklist_top10`（写作者不应看到黑名单，消除隐性回避）
 - **CW fallback manifest**：同上，且使用 `recent_summaries` 替代 `recent_chapters`（CW 上下文预算有限）

@@ -31,7 +31,7 @@ Scripts auto-resolve `${SCRIPT_DIR}/../.venv/bin/python3`, falling back to syste
 | L3 Chapter Contracts | `volumes/vol-{V:02d}/chapter-contracts/` | Pre/post conditions, acceptance criteria | Negotiable w/ audit |
 | LS Storyline Specs | `storylines/storylines.json` | Multi-POV constraints, prevents cross-line leaks | Volume-scoped |
 
-Agents validate outputs against these layers. QualityJudge performs dual-track verification: contract compliance (hard gate) + 9-dimension scoring (soft eval, including tonal_variance for register micro-injection density). ContentCritic evaluates reader engagement (Track 3) + content substance (Track 4: information density, plot progression, dialogue efficiency) + POV knowledge boundary (Track 5: detects proper nouns/info leaking into narration that the POV character shouldn't know yet, based on known_facts and chapter context).
+Agents validate outputs against these layers. QualityJudge performs dual-track verification: contract compliance (hard gate) + 9-dimension scoring (soft eval, including tonal_variance for register micro-injection density). ContentCritic evaluates reader engagement (Track 3) + content substance (Track 4: information density, plot progression, dialogue efficiency) + POV knowledge boundary (Track 5: detects proper nouns/info leaking into narration that the POV character shouldn't know yet, based on known_facts and chapter context) + cross-chapter logic review (Track 6: reads recent 3 chapters full text to detect hard contradictions and plot holes; narrative techniques like time skips/POV switches are not flagged).
 
 ### State Machine
 
@@ -45,7 +45,7 @@ State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current
 
 API Writer (`scripts/api-writer.py`) calls external model API (default: gemini-3.1-pro-preview) with pure creative system prompt (`prompts/api-writer-system.md`), bypassing Claude Code's engineering-focused system prompt. Falls back to ChapterWriter agent on API failure. CW agent remains available for revision/polish passes (targeted edits benefit from Claude Code's tool integration).
 
-Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite. ContentCritic Track 4 substance violation (any dimension < 3.0) forces revise. QJ tonal_variance < 3.0 forces revise.
+Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite. ContentCritic Track 4 substance violation (any dimension < 3.0) forces revise. Track 6 logic_review severity=high forces revise. QJ tonal_variance < 3.0 forces revise.
 
 **Revision loop optimization** (M9.2): revise triggers a tiered sub-pipeline based on `revision_scope`:
 - `targeted` (no high_violation, no substance_severe, overall ≥ 3.0): `CW(targeted) → SR(lite) → [Sum(patch) ∥ QJ(recheck) ∥ CC(recheck)]` (~35-45K tokens)
@@ -71,7 +71,7 @@ Calibration: `scripts/run-codex-calibration.sh` runs batch Codex eval on M3 data
 | StyleRefiner | Sonnet | green | Mechanical de-AI polish: blacklist scan, AI pattern removal, format cleanup | Yes |
 | Summarizer | Opus | cyan | 300-char summaries, state ops, leak detection | Yes |
 | QualityJudge | Opus | purple | Track 1 contract compliance + Track 2 quality scoring (9 dimensions) | staging/evaluations only |
-| ContentCritic | Opus | red | Track 3 reader engagement + Track 4 content substance | staging/evaluations only |
+| ContentCritic | Opus | red | Track 3 reader engagement + Track 4 content substance + Track 5 POV boundary + Track 6 cross-chapter logic | staging/evaluations only |
 
 Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config. ChapterWriter and StyleRefiner run sequentially (same color, never concurrent). Normal pipeline: QualityJudge and ContentCritic run in parallel after Summarizer. Targeted revision: Sum/QJ/CC all run in parallel after SR(lite) (no cross-dependency in recheck/patch mode). When `eval_backend="codex"`, Summarizer/QJ/CC use Codex prompts (`prompts/codex-*.md`) via codeagent-wrapper instead of Claude Code Task agents.
 
@@ -109,7 +109,7 @@ Shared methodology in `skills/novel-writing/SKILL.md` (passive reference, not us
 
 - **Manifest mode**: Orchestrator passes file paths; agents read on-demand (not full text injection)
 - **Context assembly**: Deterministic rules extracted to `skills/continue/references/context-assembly.md` (Step 2.0-2.7)
-- **Context budgets**: ~19–24K tokens for ChapterWriter, ~8-10K for StyleRefiner, ~10–12K for Summarizer, ~14-16K for QualityJudge, ~12-14K for ContentCritic
+- **Context budgets**: ~19–24K tokens for ChapterWriter, ~8-10K for StyleRefiner, ~10–12K for Summarizer, ~14-16K for QualityJudge, ~18-22K for ContentCritic (Track 6 reads recent 3 chapters full text)
 - **Track 3 tiering**: `track3_mode` (full/lite) — golden/end-of-volume/critical chapters get full Track 3; normal chapters get lite (overall_engagement + reader_feedback only). Track 3 now in ContentCritic, not QualityJudge
 - **Checkpoint recovery**: `/novel:continue` resumes from `pipeline_stage` + `inflight_chapter`
 
