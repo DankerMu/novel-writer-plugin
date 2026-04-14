@@ -162,17 +162,15 @@ for chapter_num in range(start, start + remaining_N):
      更新 checkpoint: pipeline_stage = "refined"
 
   2. Summarizer → 生成摘要 + 权威状态增量 + 串线检测
-     **按 eval_backend 分支**:
-     - **eval_backend = "opus"**:
-       Task(subagent_type="summarizer", model="opus")，传入 manifest 路径：`staging/manifests/chapter-{C:03d}-summarizer.json`
-     - **eval_backend = "codex"**（默认）:
-       2a. 组装 task content:
-           `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py staging/manifests/chapter-{C:03d}-summarizer.json --agent summarizer --project <root>")`
-       2b. Codex 执行:
-           `Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/chapter-{C:03d}-summarizer.md", timeout=3600000)`
-       2c. 校验 staging 输出:
-           `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema summarizer --project <root> --chapter {C}")`
-           校验失败 → 按 Step 1.6 重试一次（从 2b 重跑）
+     **执行流程**（Codex 优先，失败 fallback Opus Task agent）：
+     2a. 组装 task content:
+         `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py staging/manifests/chapter-{C:03d}-summarizer.json --agent summarizer --project <root>")`
+     2b. Codex 执行:
+         `Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/chapter-{C:03d}-summarizer.md", timeout=3600000)`
+     2c. 校验 staging 输出:
+         `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema summarizer --project <root> --chapter {C}")`
+         校验失败 → 重试一次（从 2b 重跑）；二次失败 → fallback
+     **Codex 不可用 fallback**：Task(subagent_type="summarizer", model="opus")，传入 manifest 路径
      输入: manifest 文件 `staging/manifests/chapter-{C:03d}-summarizer.json`（Agent/codex-eval.py 自行读取）
      输出: staging/summaries/chapter-{C:03d}-summary.md + staging/state/chapter-{C:03d}-delta.json + staging/state/chapter-{C:03d}-crossref.json + staging/storylines/{storyline_id}/memory.md
      更新 checkpoint: pipeline_stage = "drafted"
@@ -196,30 +194,22 @@ for chapter_num in range(start, start + remaining_N):
          - 若退出码为 0 且 stdout 为合法 JSON → patch 到 QJ manifest: `blacklist_lint = <json>`
        - 否则 → 不 patch
 
-     **按 eval_backend 分支派发**:
-
-     **eval_backend = "opus"**:
-     3a. QualityJudge Agent → Track 1 合规 + Track 2 评分
-         Task(subagent_type="quality-judge", model="opus")，传入 manifest 路径：`staging/manifests/chapter-{C:03d}-quality-judge.json`
-         输出: staging/evaluations/chapter-{C:03d}-eval-raw.json
-     3b. ContentCritic Agent → Track 3 读者参与度 + Track 4 内容实质性
-         Task(subagent_type="content-critic", model="opus")，传入 manifest 路径：`staging/manifests/chapter-{C:03d}-content-critic.json`
-         输出: staging/evaluations/chapter-{C:03d}-content-eval-raw.json
-     （两个 Task 同时发起，并行执行）
-
-     **eval_backend = "codex"**（默认）:
-     3a-codex. 组装 QJ + CC task content（并行）:
+     **执行流程**（Codex 优先，失败 fallback Opus Task agent）：
+     3a. 组装 QJ + CC task content（并行）:
          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py staging/manifests/chapter-{C:03d}-quality-judge.json --agent quality-judge --project <root>")`  ─┐ 并行
          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py staging/manifests/chapter-{C:03d}-content-critic.json --agent content-critic --project <root>")` ─┘ 并行
-     3b-codex. 两个独立 codeagent-wrapper 并行执行:
+     3b. 两个独立 codeagent-wrapper 并行执行:
          `Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/chapter-{C:03d}-quality-judge.md", timeout=3600000)`  ─┐ 并行
          `Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/chapter-{C:03d}-content-critic.md", timeout=3600000)` ─┘ 并行
-     3c-codex. 各自校验:
+     3c. 各自校验:
          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema quality-judge --project <root> --chapter {C}")`
          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema content-critic --project <root> --chapter {C}")`
-         任一校验失败 → 按 Step 1.6 重试一次（从 3b-codex 重跑对应 agent）
+         任一校验失败 → 重试一次（从 3b 重跑对应 agent）；二次失败 → 该 agent fallback
+     **Codex 不可用 fallback**（逐 agent 独立 fallback，一个失败不影响另一个）：
+     - QJ fallback: Task(subagent_type="quality-judge", model="opus")，传入 manifest 路径
+     - CC fallback: Task(subagent_type="content-critic", model="opus")，传入 manifest 路径
 
-     **并行完成后**（两种 backend 共用）：
+     **并行完成后**：
      编排器验证两份 eval-raw 文件均存在且可解析为合法 JSON；任一不存在或解析失败 → 按 Step 1.6 错误处理流程重试对应 Agent
      编排器读取两份 eval-raw 用于门控决策合并
 
@@ -262,7 +252,7 @@ for chapter_num in range(start, start + remaining_N):
          CW(targeted, failed_dimensions) → SR(lite, revision_diff) → [Sum(patch) ∥ QJ(recheck) ∥ CC(recheck)]
          ```
          > **并行依据**：Sum(patch) 输出（summary/delta/crossref/memory）仅供 commit 阶段消费，QJ/CC recheck 不读取 Sum 输出（各自依赖 chapter_draft + previous_eval + revision_diff），三者无交叉数据依赖。
-         > **eval_backend 分支**：修订子流水线中 Sum/QJ/CC 的调度遵循 Step 2/3 相同的 eval_backend 分支逻辑。manifest 中追加的 recheck_mode/patch_mode 等字段在 Codex 路径下通过 codex-eval.py 注入 task content。
+         > 修订子流水线中 Sum/QJ/CC 的调度遵循 Step 2/3 相同的 Codex 优先 + fallback 逻辑。manifest 中追加的 recheck_mode/patch_mode 等字段通过 codex-eval.py 注入 task content。
 
          **CW + SR 阶段**（串行）：
          - CW manifest 追加: `revision_scope="targeted"` + `failed_dimensions` + `required_fixes`
@@ -277,9 +267,9 @@ for chapter_num in range(start, start + remaining_N):
          - CC manifest 追加: `recheck_mode=true` + `failed_tracks` + `paths.previous_eval` + `paths.revision_diff`
          - Step 3 预处理（NER/黑名单 lint → patch 到 QJ manifest）：在修订后的章节上重新执行
 
-         **三路并行派发**（Sum + QJ + CC 同时启动）：
-         - eval_backend="opus"：三个 Task 同时发起（`subagent_type` 分别为 summarizer/quality-judge/content-critic）
-         - eval_backend="codex"：三个 `codex-eval.py --agent` 组装（并行）→ 三个 `codeagent-wrapper`（并行）→ 各自 `--validate`
+         **三路并行派发**（Sum + QJ + CC 同时启动，Codex 优先，逐 agent 独立 fallback）：
+         - 三个 `codex-eval.py --agent` 组装（并行）→ 三个 `codeagent-wrapper`（并行）→ 各自 `--validate`
+         - 任一 agent Codex 失败 → 该 agent fallback 到 Task(subagent_type=对应agent, model="opus")
          - Checkpoint：`pipeline_stage` 保持 `"refined"` 直到三路全部完成 → 更新为 `"judged"`（跳过 `"drafted"` 阶段）
 
          **三路完成后**：
@@ -343,40 +333,29 @@ for chapter_num in range(start, start + remaining_N):
        - **Hook 强制触发**：`check-sliding-window.sh`（PreToolUse hook）在章节提交到 `chapters/` 时自动检测校验点，注入 systemMessage——编排器不得跳过
        - 窗口范围：`[max(1, last_completed_chapter - 9), last_completed_chapter]`（天然形成 ch1-10, ch6-15, ch11-20... 的重叠滑窗）
 
-       **按 eval_backend 分支**:
+       **执行流程**（Codex 优先，失败 fallback Opus Task agent）：
+       1. 组装滑窗 manifest（window 范围 + 章节/契约/大纲路径列表）
+       2. 组装 task content:
+          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py sliding-window-manifest.json --agent sliding-window --project <root>")`
+       3. Codex 执行（读取 10 章原文 + 契约 + 大纲，输出报告 JSON）:
+          `Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/sliding-window.md", timeout=7200000)`
+       4. 校验报告:
+          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema sliding-window --project <root>")`
+          校验失败 → 重试一次（从 3 重跑）；二次失败 → 进入 fallback
+       5. 编排器读取 `staging/logs/continuity/continuity-report-*.json`
+       6. 对 `auto_fixable == true` 的条目：使用 Edit 工具修改 `chapters/chapter-{fix_chapter:03d}.md`（定位 `current_text` → 替换为 `suggested_fix`）
+       7. 不可自动修复的问题列出并提示用户
+       8. 复制报告到正式目录: `logs/continuity/` + 覆盖 `latest.json`
 
-       **eval_backend = "opus"**:
-       - **执行流程**（agent 驱动，读原文而非摘要/评估文件）：
-         1. 读取窗口内所有章节**原文**（`chapters/chapter-{C:03d}.md`）+ 对应**大纲区块**（`volumes/vol-{V:02d}/outline.md` 中 `### 第 N 章` 段落）+ 对应**章节契约**（`volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md`）
-         2. **正文↔契约/大纲对齐检查**（逐章）：
-            - 契约「事件」section 描述的核心事件是否在正文中完整呈现
-            - 契约「冲突与抉择」的冲突/抉择/赌注是否在正文中有对应情节
-            - 契约「局势变化」表的章末状态是否与正文实际演进一致
-            - 契约「验收标准」各条是否满足
-            - 大纲 Storyline/POV/Location 是否与正文匹配
-            - 大纲 Foreshadowing 指定的伏笔动作是否在正文中体现
-         3. **跨章连续性检查**：角色位置/状态连续性、时间线矛盾、世界规则合规性、伏笔推进一致性、跨线信息泄漏
-         4. 可选辅助：NER 实体抽取（`scripts/run-ner.sh`，脚本优先，LLM fallback）
-         5. 报告落盘：`logs/continuity/continuity-report-vol-{V:02d}-ch{start:03d}-ch{end:03d}.json` + 覆盖 `logs/continuity/latest.json`
-       - **自动修复**：对可修复问题直接编辑受影响章节原文；不可自动修复的问题列出并提示用户
+       **Codex 不可用时 fallback**（codeagent-wrapper 不存在 / 执行失败 / 校验二次失败）：
+       - 输出 WARNING：`⚠️ Codex 滑窗校验失败，fallback 到 Opus Task agent`
+       - 使用 Opus Task agent 执行同等检查：
+         1. 读取窗口内所有章节原文 + 大纲区块 + 章节契约
+         2. 正文↔契约/大纲对齐检查 + 跨章连续性检查
+         3. 可选辅助：NER 实体抽取（`scripts/run-ner.sh`）
+         4. 报告落盘 + 自动修复（同 Codex 路径 5-8 步）
 
-       **eval_backend = "codex"**（默认）:
-       - **拆分设计**：Codex 负责分析 + 输出报告 JSON，编排器负责读取报告并执行修复
-       - **执行流程**：
-         1. 组装滑窗 manifest（window 范围 + 章节/契约/大纲路径列表）
-         2. 组装 task content:
-            `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py sliding-window-manifest.json --agent sliding-window --project <root>")`
-         3. Codex 执行（读取 10 章原文 + 契约 + 大纲，输出报告 JSON）:
-            `Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/sliding-window.md", timeout=7200000)`
-         4. 校验报告:
-            `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema sliding-window --project <root>")`
-            校验失败 → 按 Step 1.6 重试一次（从 3 重跑）
-         5. 编排器读取 `staging/logs/continuity/continuity-report-*.json`
-         6. 对 `auto_fixable == true` 的条目：使用 Edit 工具修改 `chapters/chapter-{fix_chapter:03d}.md`（定位 `current_text` → 替换为 `suggested_fix`）
-         7. 不可自动修复的问题列出并提示用户
-         8. 复制报告到正式目录: `logs/continuity/` + 覆盖 `latest.json`
-
-       **共用约束**（两种 backend）：
+       **约束**：
        - **阻断流水线**：校验 + 修复完成前不得继续下一章
        - 输出简报：issues_total + 已修复数 + 未修复高严重级 + LS-001 高置信提示
      - **质量简报（每 5 章触发）**：`last_completed_chapter % 5 == 0` 时输出近 5 章均分 + 低分章节 + 风格漂移检测结果
