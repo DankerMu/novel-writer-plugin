@@ -15,7 +15,7 @@
 根据 task content 中提供的 context manifest，执行四项评估：
 - **Track 3**：读者参与度评估（第一人称读者视角）
 - **Track 4**：内容实质性分析（信息密度/剧情推进/对话效率）
-- **Track 5**：POV 知识边界检查
+- **Track 5**：POV 知识边界 + 跨线泄漏检查
 - **Track 6**：跨章逻辑审查（通读近 3 章全文，检测硬矛盾和情节漏洞）
 
 读取文件时的优先级：先读章节正文（评估对象），再读章节契约 + 评分标准（评估标准），然后读近章全文（Track 6），最后读其余参照文件。
@@ -193,13 +193,15 @@
 - `high`：直接拉低维度分 ≤ 2，或该问题段落占全章 > 20%
 - `medium`：影响阅读体验但单独不会触发硬门
 
-# Track 5: POV 知识边界检查（POV Knowledge Boundary Check）
+# Track 5: POV 知识边界 + 跨线泄漏检查（POV Knowledge Boundary & Cross-Storyline Leak Check）
 
-以读者视角检测 POV 角色不应知道的信息泄漏到叙述层的问题。
+以读者视角检测两类信息泄漏问题：
+1. **POV 知识越界**：POV 角色不应知道的信息泄漏到叙述层
+2. **跨线实体泄漏**：非交汇事件章中，其他故事线的实体（角色/地名/事件）不当出现在本章叙述中
 
 > **backfill 模式**时跳过 Track 5。
 
-## 检查方法
+## 5.1 POV 知识边界检查
 
 1. 从章节契约确定本章 POV 角色
 2. 从角色契约读取该 POV 角色的 `known_facts[]`
@@ -208,16 +210,26 @@
    - **信息越界**：POV 叙述中角色表现出不应拥有的信息
 4. **排除**：其他角色对话、outline 标注为本章揭示的信息、`introducing: true` 的 known_facts
 
+## 5.2 跨线实体泄漏检查
+
+1. 从 manifest 中的 `storyline_id` 确定本章所属故事线
+2. 从 `paths.storyline_spec`（如存在）读取各故事线的角色/地点/事件归属
+3. 扫描正文，识别出现的所有实体（角色名、地名、事件引用），标记不属于本线的实体
+4. **交汇事件章豁免**：若 `is_convergence_chapter == true`（manifest 提供），跨线实体出现是预期行为，不标记为泄漏
+5. **排除**：跨线实体仅出现在其他角色对话中（对方可能知道）；实体属于公共知识层（全线可见的世界级事件/地名）
+
 ## 输出
 
 ```json
 {
   "pov_boundary_issues": [
-    {"type": "term_leak | info_leak", "severity": "high | medium", "location": "paragraph_N", "term_or_info": "万象熔炉", "pov_character": "梁汉", "description": "...", "evidence": "原文≤80字", "fix_suggestion": "..."}
+    {"type": "term_leak | info_leak | cross_storyline_leak", "severity": "high | medium", "location": "paragraph_N", "term_or_info": "万象熔炉", "pov_character": "梁汉", "source_storyline": null, "description": "...", "evidence": "原文≤80字", "fix_suggestion": "..."}
   ],
   "pov_boundary_clean": true | false
 }
 ```
+
+- `type="cross_storyline_leak"` 时 `source_storyline` 填写泄漏实体所属故事线 ID；其他 type 为 null
 
 # Track 6: 跨章逻辑审查（Cross-Chapter Logic Review）
 
@@ -238,13 +250,13 @@ has_substance_violation = any(dimension.score < 3 for dimension in [information_
 - `has_substance_violation == true` → 编排器强制 `gate_decision = "revise"`，不可跳过
 - `content_substance_overall < 2.0` → 编排器强制 `gate_decision = "pause_for_user"`
 
-## Track 5 POV 边界硬门
+## Track 5 POV 边界 + 跨线泄漏硬门
 
 ```
 has_pov_violation = any(issue.severity == "high" for issue in pov_boundary_issues)
 ```
 
-- `has_pov_violation == true` → 编排器强制 `gate_decision = "revise"`
+- `has_pov_violation == true` → 编排器强制 `gate_decision = "revise"`（含 cross_storyline_leak 类型）
 
 ## Track 6 逻辑审查
 

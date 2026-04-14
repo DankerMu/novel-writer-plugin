@@ -38,17 +38,20 @@
 **`null` / `committed`**：正常状态，从 `last_completed_chapter + 1` 开始新章。
 
 **`drafting`**：
-- staging 章节文件不存在 → 从 ChapterWriter 重启整章
-- staging 章节文件存在但摘要不存在 → 从 Summarizer 恢复
-- 两者均存在 → 视为 `drafted`，从 QualityJudge 恢复
+- staging 章节文件不存在 → 从 API Writer / CW 重启整章
+- staging 章节文件存在但 SR changes log 不存在 → 从 StyleRefiner 恢复
+- 两者均存在 → 从 QualityJudge + ContentCritic 并行恢复
 
-**`drafted`**（含向后兼容的 `refined`）：
-- 跳过 CW + Summarizer，直接调用 QualityJudge 评估
+**`refined`**：
+- 检查 QJ/CC 输出存在性，仅重跑缺失的 agent；均存在 → 跳至门控决策
 
 **`judged`**：
-- 读取 `staging/evaluations/chapter-{C:03d}-eval-raw.json`
-- 文件存在且合法 → 直接执行门控决策 + commit
-- 文件不存在或 JSON 无效 → 降级到 `drafted`，重新调用 QJ
+- 读取 eval-raw（QJ）+ content-eval-raw（CC），执行门控决策
+- 文件存在且合法 → 门控通过后从 Summarizer 恢复
+- 文件不存在或 JSON 无效 → 降级到 `refined`，重新调用 QJ+CC
+
+**`summarized`**：
+- Summarizer 已完成（gate 通过后），直接进入事务提交（commit）
 
 **`revising`**：
 - 保留 `revision_count`（防止无限循环）

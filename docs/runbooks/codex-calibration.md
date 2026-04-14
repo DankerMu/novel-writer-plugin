@@ -44,7 +44,7 @@ bash scripts/run-codex-calibration.sh \
 
 校准报告中 `summarizer_ops.canon_hints_coverage` < 0.8 表示 Codex Summarizer 可能遗漏关键状态提取。建议人工抽检 5 章：
 - 对比 `staging/state/chapter-{C:03d}-delta.json` (Codex) 与 `state/changelog.jsonl` 对应章节 ops
-- 重点关注：canon_hints 覆盖率、crossref leak_risk 判定
+- 重点关注：canon_hints 覆盖率、ops 完整性
 
 ### Step 6: 切换或回退
 

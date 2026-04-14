@@ -924,12 +924,15 @@ def assemble_all(
         },
     }
     opt(cc, "excitement_type", excitement)
+    cc["storyline_id"] = storyline_id
+    cc["is_convergence_chapter"] = chapter in conv_chs
     if has_prev_sum:
         cc["paths"]["prev_summary"] = prev_sum_rel
     if is_golden and pg_path and recent_sum2:
         cc["paths"]["recent_summaries"] = recent_sum2
     opt(cc["paths"], "platform_guide", pg_path)
     opt(cc["paths"], "character_contracts", char_contracts)
+    opt(cc["paths"], "storyline_spec", sspec_path)
     opt(cc["paths"], "recent_chapters", recent_ch)
     if revision and revision.get("revision_scope") == "targeted":
         cc["recheck_mode"] = True

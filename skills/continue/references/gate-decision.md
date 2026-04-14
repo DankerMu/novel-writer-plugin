@@ -190,7 +190,7 @@ else:
        - 指令: 严格按 `required_fixes` 做最小编辑，不改动未提及段落
        - 输出: 覆写 `staging/chapters/chapter-{C:03d}.md`
     4. SR(lite): 对修复后章节做黑名单/格式检查
-    5. 标记 `force_passed=true`，进入 commit（Summarizer 在 commit 流程中执行）
+    5. 标记 `force_passed=true`，覆写 `gate_decision = "pass"` → 进入 Summarizer（Step 4）→ commit（Step 5）
   - **不执行 QJ/CC 复检**——定向修订已完成一轮含完整评估的子流水线，直接修复仅针对明确的 required_fixes，额外评估 ROI 过低
 
 - 若 gate_decision="revise" 且全量修订已耗尽（`revision_scope == "full"` 且 `revision_count >= 2`）：
