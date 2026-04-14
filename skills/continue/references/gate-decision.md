@@ -123,17 +123,19 @@ if gate_decision == "revise":
         revision_scope = "full"
     elif len(failed_dimensions) == 0 and len(failed_tracks) == 0:
         revision_scope = "full"  # 无明确失分维度时无法定向修订，降级全量
+    elif len(failed_dimensions) <= 1 and len(failed_tracks) == 0 and overall_final >= 3.5:
+        revision_scope = "trivial"  # 单维度边缘失分，修补必然小改动，跳过复检
     else:
         revision_scope = "targeted"
 else:
     revision_scope = null  # 非 revise 不需要
 ```
 
-## 自动修订闭环（targeted: 1 轮 + 直接修复 | full: max 2 轮）
+## 自动修订闭环（trivial: 跳过复检 | targeted: 1 轮 + 直接修复 | full: max 2 轮）
 
-> **修订禁用 API Writer**：修订子流水线（targeted/full）**必须**使用 ChapterWriter Agent（`Task(subagent_type="chapter-writer")`），**不得**调用 API Writer（`scripts/api-writer.py`）。API Writer 仅用于 Step 1 的初始稿件生成。原因：修订需要读取上次评估结果（`required_fixes`/`failed_dimensions`）做定向修改，CW 的 Read 工具集成和 revision manifest 支持是必需的；API Writer 无法消费这些输入。
+> **修订禁用 API Writer**：修订子流水线（trivial/targeted/full）**必须**使用 ChapterWriter Agent（`Task(subagent_type="chapter-writer")`），**不得**调用 API Writer（`scripts/api-writer.py`）。API Writer 仅用于 Step 1 的初始稿件生成。原因：修订需要读取上次评估结果（`required_fixes`/`failed_dimensions`）做定向修改，CW 的 Read 工具集成和 revision manifest 支持是必需的；API Writer 无法消费这些输入。
 
-- 若 gate_decision="revise" 且可进入修订（定向: `revision_count < 1`；全量: `revision_count < 2`）：
+- 若 gate_decision="revise" 且可进入修订（trivial/定向: `revision_count < 1`；全量: `revision_count < 2`）：
   - 更新 checkpoint: orchestrator_state="CHAPTER_REWRITE", pipeline_stage="revising", revision_count += 1, revision_scope=<computed>, failed_dimensions=<computed>, failed_tracks=<computed>
   - 组装修订指令（合并 QJ + CC 来源）：
     - 从 QJ eval: `required_fixes`（主要来源）
@@ -142,6 +144,19 @@ else:
     - 从 CC eval: `reader_evaluation.reader_feedback` + `reader_evaluation.suspicious_skim_paragraphs`（如存在）追加到修订指令
     - `track3_mode == "lite"` 时 `suspicious_skim_paragraphs` 不可用，仅注入 `reader_feedback`
   - **按 `revision_scope` 分发修订子流水线**：
+
+  ### revision_scope = "trivial"（轻量修订）
+
+  适用条件：len(failed_dimensions) <= 1 且 len(failed_tracks) == 0 且 overall_final >= 3.5
+
+  子流水线：`CW(targeted) → SR(lite) → force_passed`（约 15-20K tokens）
+
+  1. **ChapterWriter 定向修改**：同 targeted 模式（manifest 追加 `failed_dimensions` + `required_fixes` + `revision_scope="trivial"`）
+  2. **StyleRefiner lite 模式**：同 targeted 模式（仅扫描被修改段落做黑名单/格式检查）
+  3. **跳过 QJ/CC 复检**——单维度边缘失分 + 无 Track 级问题 + 整体分 ≥ 3.5，修补必然是小改动，复检 ROI 过低
+  4. 沿用上轮 eval，元数据标记 `trivial_fix=true` + `patched_dimensions=[...]` → `force_passed=true` → 进入 Summarizer（Step 4）→ commit（Step 5）
+
+  > trivial 修订无兜底路径——仅 1 轮且直接 force_passed，不会触发直接修复模式或 pause_for_user。
 
   ### revision_scope = "targeted"（定向修订）
 
@@ -218,5 +233,5 @@ else:
   - metadata 至少包含：
     - judges: {primary:{model,overall,overall_raw,overall_weighted?}, secondary?:{model,overall,overall_raw,overall_weighted?}, used, overall_final}
     - content_critic: {model, content_substance_overall, overall_engagement（如有）}
-    - gate: {decision: gate_decision, revisions: revision_count, force_passed: bool, substance_violation: bool, revision_scope: "targeted"|"full"|null, failed_dimensions: [...], failed_tracks: [...]}
+    - gate: {decision: gate_decision, revisions: revision_count, force_passed: bool, trivial_fix: bool, patched_dimensions: [...], substance_violation: bool, revision_scope: "trivial"|"targeted"|"full"|null, failed_dimensions: [...], failed_tracks: [...]}
 - 删除 staging/evaluations/chapter-{C:03d}-eval-raw.json 和 staging/evaluations/chapter-{C:03d}-content-eval-raw.json（清理中间文件）
