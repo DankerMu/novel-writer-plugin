@@ -31,7 +31,7 @@ Scripts auto-resolve `${SCRIPT_DIR}/../.venv/bin/python3`, falling back to syste
 | L3 Chapter Contracts | `volumes/vol-{V:02d}/chapter-contracts/` | Pre/post conditions, acceptance criteria | Negotiable w/ audit |
 | LS Storyline Specs | `storylines/storylines.json` | Multi-POV constraints, prevents cross-line leaks | Volume-scoped |
 
-Agents validate outputs against these layers. QualityJudge performs dual-track verification: contract compliance (hard gate) + 9-dimension scoring (soft eval, including tonal_variance for register micro-injection density). ContentCritic evaluates reader engagement (Track 3) + content substance (Track 4: information density, plot progression, dialogue efficiency) + POV knowledge boundary (Track 5: detects proper nouns/info leaking into narration that the POV character shouldn't know yet, based on known_facts and chapter context) + cross-chapter logic review (Track 6: reads recent 3 chapters full text to detect hard contradictions and plot holes; narrative techniques like time skips/POV switches are not flagged).
+Agents validate outputs against these layers. QualityJudge performs dual-track verification: contract compliance (hard gate) + 9-dimension scoring (soft eval, including tonal_variance for register micro-injection density). ContentCritic evaluates reader engagement (Track 3) + content substance (Track 4: information density, plot progression, dialogue efficiency) + POV knowledge boundary & cross-storyline leak detection (Track 5: detects proper nouns/info leaking into narration that the POV character shouldn't know yet, and cross-storyline entity leaks in non-convergence chapters) + cross-chapter logic review (Track 6: reads recent 3 chapters full text to detect hard contradictions and plot holes; narrative techniques like time skips/POV switches are not flagged).
 
 ### State Machine
 
@@ -41,17 +41,17 @@ State persists in `.checkpoint.json` with fields: `orchestrator_state`, `current
 
 ### Single-Chapter Pipeline
 
-`API Writer(draft, fallback CW) → StyleRefiner(de-AI polish) → Summarizer → [QualityJudge + ContentCritic parallel] → Gate Decision (merge)`
+`API Writer(draft, fallback CW) → StyleRefiner(de-AI polish) → [QualityJudge + ContentCritic parallel] → Gate Decision (merge) → Summarizer (pass/polish only)`
 
 API Writer (`scripts/api-writer.py`) calls external model API (default: gemini-3.1-pro-preview) with pure creative system prompt (`prompts/api-writer-system.md`), bypassing Claude Code's engineering-focused system prompt. Falls back to ChapterWriter agent on API failure. CW agent remains available for revision/polish passes (targeted edits benefit from Claude Code's tool integration).
 
 Gate thresholds: ≥4.0 pass, 3.5–3.9 polish, 3.0–3.4 revise, 2.0–2.9 review, <2.0 rewrite. ContentCritic Track 4 substance violation (any dimension < 3.0) forces revise. Track 6 logic_review severity=high forces revise. QJ tonal_variance < 3.0 forces revise.
 
 **Revision loop optimization** (M9.2): revise triggers a tiered sub-pipeline based on `revision_scope`:
-- `targeted` (no high_violation, no substance_severe, overall ≥ 3.0): `CW(targeted) → SR(lite) → [Sum(patch) ∥ QJ(recheck) ∥ CC(recheck)]` (~35-45K tokens)
-- `full` (has high_violation or substance_severe or overall < 3.0): full pipeline re-run (~90K tokens)
+- `targeted` (no high_violation, no substance_severe, overall ≥ 3.0): `CW(targeted) → SR(lite) → [QJ(recheck) ∥ CC(recheck)]` (~35-45K tokens)
+- `full` (has high_violation or substance_severe or overall < 3.0): `CW → SR → [QJ+CC]` re-run (~90K tokens)
 
-Targeted mode passes `failed_dimensions` to CW for scoped edits, uses `lite_mode`/`patch_mode`/`recheck_mode` flags for downstream agents. Sum/QJ/CC have no cross-dependency in recheck mode, enabling 3-way parallel dispatch after SR. Targeted: 1 round, then direct-fix Task agent (SR+Sum only, no re-eval) + force_passed. Full: max 2 rounds, then force_passed or pause_for_user.
+Targeted mode passes `failed_dimensions` to CW for scoped edits, uses `lite_mode`/`recheck_mode` flags for downstream agents. QJ/CC have no cross-dependency in recheck mode, enabling parallel dispatch after SR. Summarizer runs only after gate pass, not during revision loops. Targeted: 1 round, then direct-fix Task agent (SR only, no re-eval) + force_passed. Full: max 2 rounds, then force_passed or pause_for_user.
 
 **Eval backend** (M10, v3.0.0): Summarizer/QJ/CC/sliding-window can run via Codex or Opus agents. New projects default to `eval_backend: "codex"` in checkpoint. Config is global per project, no runtime fallback between backends.
 
@@ -69,11 +69,11 @@ Calibration: `scripts/run-codex-calibration.sh` runs batch Codex eval on M3 data
 | PlotArchitect | Opus | orange | Volume outlines, L3 contracts, foreshadowing | Yes |
 | ChapterWriter | Opus | green | 2500–3500 char chapters with register micro-injection (no blacklist visibility) | Yes |
 | StyleRefiner | Sonnet | green | Mechanical de-AI polish: blacklist scan, AI pattern removal, format cleanup | Yes |
-| Summarizer | Opus | cyan | 300-char summaries, state ops, leak detection | Yes |
+| Summarizer | Opus | cyan | 300-char summaries, state ops, canon hints | Yes |
 | QualityJudge | Opus | purple | Track 1 contract compliance + Track 2 quality scoring (9 dimensions) | staging/evaluations only |
 | ContentCritic | Opus | red | Track 3 reader engagement + Track 4 content substance + Track 5 POV boundary + Track 6 cross-chapter logic | staging/evaluations only |
 
-Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config. ChapterWriter and StyleRefiner run sequentially (same color, never concurrent). Normal pipeline: QualityJudge and ContentCritic run in parallel after Summarizer. Targeted revision: Sum/QJ/CC all run in parallel after SR(lite) (no cross-dependency in recheck/patch mode). When `eval_backend="codex"`, Summarizer/QJ/CC use Codex prompts (`prompts/codex-*.md`) via codeagent-wrapper instead of Claude Code Task agents.
+Agent definitions live in `agents/*.md`. Each uses YAML frontmatter for model, tools, and trigger config. ChapterWriter and StyleRefiner run sequentially (same color, never concurrent). Normal pipeline: QualityJudge and ContentCritic run in parallel after StyleRefiner; Summarizer runs after gate pass (not before evaluation). Targeted revision: QJ/CC run in parallel after SR(lite) (no cross-dependency in recheck mode). When `eval_backend="codex"`, Summarizer/QJ/CC use Codex prompts (`prompts/codex-*.md`) via codeagent-wrapper instead of Claude Code Task agents.
 
 ### 3 Entry Skills
 

@@ -17,7 +17,7 @@
 #   2. If multiple subagents run concurrently, the marker reflects only the
 #      most recently started one (last-write-wins).
 # This is acceptable because the entry Skill orchestrates subagents
-# sequentially (ChapterWriter → Summarizer → QualityJudge),
+# sequentially (ChapterWriter → StyleRefiner → QualityJudge/ContentCritic → Summarizer),
 # so concurrent overlap is unlikely in practice. The guard is best-effort;
 # the primary write boundary is the staging→commit transaction model in the
 # entry Skill.

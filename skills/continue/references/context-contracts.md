@@ -152,7 +152,6 @@ quality_judge_manifest = {
     character_contracts: ["staging/context/characters/{slug}.json", ...], # canon_status 预过滤后的 staging 副本（L2 结构化契约）
     storyline_spec: "storylines/storyline-spec.json",                  # 可选
     storyline_schedule: "volumes/vol-{V:02d}/storyline-schedule.json", # 可选
-    cross_references: "staging/state/chapter-{C:03d}-crossref.json",
     quality_rubric: "skills/novel-writing/references/quality-rubric.md",
     platform_guide: "templates/platforms/{platform}.md",                 # 可选
   }
@@ -174,6 +173,8 @@ content_critic_manifest = {
   is_golden_chapter: bool,                       # Track 3 黄金三章专属警告
   track3_mode: "full" | "lite",                    # Track 3 输出模式
   mode: str | null,                                # "track3_backfill" 时仅执行 Track 3
+  storyline_id: str,                               # Track 5 跨线泄漏检查（本章所属故事线）
+  is_convergence_chapter: bool,                    # Track 5 交汇事件章豁免标记
 
   # ── paths ──
   paths: {
@@ -184,6 +185,7 @@ content_critic_manifest = {
     style_profile: "style-profile.json",                              # Track 3 人设
     platform_guide: "templates/platforms/{platform}.md",              # 可选
     character_contracts: ["characters/active/{slug}.json", ...],      # Track 5 POV 角色 known_facts
+    storyline_spec: "storylines/storyline-spec.json",                  # Track 5 跨线泄漏检查（可选）
     recent_chapters: ["chapters/chapter-{C-1:03d}.md", ...],         # Track 6 近 3 章全文（跨章逻辑审查）
     quality_rubric: "skills/novel-writing/references/quality-rubric.md",
   }

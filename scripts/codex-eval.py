@@ -58,7 +58,6 @@ QJ_PATHS = {
     "character_contracts": "角色契约",
     "storyline_spec": "故事线规格",
     "storyline_schedule": "故事线调度",
-    "cross_references": "交叉引用",
     "platform_guide": "平台指南",
     "recent_summaries": "近章摘要",
     "quality_rubric": "评分标准",
@@ -166,7 +165,6 @@ def build_output_section(agent: str, manifest: dict) -> str:
         sid = manifest.get("storyline_id", "main")
         lines.append(f"- staging/summaries/chapter-{ch:03d}-summary.md")
         lines.append(f"- staging/state/chapter-{ch:03d}-delta.json")
-        lines.append(f"- staging/state/chapter-{ch:03d}-crossref.json")
         lines.append(f"- staging/storylines/{sid}/memory.md")
     elif agent == "quality-judge":
         lines.append(f"- staging/evaluations/chapter-{ch:03d}-eval-raw.json")
@@ -330,7 +328,6 @@ def validate_summarizer(project_root: Path, chapter: int) -> list[str]:
     required = [
         base / "summaries" / f"chapter-{chapter:03d}-summary.md",
         base / "state" / f"chapter-{chapter:03d}-delta.json",
-        base / "state" / f"chapter-{chapter:03d}-crossref.json",
     ]
     for p in required:
         if not p.exists():

@@ -52,7 +52,7 @@
 
 **`revising`**：
 - 保留 `revision_count`（防止无限循环）
-- 从 ChapterWriter 修订重启 → Summarizer → QualityJudge 完整重跑
+- 从 ChapterWriter 修订重启 → StyleRefiner → [QJ + CC] → 门控 → Summarizer 完整重跑
 
 ### Checkpoint 损坏重建
 
@@ -60,7 +60,7 @@
 
 ## Acceptance
 
-- 恢复章完成完整流水线（CW → Sum → QJ → 门控 → commit）
+- 恢复章完成完整流水线（CW → SR → [QJ+CC] → 门控 → Sum → commit）
 - `pipeline_stage` 回到 `committed`，`inflight_chapter` 清为 `null`
 - `revision_count` 重置为 0
 - 恢复章计入 N 章配额（`remaining_N = N - 1`）

@@ -887,7 +887,6 @@ def assemble_all(
             "ai_blacklist": "ai-blacklist.json",
             "chapter_contract": contract_rel,
             "quality_rubric": "skills/novel-writing/references/quality-rubric.md",
-            "cross_references": f"staging/state/chapter-{chapter:03d}-crossref.json",
         },
     }
     opt(qj, "excitement_type", excitement)

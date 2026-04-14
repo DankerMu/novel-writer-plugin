@@ -174,7 +174,7 @@ manifest 包含两类字段：
 
 ### StyleRefiner Context Manifest
 
-StyleRefiner 在 ChapterWriter 之后、Summarizer 之前执行，负责机械合规润色。
+StyleRefiner 在 ChapterWriter 之后、QualityJudge/ContentCritic 之前执行，负责机械合规润色。
 
 **inline 计算值**：
 - chapter_num, volume_num

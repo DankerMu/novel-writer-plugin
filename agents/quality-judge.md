@@ -71,7 +71,6 @@ tools: ["Read", "Write", "Glob", "Grep"]
 - `paths.character_contracts[]` → 相关角色结构化契约（.json，含 L2 能力边界和行为模式）
 - `paths.storyline_spec` → 故事线规范（可选）
 - `paths.storyline_schedule` → 本卷故事线调度（可选）
-- `paths.cross_references` → Summarizer 串线检测输出
 - `paths.platform_guide` → 平台写作指南（可选，M5.2 注入路径；M6.2 启用后用于平台加权评分）
 - `paths.recent_summaries[]` → 近 2 章摘要（按可用性降级：Ch001 为空数组，Ch002 仅含 Ch001，Ch003 含 Ch001+002；路径不存在时跳过该条目）
 - `paths.quality_rubric` → 9 维度评分标准
@@ -130,7 +129,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
      - 若输入中包含一致性检查摘要（timeline_contradiction / ls_001_signals）且 confidence="high"：将其视为强证据，结合正文核验；若正文未消解矛盾 → 输出 LS-001 violation（confidence=high）并给出可执行修复建议
      - 若 confidence="medium/low"：仅提示，不应直接触发 hard gate（仍可输出为 violation_suspected/violation 且 confidence 降级）
    - LS-002~004（soft）：报告但不阻断（切线锚点、交汇铺垫、休眠线记忆重建）
-   - LS-005（M1/M2 soft → M3 hard）：非交汇事件章中，Summarizer 标记 `leak_risk: high` 的跨线实体泄漏。M1/M2 阶段报告但不阻断；M3 升级为 hard 强制修正
+   - LS-005（M1/M2 soft → M3 hard）：非交汇事件章中的跨线实体泄漏。由 ContentCritic Track 5 检测（`type="cross_storyline_leak"` 且 `severity="high"`）。QJ 从 CC 评估结果中读取信号——编排器在门控阶段合并 pov_violation 信号时已覆盖此检查，QJ 自身不重复检测，仅在 ls_checks 中记录 LS-005 状态供审计
 
 输出：
 ```json

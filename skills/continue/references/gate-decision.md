@@ -147,7 +147,7 @@ else:
 
   适用条件：无 high_violation、无 platform_hard_gate_fail、无 substance_severe、overall_final ≥ 3.0
 
-  子流水线：`CW(targeted) → SR(lite) → [Sum(patch) ∥ QJ(recheck) ∥ CC(recheck)]`
+  子流水线：`CW(targeted) → SR(lite) → [QJ(recheck) ∥ CC(recheck)]`
 
   1. **ChapterWriter 定向修改**：
      - 输入 manifest 追加: `failed_dimensions` + `required_fixes` + `revision_scope="targeted"`
@@ -159,19 +159,7 @@ else:
      - 行为：仅扫描被修改的段落做黑名单/格式检查，跳过全文统一处理
      - 输出：同正常模式（覆写 chapter + changes log）
 
-  3. **Summarizer patch 模式**：
-     - 前置检查：计算 diff 行数占比（`修改行数 / 总行数`）
-       - 若 diff ≥ 30%：降级为 Summarizer 全量模式
-       - 若 diff < 30%：进入 patch 模式
-     - 输入 manifest 追加: `patch_mode=true` + `previous_summary_path` + `previous_delta_path` + `revision_diff_path`
-     - 行为：读取旧 summary + delta，仅对修改部分做增量更新
-       - summary：保留未变部分，仅更新涉及修改段落的描述
-       - ops[]：仅追加/修改因修改产生的新状态变更
-       - canon_hints：仅检查新增/修改段落
-       - crossref：沿用上次结果（除非修改涉及跨线实体）
-     - 输出：同正常模式（summary + delta + crossref + memory）
-
-  4. **QJ/CC recheck 模式**（并行）：
+  3. **QJ/CC recheck 模式**（并行）：
      - 输入 manifest 追加: `recheck_mode=true` + `previous_eval_path` + `failed_dimensions` + `failed_tracks` + `revision_diff_path`
      - QJ 行为：
        - Track 1：若 "track1" in failed_tracks → 全量复检合规；否则沿用上次 contract_verification
@@ -186,12 +174,12 @@ else:
 
   适用条件：有 high_violation 或 platform_hard_gate_fail 或 substance_severe 或 overall_final < 3.0
 
-  子流水线：`CW → SR → Sum → [QJ+CC]`（与现有行为完全一致）
+  子流水线：`CW → SR → [QJ+CC]`
 
   1. 调用 ChapterWriter 修订模式（Task(subagent_type="chapter-writer", model="opus")）：
      - 输入: chapter_writer_revision_manifest（追加 inline 字段 `required_fixes` + `high_confidence_violations` + `substance_fixes`）
      - 约束：定向修改指定段落，尽量保持其余内容不变
-  2. 回到 ChapterWriter(revision) → StyleRefiner → Summarizer → [QualityJudge + ContentCritic 并行] → 门控
+  2. 回到 ChapterWriter(revision) → StyleRefiner → [QualityJudge + ContentCritic 并行] → 门控
 
 - 若 gate_decision="revise" 且定向修订已耗尽（`revision_scope == "targeted"` 且 `revision_count >= 1`）：
   - **直接修复模式**（轻量级，跳过完整评估流水线）：
@@ -202,8 +190,7 @@ else:
        - 指令: 严格按 `required_fixes` 做最小编辑，不改动未提及段落
        - 输出: 覆写 `staging/chapters/chapter-{C:03d}.md`
     4. SR(lite): 对修复后章节做黑名单/格式检查
-    5. Sum(patch): 更新 summary（diff 检查同定向修订规则）
-    6. 标记 `force_passed=true`，进入 commit
+    5. 标记 `force_passed=true`，进入 commit（Summarizer 在 commit 流程中执行）
   - **不执行 QJ/CC 复检**——定向修订已完成一轮含完整评估的子流水线，直接修复仅针对明确的 required_fixes，额外评估 ROI 过低
 
 - 若 gate_decision="revise" 且全量修订已耗尽（`revision_scope == "full"` 且 `revision_count >= 2`）：
@@ -216,8 +203,8 @@ else:
 
 ## 其他决策的后续动作
 
-- gate_decision="pass"：直接进入 commit
-- gate_decision="polish"：更新 checkpoint: pipeline_stage="refining" -> StyleRefiner (polish_only) 后进入 commit（不再重复 QJ/CC 以控成本）
+- gate_decision="pass"：进入 Summarizer → commit
+- gate_decision="polish"：更新 checkpoint: pipeline_stage="refining" -> StyleRefiner (polish_only) → Summarizer → commit（不再重复 QJ/CC 以控成本）
 - gate_decision="pause_for_user" / "pause_for_user_force_rewrite"：释放并发锁（rm -rf .novel.lock）并暂停，等待用户通过 `/novel:start` 决策
 
 ## 写入评估与门控元数据（可追溯）

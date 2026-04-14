@@ -304,7 +304,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 gate_decision="revise" 时：
 
 ```
-ChapterWriter(revision) → StyleRefiner → Summarizer → [QJ + CC 并行] → 门控
+ChapterWriter(revision) → StyleRefiner → [QJ + CC 并行] → 门控 → Summarizer（pass/polish only）
 ```
 
 gate_decision="polish" 时：

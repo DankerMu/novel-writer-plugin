@@ -11,15 +11,14 @@
 - `pipeline_stage == "drafting"`：
   - 若 `staging/chapters/chapter-{C:03d}.md` 不存在 → 从 API Writer 重启整章（降级 CW）
   - 若 `staging/chapters/chapter-{C:03d}.md` 已存在且 `staging/logs/style-refiner-chapter-{C:03d}-changes.json` 不存在 → 从 StyleRefiner 恢复
-  - 若两者均存在 → 从 Summarizer 恢复
+  - 若两者均存在 → 从 QualityJudge + ContentCritic 并行恢复
 - `pipeline_stage == "refining"`：
   - 若 `staging/logs/style-refiner-chapter-{C:03d}-changes.json` 不存在 → 从 StyleRefiner 重启
-  - 若已存在 → 从 Summarizer 恢复
+  - 若已存在 → 从 QualityJudge + ContentCritic 并行恢复
 - `pipeline_stage == "refined"`:
-  - 若 `revision_scope == "targeted"`（定向修订三路并行中断）：检查三路输出存在性——Sum（`staging/summaries/chapter-{C:03d}-summary.md` + `staging/state/chapter-{C:03d}-delta.json`）、QJ（`staging/evaluations/chapter-{C:03d}-eval-raw.json`）、CC（`staging/evaluations/chapter-{C:03d}-content-eval-raw.json`）；仅重跑输出缺失的 agent（并行）；三路均存在 → 跳至门控决策（`pipeline_stage = "judged"`）
-  - 否则 → 从 Summarizer 恢复
-- `pipeline_stage == "drafted"` → 跳过 ChapterWriter/StyleRefiner/Summarizer，从 QualityJudge + ContentCritic 并行恢复
-- `pipeline_stage == "judged"` → 读取 `staging/evaluations/chapter-{C:03d}-eval-raw.json`（QJ）和 `staging/evaluations/chapter-{C:03d}-content-eval-raw.json`（CC），直接执行门控决策 + commit 阶段；任一文件不存在或 JSON 无效 → 降级到 `pipeline_stage == "drafted"`（从 QJ+CC 重新评估）
+  - 检查 QJ/CC 输出存在性——QJ（`staging/evaluations/chapter-{C:03d}-eval-raw.json`）、CC（`staging/evaluations/chapter-{C:03d}-content-eval-raw.json`）；仅重跑输出缺失的 agent（并行）；均存在 → 跳至门控决策（`pipeline_stage = "judged"`）
+- `pipeline_stage == "judged"` → 读取 eval-raw（QJ）和 content-eval-raw（CC），执行门控决策；任一文件不存在或 JSON 无效 → 降级到 `pipeline_stage == "refined"`（从 QJ+CC 重新评估）；gate 通过后从 Summarizer 恢复
+- `pipeline_stage == "summarized"` → Summarizer 已完成（gate 通过后），直接进入事务提交（commit）
 - `pipeline_stage == "revising"` → 修订中断，从 ChapterWriter 重启（保留 revision_count 以防无限循环）
 - `pipeline_stage == "direct_fixing"` → 定向修订耗尽后的直接修复中断：检查 `staging/chapters/chapter-{C:03d}.md` 修改时间是否晚于上次 eval-raw → 已修改则从 SR(lite) 恢复；未修改则重跑 Task agent
 

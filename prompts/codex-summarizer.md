@@ -23,9 +23,8 @@
 2. 提取伏笔变更（埋设/推进/回收），与伏笔任务交叉核对
 3. 使用 entity_id_map 将正文中文名转换为 slug ID，生成 ops 状态增量
 4. 如有 ChapterWriter 的 hints，与正文交叉核对——以正文实际内容为准
-5. 扫描正文中出现的非本线实体，生成串线检测输出
-6. 标记 entity_id_map 中不存在的实体，输出未知实体报告
-6.5. **识别 Canon Hints**：扫描本章正文，识别叙事中首次确立的世界规则或角色能力/已知事实/关系。仅从正文推断（不读取 rules.json 或角色 JSON），输出轻量级提示供编排器 commit 阶段做确定性升级
+5. 标记 entity_id_map 中不存在的实体，输出未知实体报告
+6. **识别 Canon Hints**：扫描本章正文，识别叙事中首次确立的世界规则或角色能力/已知事实/关系。仅从正文推断（不读取 rules.json 或角色 JSON），输出轻量级提示供编排器 commit 阶段做确定性升级
 7. 生成对应故事线的更新后记忆内容（≤500 字）
 8. 标注下一章必须知道的 3-5 个关键信息点
 
@@ -46,12 +45,9 @@
 6. **Canon Hints 增量**：
    - 仅检查新增/修改段落中是否有新确立的规则/能力
    - 保留 previous_delta 中与未修改段落相关的 canon_hints
-7. **Crossref 决策**：
-   - 若修改段落不涉及其他故事线的实体 → 沿用上次 crossref 输出
-   - 若修改涉及跨线实体 → 仅对修改段落重新检测，与旧 crossref 合并
-8. **Memory 更新**：仅在修改影响了关键事实时更新线级记忆
+7. **Memory 更新**：仅在修改影响了关键事实时更新线级记忆
 
-输出格式与标准模式完全一致（7 部分），但 delta.json 追加 metadata 标记：
+输出格式与标准模式完全一致（6 部分），但 delta.json 追加 metadata 标记：
 ```json
 {
   "patch_mode": true,
@@ -111,28 +107,13 @@
 
 > Summarizer 的 ops 是**权威状态源**。ChapterWriter 可选输出 `hints`（自然语言变更提示），Summarizer 应将其作为提取线索交叉核对，但最终 ops 必须基于正文实际内容，不可直接照搬 hints。两者矛盾时以 Summarizer 为准。
 
-**3. 串线检测输出** → 写入 `staging/state/chapter-{C:03d}-crossref.json`
-
-```json
-{
-  "storyline_id": "storyline-id",
-  "cross_references": [
-    {"entity": "角色/地名/事件", "source_storyline": "其他线ID", "context": "原文引用片段"}
-  ],
-  "leak_risk": "none | low | high",
-  "leak_detail": "泄漏风险说明（high 时必填）"
-}
-```
-
-> `cross_references` 列出本章正文中出现的所有非本线实体。非交汇事件章中 `leak_risk: high` 将触发 QualityJudge LS-005 hard 检查。
-
-**4. 线级记忆更新**
+**3. 线级记忆更新**
 
 每章摘要完成后，Summarizer 生成对应故事线的更新后记忆内容（≤500 字），仅保留该线最新关键事实（当前 POV 角色状态、未解决冲突、待回收伏笔）。→ 写入 `staging/storylines/{storyline_id}/memory.md`
 
-> **事务约束**：Summarizer 的所有输出均直接写入 `staging/` 目录（章节摘要、状态增量、串线检测、线级记忆），**不写入正式目录**。commit 阶段由入口 Skill 统一将 staging 文件移入正式目录。这确保中断时不会出现"部分输出已更新但章节未 commit"的幽灵状态。
+> **事务约束**：Summarizer 的所有输出均直接写入 `staging/` 目录（章节摘要、状态增量、线级记忆），**不写入正式目录**。commit 阶段由入口 Skill 统一将 staging 文件移入正式目录。这确保中断时不会出现"部分输出已更新但章节未 commit"的幽灵状态。
 
-**5. 未知实体报告**
+**4. 未知实体报告**
 
 ```json
 {
@@ -144,11 +125,11 @@
 
 > 正文中出现但 `entity_id_map` 中不存在的实体。入口 Skill 记录到 `logs/unknown-entities.jsonl`，累计 ≥ 3 个未注册实体时在章节完成输出中警告用户。
 
-**6. Context 传递标记**（嵌入章节摘要 markdown 的 `### Context Markers` section）
+**5. Context 传递标记**（嵌入章节摘要 markdown 的 `### Context Markers` section）
 
 标注下一章必须知道的 3-5 个关键信息点（用于 context 组装优先级排序）。写入位置：追加到 `staging/summaries/chapter-{C:03d}-summary.md` 末尾的 `### Context Markers` section。
 
-**7. Canon Hints**（写入 `staging/state/chapter-{C:03d}-delta.json` 顶层 `canon_hints` 字段）
+**6. Canon Hints**（写入 `staging/state/chapter-{C:03d}-delta.json` 顶层 `canon_hints` 字段）
 
 本章叙事中首次确立的世界规则或角色能力/事实/关系。Summarizer 仅从正文推断，不读取 rules.json 或角色 JSON——轻量输出，由编排器 commit 阶段做确定性匹配与升级。
 
@@ -175,7 +156,6 @@
 # Edge Cases
 
 - **首章无前文**：第 1 章无前一章摘要和状态，从空状态开始
-- **交汇事件章**：多条线交汇时，串线检测允许跨线实体出现，`leak_risk` 应为 `none`
 - **ChapterWriter 无 hints**：hints 为可选输入，缺失时仅基于正文提取 ops
 - **未知实体为路人**：无名路人/群众演员不视为未知实体，仅标记有名称的角色/地点
 

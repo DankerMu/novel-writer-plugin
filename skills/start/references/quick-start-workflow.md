@@ -197,7 +197,7 @@
 
 ##### Step F: 黄金三章试写（完整 pipeline）
 
-10. 使用 Task 逐章派发完整流水线（共 3 章），**复用 `/novel:continue` Step 2-3 的完整流水线**（ChapterWriter → StyleRefiner → Summarizer → [QualityJudge + ContentCritic 并行] → 质量门控）。
+10. 使用 Task 逐章派发完整流水线（共 3 章），**复用 `/novel:continue` Step 1-4 的完整流水线**（ChapterWriter → StyleRefiner → [QualityJudge + ContentCritic 并行] → 质量门控 → Summarizer）。
 
     > Step F0 已生成 outline + L3 contracts + storyline-schedule + foreshadowing，本步骤使用与 `/novel:continue` 完全一致的完整流水线。
 
@@ -234,7 +234,6 @@
       - `staging/` 下所有试写产物
       - `chapters/chapter-00{1,2,3}.md`、`summaries/chapter-00{1,2,3}-summary.md`、`evaluations/chapter-00{1,2,3}-eval.json`
       - `logs/chapter-00{1,2,3}-log.json`
-      - `state/chapter-00{1,2,3}-crossref.json`
       - `storylines/*/memory.md`（仅清除试写期间创建的 memory 文件）
       - `volumes/vol-01/` 下的 outline.md、chapter-contracts/、foreshadowing.json、storyline-schedule.json（Step F0 产物）
       - `state/current-state.json` 中 `state_version` 回退到 0
