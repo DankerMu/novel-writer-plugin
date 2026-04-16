@@ -90,17 +90,30 @@ def path_if_exists(root: Path, relpath: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 def extract_md_section(text: str, heading: str) -> str:
-    """Extract content under a ### heading until next ### / ## or EOF."""
+    """Backward-compatible wrapper for single-heading section extraction."""
+    return extract_md_section_any(text, [heading])
+
+
+def extract_md_section_any(text: str, headings: list[str]) -> str:
+    """Extract content under a ##/### heading until the next section heading."""
     lines = text.splitlines()
     in_section = False
+    section_level: Optional[int] = None
     buf: list[str] = []
     for line in lines:
         if in_section:
-            if re.match(r"^#{2,3} ", line):
-                break
+            if m := re.match(r"^(#{2,3}) ", line):
+                if section_level is None or len(m.group(1)) <= section_level:
+                    break
             buf.append(line)
-        elif re.match(rf"^### {re.escape(heading)}", line):
-            in_section = True
+            continue
+
+        if m := re.match(r"^(#{2,3})\s+(.+?)\s*$", line):
+            level = len(m.group(1))
+            title = m.group(2).strip()
+            if title in headings:
+                in_section = True
+                section_level = level
     return "\n".join(buf).strip()
 
 
@@ -268,7 +281,9 @@ def parse_md_contract(text: str) -> dict:
             result["storyline_id"] = m.group(1).strip()
 
     # 事件
-    result["events"] = extract_md_section(text, "事件（本章发生了什么）")
+    result["events"] = extract_md_section_any(
+        text, ["事件（本章发生了什么）", "核心事件", "事件"]
+    )
 
     # 涉及角色
     traits = extract_md_section(text, "事件中自然流露的角色特质")
