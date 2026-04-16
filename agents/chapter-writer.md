@@ -241,6 +241,18 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 - **无章节契约**：试写阶段（前 3 章）无 L3 契约，根据 brief 自由发挥
 - **交汇事件章**：多条故事线在本章交汇时，prompt 中会提供所有交汇线的 memory，需确保各线角色互动合理
+- **对焦模式（align_draft: true）**：manifest 含 `align_draft: true` 时，这是 API Writer 初稿的一致性修复通道，不是创作任务：
+  - **读取顺序**：先读 `paths.raw_draft`（初稿全文），再依次读 `chapter_contract` → `character_contracts` → `world_rules` → `recent_summaries` → `current_state`
+  - **只检查并修复以下问题**：
+    - 违反 `hard_rules_list` 的内容
+    - 角色能力/属性与 `character_contracts` 不符（例：使用了档案中没有的技能）
+    - 与 `recent_summaries` 中已发生事件矛盾的情节（因果断裂）
+    - 引用了未在 `character_contracts` 中注册的命名角色
+    - 违反 `chapter_contract` 验收标准的硬约束
+  - **严禁修改**：语气/风格/句式/叙事结构/创意选择；字数变化幅度 ≤ 10%
+  - **不执行** Step 10 自检（风格对比）和 Step 11 状态提示
+  - **输出路径**：`staging/chapters/chapter-{C:03d}.md`（不是 raw_draft 路径）
+  - 若初稿无明显不一致，原样输出，不做任何修改
 - **修订模式**：manifest 中会追加以下字段：
   - `required_fixes`（inline）：`[{target, instruction}]` 格式的最小修订指令列表
   - `high_confidence_violations`（inline）：高置信度违约条目

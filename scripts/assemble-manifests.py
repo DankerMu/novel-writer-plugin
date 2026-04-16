@@ -85,6 +85,12 @@ def path_if_exists(root: Path, relpath: str) -> Optional[str]:
     return relpath if (root / relpath).exists() else None
 
 
+def plugin_path_if_exists(relpath: str) -> Optional[str]:
+    """Return an absolute plugin-internal path string if it exists."""
+    path = PLUGIN_ROOT / relpath
+    return str(path) if path.exists() else None
+
+
 # ---------------------------------------------------------------------------
 # Markdown section extraction
 # ---------------------------------------------------------------------------
@@ -765,8 +771,8 @@ def assemble_all(
     pg_path: Optional[str] = None
     if platform != "general":
         candidate = f"templates/platforms/{platform}.md"
-        if (root / candidate).exists():
-            pg_path = candidate
+        if plugin_path_if_exists(candidate):
+            pg_path = str(PLUGIN_ROOT / candidate)
         else:
             warn(f"平台指南不存在: {candidate}")
 
@@ -857,7 +863,7 @@ def assemble_all(
             "chapter_draft": f"staging/chapters/chapter-{chapter:03d}.md",
             "style_profile": "style-profile.json",
             "ai_blacklist": "ai-blacklist.json",
-            "style_guide": "skills/novel-writing/references/style-guide.md",
+            "style_guide": str(PLUGIN_ROOT / "skills/novel-writing/references/style-guide.md"),
         },
     }
     opt(sr, "style_drift_directives", drift_dirs)
@@ -906,7 +912,7 @@ def assemble_all(
             "style_profile": "style-profile.json",
             "ai_blacklist": "ai-blacklist.json",
             "chapter_contract": contract_rel,
-            "quality_rubric": "skills/novel-writing/references/quality-rubric.md",
+            "quality_rubric": str(PLUGIN_ROOT / "skills/novel-writing/references/quality-rubric.md"),
         },
     }
     opt(qj, "excitement_type", excitement)
@@ -941,7 +947,7 @@ def assemble_all(
             "chapter_draft": f"staging/chapters/chapter-{chapter:03d}.md",
             "chapter_contract": contract_rel,
             "style_profile": "style-profile.json",
-            "quality_rubric": "skills/novel-writing/references/quality-rubric.md",
+            "quality_rubric": str(PLUGIN_ROOT / "skills/novel-writing/references/quality-rubric.md"),
         },
     }
     opt(cc, "excitement_type", excitement)
@@ -958,8 +964,31 @@ def assemble_all(
     if revision and revision.get("revision_scope") == "targeted":
         cc["recheck_mode"] = True
 
+    # ============================================================
+    # ChapterWriter-Align manifest (API Writer 初稿一致性对焦)
+    # ============================================================
+    cwa: dict = {
+        "task": "chapter-writer",
+        "align_draft": True,
+        "chapter": chapter,
+        "volume": volume,
+        "storyline_id": storyline_id,
+        "chapter_outline_block": ol_block,
+        "hard_rules_list": hard_rules,
+        "paths": {
+            "raw_draft": f"staging/chapters/chapter-{chapter:03d}-raw.md",
+            "chapter_contract": contract_rel,
+            "current_state": "state/current-state.json",
+        },
+    }
+    opt(cwa["paths"], "world_rules", rules_path)
+    opt(cwa["paths"], "character_contracts", char_contracts)
+    if recent_sum:
+        cwa["paths"]["recent_summaries"] = recent_sum[:2]
+
     return {
         "chapter-writer": cw,
+        "chapter-writer-align": cwa,
         "style-refiner": sr,
         "summarizer": sm,
         "quality-judge": qj,

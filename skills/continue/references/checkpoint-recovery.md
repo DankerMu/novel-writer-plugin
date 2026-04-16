@@ -9,9 +9,10 @@
 则本次 `/novel:continue` **必须先完成** `inflight_chapter` 的流水线，按以下规则幂等恢复：
 
 - `pipeline_stage == "drafting"`：
-  - 若 `staging/chapters/chapter-{C:03d}.md` 不存在 → 从 API Writer 重启整章（降级 CW）
-  - 若 `staging/chapters/chapter-{C:03d}.md` 已存在且 `staging/logs/style-refiner-chapter-{C:03d}-changes.json` 不存在 → 从 StyleRefiner 恢复
-  - 若两者均存在 → 从 QualityJudge + ContentCritic 并行恢复
+  - `-raw.md` 不存在 且 `chapter-{C:03d}.md` 不存在 → 从 Step 1 API Writer 重启
+  - `staging/chapters/chapter-{C:03d}-raw.md` 存在 且 `staging/chapters/chapter-{C:03d}.md` 不存在 → 从 Step 1.3 CW 对焦恢复
+  - `staging/chapters/chapter-{C:03d}.md` 存在 且 `staging/logs/style-refiner-chapter-{C:03d}-changes.json` 不存在 → 从 StyleRefiner 恢复（不论 -raw.md 是否存在）
+  - `staging/chapters/chapter-{C:03d}.md` 存在 且 `staging/logs/style-refiner-chapter-{C:03d}-changes.json` 存在 → 从 QualityJudge + ContentCritic 并行恢复
 - `pipeline_stage == "refining"`：
   - 若 `staging/logs/style-refiner-chapter-{C:03d}-changes.json` 不存在 → 从 StyleRefiner 重启
   - 若已存在 → 从 QualityJudge + ContentCritic 并行恢复

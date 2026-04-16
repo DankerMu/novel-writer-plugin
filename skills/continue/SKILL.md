@@ -180,14 +180,15 @@ Task prompt：
 **Step 2c: 主控校验**（manifest 结构校验，不读源文件）
 
 ```
-for agent in [chapter-writer, style-refiner, summarizer, quality-judge, content-critic]:
+for agent in [chapter-writer, chapter-writer-align, style-refiner, summarizer, quality-judge, content-critic]:
   path = staging/manifests/chapter-{C:03d}-{agent}.json
   1. 文件存在 + JSON 可解析
   2. 必需字段：chapter (int), volume (int)
-  3. CW/Sum: storyline_id (string) 非空
-  4. CW/QJ/CC: chapter_outline_block (string) 非空
+  3. CW/CWA/Sum: storyline_id (string) 非空
+  4. CW/CWA/QJ/CC: chapter_outline_block (string) 非空
   5. CW/SR/QJ/CC: paths 对象存在且 paths.style_profile 文件存在
   6. Sum: entity_id_map 至少 1 条
+  7. CWA: align_draft == true 且 paths.raw_draft == "staging/chapters/chapter-{C:03d}-raw.md"
 ```
 
 额外校验 ChapterWriter：
@@ -219,8 +220,13 @@ for chapter_num in range(start, start + remaining_N):
      更新 checkpoint: pipeline_stage = "drafting", inflight_chapter = chapter_num
 
   1. API Writer → 生成初稿（纯净环境调用，绕过 Claude Code 系统提示词）
-     执行：`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/api-writer.py staging/manifests/chapter-{C:03d}-chapter-writer.json --project <novel_project_root> --output staging/chapters/chapter-{C:03d}.md`
-     若 API 调用失败（网络/超时/余额不足）→ 降级为 ChapterWriter Agent，传入 manifest 路径：`staging/manifests/chapter-{C:03d}-chapter-writer.json`（日志记录降级原因）
+     执行：`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/api-writer.py staging/manifests/chapter-{C:03d}-chapter-writer.json --project <novel_project_root> --output staging/chapters/chapter-{C:03d}-raw.md`
+     若 API 调用失败（网络/超时/余额不足）→ 降级为 ChapterWriter Agent，传入 manifest 路径：`staging/manifests/chapter-{C:03d}-chapter-writer.json`，输出直接写 `staging/chapters/chapter-{C:03d}.md`（跳过 Step 1.3，降级原因记日志）
+     输出: staging/chapters/chapter-{C:03d}-raw.md
+
+  1.3. CW 对焦 → 一致性修复（仅当 staging/chapters/chapter-{C:03d}-raw.md 存在时；CW 降级时跳过）
+     Task(subagent_type="chapter-writer", manifest="staging/manifests/chapter-{C:03d}-chapter-writer-align.json")
+     输入: staging/chapters/chapter-{C:03d}-raw.md（CW 通过 paths.raw_draft 读取）
      输出: staging/chapters/chapter-{C:03d}.md
      更新 checkpoint: pipeline_stage = "refining"
 
