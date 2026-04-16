@@ -30,6 +30,7 @@ API_BASE = "https://www.dmxapi.cn/v1/chat/completions"
 
 # Will be set from --project arg or manifest directory
 PROJECT_ROOT: Path = PLUGIN_ROOT
+SUPPORTED_TASK = "chapter-writer"
 
 
 def load_manifest(path: str) -> dict:
@@ -56,6 +57,28 @@ def read_section(rel_path: str, label: str) -> str | None:
     if content:
         return f"## {label}\n\n{content}"
     return None
+
+
+def detect_manifest_task(manifest: dict, manifest_path: str) -> str:
+    """Detect manifest task, with compatibility for old manifests without task."""
+    if isinstance(manifest.get("task"), str) and manifest["task"].strip():
+        return manifest["task"].strip()
+
+    stem = Path(manifest_path).stem
+    for suffix in (
+        "chapter-writer",
+        "style-refiner",
+        "summarizer",
+        "quality-judge",
+        "content-critic",
+    ):
+        if stem.endswith(f"-{suffix}"):
+            return suffix
+
+    if "chapter_outline_block" in manifest or "storyline_id" in manifest:
+        return "chapter-writer"
+
+    return "unknown"
 
 
 def extract_style_directives(profile_path: str) -> list[str]:
@@ -342,6 +365,16 @@ def main():
 
     # Load manifest
     manifest = load_manifest(args.manifest)
+    task = detect_manifest_task(manifest, args.manifest)
+    if task != SUPPORTED_TASK:
+        print(
+            "[api-writer] Error: 当前 manifest 任务类型为 "
+            f"{task!r}，但 api-writer.py 只支持 {SUPPORTED_TASK!r} 初稿写作。"
+            " style-refiner / summarizer / quality-judge / content-critic"
+            " 必须走各自 agent 或专用脚本。",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     chapter = manifest.get("chapter", 0)
 
     # Load system prompt
@@ -358,6 +391,7 @@ def main():
     sys_chars = len(system_prompt)
     usr_chars = len(user_message)
     est_tokens = int((sys_chars + usr_chars) * 1.5)
+    print(f"[api-writer] Task: {task}")
     print(f"[api-writer] System: {sys_chars} 字 | User: {usr_chars} 字 | ~{est_tokens} tokens")
     print(f"[api-writer] Model: {args.model} | Temperature: {args.temperature}")
 

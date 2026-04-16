@@ -807,6 +807,7 @@ def assemble_all(
     # ChapterWriter manifest
     # ============================================================
     cw: dict = {
+        "task": "chapter-writer",
         "chapter": chapter,
         "volume": volume,
         "storyline_id": storyline_id,
@@ -849,6 +850,7 @@ def assemble_all(
     # StyleRefiner manifest
     # ============================================================
     sr: dict = {
+        "task": "style-refiner",
         "chapter": chapter,
         "volume": volume,
         "paths": {
@@ -868,6 +870,7 @@ def assemble_all(
     # Summarizer manifest
     # ============================================================
     sm: dict = {
+        "task": "summarizer",
         "chapter": chapter,
         "volume": volume,
         "storyline_id": storyline_id,
@@ -886,6 +889,7 @@ def assemble_all(
     # QualityJudge manifest
     # ============================================================
     qj: dict = {
+        "task": "quality-judge",
         "chapter": chapter,
         "volume": volume,
         "chapter_outline_block": ol_block,
@@ -925,6 +929,7 @@ def assemble_all(
     # ContentCritic manifest
     # ============================================================
     cc: dict = {
+        "task": "content-critic",
         "chapter": chapter,
         "volume": volume,
         "chapter_outline_block": ol_block,
