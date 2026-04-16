@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-assemble-manifests.py — 确定性 context manifest 组装。
+assemble-manifests.py — 确定性 manifest 骨架组装。
 
-替代 LLM Task agent 手工拼 JSON，用 json.dumps 保证序列化正确。
+负责输出基础 manifest 结构与稳定候选路径，用 json.dumps 保证序列化正确。
+语义级 context planning / support-context 裁剪不在本脚本中执行，由 continue Skill
+显式派发的 Task agent 负责决定并 materialize 到 staging/context/。
 对应 context-assembly.md Step 2.0-2.7。
 
 用法:
@@ -811,7 +813,6 @@ def assemble_all(
     opt(cw["paths"], "style_samples", samples_path)
     opt(cw["paths"], "style_drift", drift_path)
     opt(cw["paths"], "world_rules", rules_path)
-    opt(cw["paths"], "recent_summaries", recent_sum)
     opt(cw["paths"], "recent_chapters", recent_ch)
     opt(cw["paths"], "storyline_memory", sl_mem)
     opt(cw["paths"], "adjacent_memories", adj_mems)
@@ -952,7 +953,7 @@ def assemble_all(
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description="确定性 context manifest 组装（替代 LLM Task agent）")
+        description="确定性 manifest 骨架组装（context planning 由 Task agent 执行）")
     ap.add_argument("-c", "--chapter", type=int, required=True)
     ap.add_argument("-v", "--volume", type=int, required=True)
     ap.add_argument("-p", "--project", required=True,

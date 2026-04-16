@@ -76,19 +76,29 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 
 恢复章完成 commit 后，再继续从 `last_completed_chapter + 1` 续写后续章节，直到累计提交 N 章（包含恢复章）。
 
-### Step 2: 组装 Context（脚本组装 + agent 审查 + 主控校验）
+### Step 2: 组装 Context（骨架脚本 + Task agent 上下文规划 + 主控校验）
 
-使用 Python 脚本完成确定性 manifest 组装（json.dumps 保证 JSON 序列化正确），再由 Task agent 审查输出，主控做结构校验。规则的权威来源为 [`references/context-assembly.md`](references/context-assembly.md)（Step 2.0-2.7）。
+Step 2 采用混合架构：
 
-> 收益：消除 LLM 手工拼 JSON 导致的双引号转义错误；主控不再读取源文件，context 窗口占用 ~500 tokens。
+- `assemble-manifests.py` 只负责**确定性骨架 manifest** 与稳定候选路径
+- **上下文规划权**交给显式派发的 Task agent
+- Task agent 负责读取候选上下文、决定 support-context 取舍、materialize 到 `staging/context/`，并 patch ChapterWriter manifest
+- 主控只做结构校验，不读取大文件
 
-**Step 2a: 脚本组装 + agent 审查**
+规则权威来源：
+
+- [`references/context-assembly.md`](references/context-assembly.md)
+- [`references/context-planning.md`](references/context-planning.md)
+
+> 收益：主控不吞大文件；上下文裁剪由 LLM 决定；JSON 序列化与基础结构仍保持确定性。
+
+**Step 2a: 脚本组装骨架 manifest + agent 审查**
 
 派发 Task agent（通用类型，model="sonnet"）执行以下两步：
 
 ```
 Task prompt：
-  你是 context 组装审查器。先调脚本组装 manifest，再审查输出。
+  你是 context 骨架组装审查器。先调脚本组装 manifest 骨架，再审查输出。
 
   ## 第一步：调脚本组装
 
@@ -112,13 +122,62 @@ Task prompt：
   6. hard_rules_list 条目数与 world/rules.json 中 hard+established 数量匹配
   7. 修订模式下，CW manifest 含 required_fixes / chapter_draft 字段
 
+  注意：本步骤不做语义裁剪，不修改 support-context 路径，只验证骨架 manifest 正确。
+
   发现问题 → 报告具体字段和期望值（不自己手动修 JSON）。
   全部通过 → 报告 "审查通过"。
 ```
 
 > **修订回环复用**：gate_decision="revise" 时，重新派发 Step 2a 并传入 `revision_state`（作为 `--revision` JSON 参数），脚本自动在 CW manifest 追加修订字段。主控不需要自行 patch manifest。
 
-**Step 2b: 主控校验**（manifest 结构校验，不读源文件）
+**Step 2b: Task agent 上下文规划 + materialize**
+
+在 Step 2a 通过后，显式再派发一个 Task agent（通用类型，model="sonnet"）执行 ChapterWriter / API Writer 的上下文规划。这个 Task agent 是**唯一允许读取大上下文并决定 support-context 取舍的主控代理**。
+
+```
+Task prompt：
+  你是 ChapterWriter context planner。你的职责不是写章，而是决定“这章写作到底该读哪些上下文”，并把结果落到 staging/context/。
+
+  先读：
+  - references/context-planning.md
+  - staging/manifests/chapter-{C:03d}-chapter-writer.json
+
+  你的输入边界：
+  - 必须保留的核心上下文：chapter_contract / chapter_outline_block / hard_rules_list / style_profile / style_samples / recent_chapters / storyline_context
+  - 候选支撑上下文：volume_outline / current_state / world_rules / storyline_memory / adjacent_memories / character_contracts / foreshadowing_tasks / concurrent_state / transition_hint / platform_guide / project_brief / style_drift
+  - 若骨架 manifest 中的 `character_contracts` 候选不足以覆盖本章真实相关角色，你可以直接 `Glob/Read characters/active/*.json` 扩展候选，再自行写入新的 staged 副本并 patch 回 CW manifest
+
+  你的任务：
+  1. 读取核心上下文和候选支撑上下文
+  2. 判断本章真正相关的：
+     - 角色集合
+     - 世界规则
+     - current_state 片段
+     - 当前线 / 相邻线 memory 段落
+     - 卷大纲窗口
+     - 需要保留的并发状态 / 伏笔任务 / 过渡提示
+  3. 输出 `staging/context-plans/chapter-{C:03d}.json`
+  4. 将你选中的支撑上下文 materialize 到 `staging/context/`（可以是摘录、裁剪副本或窗口化副本）
+  5. patch `staging/manifests/chapter-{C:03d}-chapter-writer.json`
+     - 保留核心包相关字段不变
+     - 将 support-context 的 paths 改为你写入的 staged 路径
+     - 未选中的 support-context 从 CW manifest 中移除
+
+  输出要求：
+  - 不改动 style-refiner / summarizer / quality-judge / content-critic manifest
+  - 不改动 chapter_outline_block / hard_rules_list / storyline_context
+  - 不得删除 recent_chapters / style_profile / style_samples / chapter_contract
+  - 若不确定某项是否相关，宁可保留为 staged 副本，也不要让 writer 丢失关键连续性
+
+  完成后返回：
+  - 规划摘要
+  - 写入的 staged 文件列表
+  - 从 CW manifest 中保留 / 删除的 support-context 字段列表
+```
+
+> **修订回环复用**：gate_decision="revise" 时，Step 2b 同样必须重新执行。修订模式下 context planner 应优先保留 `required_fixes`、相关失败维度证据、上一版 draft 邻近上下文，避免 full-context 重读。
+
+**Step 2c: 主控校验**（manifest 结构校验，不读源文件）
 
 ```
 for agent in [chapter-writer, style-refiner, summarizer, quality-judge, content-critic]:
@@ -129,6 +188,15 @@ for agent in [chapter-writer, style-refiner, summarizer, quality-judge, content-
   4. CW/QJ/CC: chapter_outline_block (string) 非空
   5. CW/SR/QJ/CC: paths 对象存在且 paths.style_profile 文件存在
   6. Sum: entity_id_map 至少 1 条
+```
+
+额外校验 ChapterWriter：
+
+```
+1. staging/context-plans/chapter-{C:03d}.json 存在且可解析
+2. CW manifest 中核心上下文字段仍在
+3. 若 CW manifest 出现 staged support-context 路径，则对应文件存在
+4. 若 CW manifest 不含 world_rules/current_state/storyline_memory 等 support-context，必须能在 context-plan 中看到“为何移除”的简述
 ```
 
 校验任一失败 → 按 Step 1.6 错误处理。全部通过 → 进入 Step 3。

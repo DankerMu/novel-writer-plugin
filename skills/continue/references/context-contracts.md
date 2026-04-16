@@ -8,7 +8,8 @@
 - **paths**（文件路径）：指向项目目录下的文件，由 subagent 用 Read 工具自行读取——适用于大段原文内容
 
 设计原则：
-- 同一输入 + 同一项目文件 = 同一 manifest（确定性）
+- 骨架 manifest 同一输入 + 同一项目文件 = 同一输出（确定性）
+- ChapterWriter 的 support-context 路径允许在骨架生成后被 Task agent planner 改写为 `staging/context/...` staged 副本
 - paths 中的文件均为项目目录下的相对路径
 - 可选字段缺失时不出现在 manifest 中（非 null）
 - subagent 读取的文件内容不再需要 `<DATA>` 标签包裹（由 agent frontmatter 中的安全约束处理）
@@ -42,18 +43,23 @@ chapter_writer_manifest = {
     style_profile: "style-profile.json",                              # 必读（含 writing_directives + 统计指标；style_exemplars 已 deprecated）
     style_drift: "style-drift.json",                                  # 可选
     chapter_contract: "volumes/vol-{V:02d}/chapter-contracts/chapter-{C:03d}.md",  # Markdown优先，回退.json
-    volume_outline: "volumes/vol-{V:02d}/outline.md",
-    current_state: "state/current-state.json",
-    world_rules: "world/rules.json",                                  # 可选
-    recent_summaries: ["summaries/chapter-{C-1:03d}-summary.md", ...], # 近 3 章
-    storyline_memory: "storylines/{storyline_id}/memory.md",           # 可选
-    adjacent_memories: ["storylines/{adj_id}/memory.md", ...],         # 可选
+    volume_outline: "volumes/vol-{V:02d}/outline.md" | "staging/context/volumes/...",
+    current_state: "state/current-state.json" | "staging/context/state/...",
+    world_rules: "world/rules.json" | "staging/context/world/...",     # 可选
+    recent_chapters: ["chapters/chapter-{C-1:03d}.md", ...],           # 近 3 章正文
+    storyline_memory: "storylines/{storyline_id}/memory.md" | "staging/context/storylines/...", # 可选
+    adjacent_memories: ["storylines/{adj_id}/memory.md" | "staging/context/storylines/...", ...], # 可选
     character_contracts: ["staging/context/characters/{slug}.json", ...], # canon_status 预过滤后的 staging 副本
     platform_guide: "templates/platforms/{platform}.md",                  # 可选（M5.2；style-profile.platform 非空且文件存在时加载）
     project_brief: "brief.md",
   }
 }
 ```
+
+说明：
+
+- `chapter_contract` / `style_profile` / `style_samples` / `recent_chapters` 属于核心包，planner 不得删除。
+- `volume_outline` / `current_state` / `world_rules` / `storyline_memory` / `adjacent_memories` / `character_contracts` / 其他 support-context 可由 planner 改写为 staged 副本或直接移除。
 
 ### 修订模式追加字段
 

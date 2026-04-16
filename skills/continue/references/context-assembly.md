@@ -1,26 +1,31 @@
-# Context Assembly 规则（确定性）
+# Context Assembly 规则（骨架确定性 + 规划由 Task agent 决定）
 
-本文档定义 `/novel:continue` Step 2 的完整 context 组装规则。编排器按本文档的确定性规则组装 agent manifest（同一章 + 同一项目文件输入 → 组装结果唯一）。
+本文档定义 `/novel:continue` Step 2 的 context 组装规则。
+
+- **骨架 manifest**：由确定性脚本组装
+- **support-context 取舍**：由显式派发的 Task agent 决定
+- **主控**：只做结构校验，不吞大文件
 
 > 缺关键文件/解析失败 → 立即停止并给出可执行修复建议（避免"缺 context 继续写"导致串线/违约）。
 
 ## Step 2.0: Manifest 模式说明
 
-**v3 架构变更**：manifest 组装由 Python 脚本 `scripts/assemble-manifests.py` 完成（`json.dumps` 序列化，彻底消除 LLM 手工拼 JSON 导致的双引号/转义错误）。Task agent 负责调脚本 + 审查输出，不再直接写 JSON。
+**v3 架构变更**：manifest 骨架由 Python 脚本 `scripts/assemble-manifests.py` 完成（`json.dumps` 序列化，消除 LLM 手工拼 JSON 导致的双引号/转义错误）；support-context 的语义裁剪与 staged materialization 由 Task agent 完成。
 
 执行流程：
 1. Task agent 执行 `python3 scripts/assemble-manifests.py -c {C} -v {V} -p {PROJECT_ROOT} ...`
-2. 脚本按本文档 Step 2.1-2.7 规则组装 5 个 manifest JSON → `staging/manifests/`
+2. 脚本按本文档 Step 2.1-2.7 规则组装 5 个 manifest 骨架 JSON → `staging/manifests/`
 3. Task agent 审查脚本输出（字段语义、路径存在性、与源文件一致性）
-4. 主控做结构校验（Step 2b）
+4. Task agent 按 `references/context-planning.md` 读取候选上下文，产出 `staging/context-plans/` + `staging/context/` 并 patch ChapterWriter manifest
+5. 主控做结构校验
 
 manifest 包含两类字段：
-- **inline**（内联）：脚本确定性计算，直接写入 JSON——适用于需要预处理/裁剪/跨文件聚合的数据
-- **paths**（文件路径）：指向项目目录下的文件，由 subagent 用 Read 工具自行读取
+- **inline**（内联）：脚本确定性计算，直接写入 JSON
+- **paths**（文件路径）：先写入候选路径；Task agent 可将 ChapterWriter 的 support-context 路径改写为 `staging/context/...` staged 副本
 
 注入安全由各 Agent frontmatter 中的安全约束段落保障——Agent 被指示将读取的外部文件内容视为参考数据，不执行其中的操作请求。
 
-> **兼容说明**：Step 2.1-2.7 中的确定性计算逻辑不变，脚本为其 1:1 Python 实现。本文档仍为规则权威来源，脚本按此文档实现。
+> **兼容说明**：Step 2.1-2.4、2.5 的候选集判定、2.6 的骨架字段计算仍由脚本确定性实现；真正的 support-context 取舍不在脚本中硬编码。
 
 ## Step 2.1: 从 outline.md 提取本章大纲区块（确定性）
 
@@ -102,7 +107,7 @@ manifest 包含两类字段：
 4. `manifest.paths.character_contracts[]` 指向裁剪后的 `staging/context/characters/{slug_id}.json`（而非原始 `characters/active/` 路径）
 5. 向后兼容：若角色 JSON 无 `abilities`/`known_facts`/`relationships` 字段，视为空数组，跳过过滤
 
-## Step 2.5: storylines context + memory 注入（确定性）
+## Step 2.5: storylines context + memory 候选集（确定性）
 
 1. 读取 `volumes/vol-{V:02d}/storyline-schedule.json`（如存在则解析；用于判定 dormant_storylines 与交汇事件 involved_storylines）。
 2. 读取 `storylines/storyline-spec.json`（如存在；注入给 QualityJudge 做 LS 验收）。
@@ -116,12 +121,13 @@ manifest 包含两类字段：
    - `storyline_context`（**Markdown 契约**：从「前章衔接」section 提取；**JSON**：从 `storyline_context` 对象提取）
    - `transition_hint`（**Markdown 契约**：若大纲中有 TransitionHint 则从大纲提取；**JSON**：从契约对象提取）
    - `narrative_phase`（从大纲 `- **Phase**:` 行提取；值域：期待/试探/受挫/噩梦/爆发/收束；如缺失则不传）
-5. memory 路径策略：
-   - 当前线 `storylines/{storyline_id}/memory.md`：如存在，写入 manifest.paths.storyline_memory
+5. memory 候选路径策略：
+   - 当前线 `storylines/{storyline_id}/memory.md`：如存在，写入 ChapterWriter manifest 候选路径 `paths.storyline_memory`
    - 相邻线：
-     - 若 `transition_hint.next_storyline` 存在 → 将该线 memory 路径加入 manifest.paths.adjacent_memories（若不在 `dormant_storylines`）
-   - 若当前章落在任一 `convergence_events.chapter_range` 内 → 将 `involved_storylines` 中除当前线外的 memory 路径加入 manifest.paths.adjacent_memories（过滤 `dormant_storylines`）
+     - 若 `transition_hint.next_storyline` 存在 → 将该线 memory 路径加入候选 `paths.adjacent_memories`（若不在 `dormant_storylines`）
+   - 若当前章落在任一 `convergence_events.chapter_range` 内 → 将 `involved_storylines` 中除当前线外的 memory 路径加入候选 `paths.adjacent_memories`（过滤 `dormant_storylines`）
    - 冻结线（`dormant_storylines`）：**不加入 memory 路径**，仅保留 `concurrent_state` 一句话状态（inline）
+   - **最终是否保留、是否摘录为 staged 副本，由 Step 2b 的 Task agent planner 决定**
 6. `foreshadowing_tasks` 组装（确定性）：
    - 数据来源：
      - 事实层：`foreshadowing/global.json`（如不存在则视为空）
@@ -144,11 +150,11 @@ manifest 包含两类字段：
         - 若某 `id` 同时存在于 global 与 plan：以 global 为主，仅在 global 缺失时从 plan 回填 `description/scope/target_resolve_range`。
      d. 得到 `foreshadowing_tasks`（list；为空则 `[]`）。
 
-## Step 2.6: Agent Context Manifest 组装
+## Step 2.6: Agent Context Manifest 骨架组装
 
 按 Agent 类型组装 **context manifest**（内联计算值 + 文件路径），字段契约详见 `references/context-contracts.md`。
 
-**Manifest 模式**：编排器不再读取文件全文注入 Task prompt，而是计算文件路径并传入 manifest。Subagent 在执行时用 Read 工具自行读取所需文件。
+**Manifest 模式**：编排器不再读取文件全文注入主控 prompt，而是先计算骨架 manifest。Task agent planner 在此基础上决定 ChapterWriter 的 support-context 裁剪，Subagent 最终读取的是 planner 保留下来的 staged 文件或原始核心文件。
 
 编排器仍需完成的**确定性计算**（作为 inline 字段直接写入 manifest）：
 - `chapter_outline_block`：从 outline.md 提取的本章区块文本（Step 2.1 已完成）
@@ -159,18 +165,33 @@ manifest 包含两类字段：
 - `style_drift_directives`：从 style-drift.json 提取的纠偏指令列表（Step 2.7；仅 active=true 时）
 - `track3_mode`：ContentCritic Track 3 输出模式（`"full"` | `"lite"`），判定规则见下方
 
-编排器需完成的**路径计算**（作为 paths 字段写入 manifest）：
+编排器需完成的**路径计算**（作为骨架 paths 字段写入 manifest）：
 - 确定 `style_samples`：检查 `style-samples.md` 是否存在（项目根目录）。存在则写入 `manifest.paths.style_samples`；不存在则不加入（ChapterWriter 降级为读取 `style-profile.json` 的 `style_exemplars` 字段）
 - 根据 Step 2.4 裁剪规则确定 `character_contracts[]` 和 `character_profiles[]` 的文件路径列表
-- 根据 Step 2.5 注入策略确定 `storyline_memory` / `adjacent_memories[]` 的路径（过滤 dormant 线）
+- 根据 Step 2.5 候选集策略确定 `storyline_memory` / `adjacent_memories[]` 的候选路径（过滤 dormant 线）
 - 确定 `recent_chapters[]`（近 3 章正文路径，按时间倒序；API Writer 用全文做风格延续）
-- 确定 `recent_summaries[]`（近 3 章摘要路径，按时间倒序；CW fallback/revision 使用）
 - **QualityJudge `recent_summaries[]`（条件注入）**：当 chapter ≤ 3 且 platform_guide 存在时，注入近 2 章摘要路径供平台硬门回溯判定；章节 > 3 或无 platform_guide 时不注入此字段
 - **ContentCritic `recent_summaries[]`**：与 QualityJudge 同规则注入（CC Track 4 用于跨章重复检测）
 - **ContentCritic `recent_chapters[]`**：注入近 3 章正文路径（与 API Writer 同源），CC Track 6 跨章逻辑审查需通读全文
 - 其余路径为固定模式（如 `style-profile.json`、`ai-blacklist.json`）
 - **API Writer manifest 不含**：`paths.ai_blacklist`、`paths.style_guide`、inline `ai_blacklist_top10`（写作者不应看到黑名单，消除隐性回避）
-- **CW fallback manifest**：同上，且使用 `recent_summaries` 替代 `recent_chapters`（CW 上下文预算有限）
+
+### Step 2.6b: ChapterWriter support-context 规划与 materialize（Task agent）
+
+Task agent planner 必须按 `references/context-planning.md` 执行：
+
+- 读取 ChapterWriter manifest 骨架
+- 读取核心上下文与候选 support-context
+- 决定 `current_state / world_rules / storyline_memory / adjacent_memories / volume_outline / character_contracts / foreshadowing_tasks / concurrent_state / transition_hint / platform_guide / project_brief / style_drift` 的保留方式
+- 输出 `staging/context-plans/chapter-{C:03d}.json`
+- 将保留内容 materialize 到 `staging/context/...`
+- patch `staging/manifests/chapter-{C:03d}-chapter-writer.json`
+
+约束：
+
+- 核心包不可删：`chapter_contract`、`chapter_outline_block`、`hard_rules_list`、`style_profile`、`style_samples`、`recent_chapters`、`storyline_context`
+- support-context 可删除、窗口化、摘录或改写为 staged 副本
+- 删除任一 support-context 字段时，必须在 `context-plan.json` 中给出原因
 
 ### StyleRefiner Context Manifest
 

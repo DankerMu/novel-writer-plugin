@@ -90,133 +90,188 @@ def extract_style_directives(profile_path: str) -> list[str]:
     return directives
 
 
+def tail_paragraphs(text: str, max_paragraphs: int = 3, max_chars: int = 900) -> str:
+    """Keep the last few non-empty paragraphs as a boundary handoff excerpt."""
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    if not paragraphs:
+        return text[-max_chars:].strip()
+    excerpt = "\n\n".join(paragraphs[-max_paragraphs:]).strip()
+    if len(excerpt) > max_chars:
+        excerpt = excerpt[-max_chars:].strip()
+    return excerpt
+
+
+def build_storyline_context_section(sc: dict) -> str | None:
+    """Format non-boundary storyline context and avoid repeating handoff facts."""
+    lines: list[str] = []
+    if sc.get("line_arc_progress"):
+        lines.append(f"- 当前线推进目标：{sc['line_arc_progress']}")
+    if sc.get("chapters_since_last") is not None:
+        lines.append(f"- 距离该线上一章：{sc['chapters_since_last']} 章")
+    if not lines:
+        return None
+    return "## 故事线上下文\n\n" + "\n".join(lines)
+
+
 def assemble_user_message(m: dict) -> str:
     """Turn manifest + files into a single user message."""
-    parts: list[str] = []
+    core_parts: list[str] = []
+    boundary_parts: list[str] = []
+    support_parts: list[str] = []
     paths = m.get("paths", {})
     style_directives: list[str] = []
+    previous_chapter_tail: str | None = None
+    ch = m.get("chapter", "?")
+    vol = m.get("volume", "?")
+    sl = m.get("storyline_id", "?")
+
+    core_parts.append(
+        "## 任务卡\n\n"
+        f"- 任务：续写第 {ch} 章（第 {vol} 卷，故事线 {sl}）\n"
+        "- 目标：写出可直接进入正文的完整章节，不解释过程，不复述上下文\n"
+        "- 优先级：硬规则/章节契约 > 章节边界衔接 > 本章大纲 > 风格样本与近章正文\n"
+        "- 成功标准：开头承接上章余波，中段完成本章主事件，结尾制造下一章驱动力"
+    )
 
     # --- File-backed sections (by read priority) ---
 
     # 1. Style samples (highest priority)
     if p := paths.get("style_samples"):
         if s := read_section(p, "风格样本"):
-            parts.append(s)
+            core_parts.append(s)
 
     # 2. Style profile
     if p := paths.get("style_profile"):
         if s := read_section(p, "风格指纹"):
-            parts.append(s)
+            core_parts.append(s)
         style_directives = extract_style_directives(p)
 
     # 3. Style drift (optional)
     if p := paths.get("style_drift"):
         if s := read_section(p, "风格漂移纠偏"):
-            parts.append(s)
+            support_parts.append(s)
 
     # 4. Chapter contract
     if p := paths.get("chapter_contract"):
         if s := read_section(p, "章节契约"):
-            parts.append(s)
+            core_parts.append(s)
 
     # 5. Recent chapters (full text for style continuity; fallback to summaries)
     if ps := paths.get("recent_chapters"):
         ps = ps if isinstance(ps, list) else [ps]
-        texts = [f"--- {p} ---\n{c}" for p in ps if (c := read_file(p))]
+        chapter_payloads = [(p, c) for p in ps if (c := read_file(p))]
+        texts = [f"--- {p} ---\n{c}" for p, c in chapter_payloads]
         if texts:
-            parts.append("## 近章正文\n\n" + "\n\n".join(texts))
-    elif ps := paths.get("recent_summaries"):
-        ps = ps if isinstance(ps, list) else [ps]
-        texts = [f"--- {p} ---\n{c}" for p in ps if (c := read_file(p))]
-        if texts:
-            parts.append("## 近章摘要\n\n" + "\n\n".join(texts))
+            core_parts.append("## 近章正文\n\n" + "\n\n".join(texts))
+        if chapter_payloads:
+            previous_chapter_tail = tail_paragraphs(chapter_payloads[0][1])
 
     # 6. Volume outline
     if p := paths.get("volume_outline"):
         if s := read_section(p, "卷大纲"):
-            parts.append(s)
+            support_parts.append(s)
 
     # 7. Character contracts
     if ps := paths.get("character_contracts"):
         ps = ps if isinstance(ps, list) else [ps]
         texts = [f"--- {p} ---\n{c}" for p in ps if (c := read_file(p))]
         if texts:
-            parts.append("## 角色档案\n\n" + "\n\n".join(texts))
+            support_parts.append("## 角色档案\n\n" + "\n\n".join(texts))
 
     # 8. Current state
     if p := paths.get("current_state"):
         if s := read_section(p, "当前状态"):
-            parts.append(s)
+            support_parts.append(s)
 
     # 9. World rules
     if p := paths.get("world_rules"):
         if s := read_section(p, "世界规则"):
-            parts.append(s)
+            support_parts.append(s)
 
     # 10. Storyline memory
     if p := paths.get("storyline_memory"):
         if s := read_section(p, "故事线记忆"):
-            parts.append(s)
+            support_parts.append(s)
 
     # 11. Adjacent memories
     if ps := paths.get("adjacent_memories"):
         ps = ps if isinstance(ps, list) else [ps]
         texts = [f"--- {p} ---\n{c}" for p in ps if (c := read_file(p))]
         if texts:
-            parts.append("## 相邻线记忆\n\n" + "\n\n".join(texts))
+            support_parts.append("## 相邻线记忆\n\n" + "\n\n".join(texts))
 
     # 12. Platform guide
     if p := paths.get("platform_guide"):
         if s := read_section(p, "平台指南"):
-            parts.append(s)
+            support_parts.append(s)
 
     # 13. Project brief
     if p := paths.get("project_brief"):
         if s := read_section(p, "项目简介"):
-            parts.append(s)
+            support_parts.append(s)
 
     # --- Inline sections ---
 
     if v := m.get("chapter_outline_block"):
-        parts.append(f"## 本章大纲\n\n{v}")
+        core_parts.append(f"## 本章大纲\n\n{v}")
 
     if v := m.get("hard_rules_list"):
-        parts.append("## 硬规则禁止项\n\n" + "\n".join(f"- {r}" for r in v))
+        core_parts.append("## 硬规则禁止项\n\n" + "\n".join(f"- {r}" for r in v))
 
     if v := m.get("foreshadowing_tasks"):
-        parts.append(f"## 伏笔任务\n\n```json\n{json.dumps(v, ensure_ascii=False, indent=2)}\n```")
+        support_parts.append(f"## 伏笔任务\n\n```json\n{json.dumps(v, ensure_ascii=False, indent=2)}\n```")
 
     if v := m.get("concurrent_state"):
-        parts.append("## 其他线并发状态\n\n" + "\n".join(f"- {k}: {s}" for k, s in v.items()))
+        support_parts.append("## 其他线并发状态\n\n" + "\n".join(f"- {k}: {s}" for k, s in v.items()))
 
     if v := m.get("transition_hint"):
-        parts.append(f"## 切线过渡提示\n\n```json\n{json.dumps(v, ensure_ascii=False, indent=2)}\n```")
+        support_parts.append(f"## 切线过渡提示\n\n```json\n{json.dumps(v, ensure_ascii=False, indent=2)}\n```")
 
-    if v := m.get("storyline_context"):
-        parts.append("## 故事线上下文\n\n" + "\n".join(f"- {k}: {s}" for k, s in v.items()))
+    boundary_notes: list[str] = []
+    if isinstance(m.get("storyline_context"), dict):
+        sc = m["storyline_context"]
+        if section := build_storyline_context_section(sc):
+            support_parts.append(section)
+        if sc.get("last_chapter_summary"):
+            boundary_notes.append(f"### 必须承接的前章后果/悬念\n\n{sc['last_chapter_summary']}")
+    if previous_chapter_tail:
+        boundary_notes.append("### 上一章结尾原文（开头 1-3 段必须接上）\n\n" + previous_chapter_tail)
+    if boundary_notes:
+        boundary_parts.append("## 章节边界衔接\n\n" + "\n\n".join(boundary_notes))
 
     if v := m.get("style_drift_directives"):
-        parts.append("## 风格漂移纠偏指令\n\n" + "\n".join(f"- {d}" for d in v))
+        support_parts.append("## 风格漂移纠偏指令\n\n" + "\n".join(f"- {d}" for d in v))
 
     # --- Writing instruction ---
-
-    ch = m.get("chapter", "?")
-    vol = m.get("volume", "?")
-    sl = m.get("storyline_id", "?")
 
     reqs = [
         "字数 2500-3500 字",
         "完成章节契约中所有 required objectives",
         f"输出格式：`# 第 {ch} 章 章名` + 正文",
         "只输出章节正文，不要输出其他内容",
+        "先在心里锁定四件事：章首接什么、章中主冲突怎么推进、章末发生什么不可逆变化、下一章为什么必须继续看",
+        "开头 1-3 段必须承接“章节边界衔接”中的前章后果/悬念，不要重新起一个无关开场",
+        "中段围绕本章大纲和章节契约推进，不要把契约、设定原样复述成正文",
+        "结尾必须完成本章不可逆变化，并留下明确的下一章驱动力，不能软塌塌收尾",
+        "若近章正文与契约有表述重叠，提炼后再写，不要重复叙述同一信息",
     ]
     reqs.extend(style_directives)
 
-    parts.append(
+    core_parts.append(
         f"## 写作指令\n\n"
         f"请续写第 {ch} 章（第 {vol} 卷，故事线 {sl}）。\n\n"
         f"要求：\n" + "\n".join(f"- {r}" for r in reqs)
     )
+
+    parts: list[str] = []
+    parts.append("## 核心任务包\n\n以下内容定义本章必须完成的任务、风格锚点与主事件。")
+    parts.extend(core_parts)
+    if boundary_parts:
+        parts.append("## 章节边界包\n\n以下内容只决定章首承接与章末钩子，优先级高于普通支撑上下文。")
+        parts.extend(boundary_parts)
+    if support_parts:
+        parts.append("## 支撑上下文\n\n以下内容是主控裁剪后的相关片段，只在推动正文时按需吸收，不要逐条复述。")
+        parts.extend(support_parts)
 
     return "\n\n---\n\n".join(parts)
 
