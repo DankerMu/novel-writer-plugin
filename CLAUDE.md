@@ -68,7 +68,7 @@ Calibration: `scripts/run-codex-calibration.sh` runs batch Codex eval on M3 data
 |-------|-------|-------|------|--------------|
 | WorldBuilder | Opus | blue | L1 rules, storylines init, characters (L2 contracts), style extraction | Yes |
 | PlotArchitect | Opus | orange | Volume outlines, L3 contracts, foreshadowing | Yes |
-| ChapterWriter | Opus | green | 2500–3500 char chapters with register micro-injection (no blacklist visibility) | Yes |
+| ChapterWriter | Sonnet | green | API fallback writer + align/revision passes (2500–3500 char, register micro-injection, no blacklist visibility) | Yes |
 | StyleRefiner | Sonnet | green | Mechanical de-AI polish: blacklist scan, AI pattern removal, format cleanup | Yes |
 | Summarizer | Opus | cyan | 300-char summaries, state ops, canon hints | Yes |
 | QualityJudge | Opus | purple | Track 1 contract compliance + Track 2 quality scoring (9 dimensions) | staging/evaluations only |
