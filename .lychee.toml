@@ -2,5 +2,13 @@ exclude = [
   "reddit\\.com",
   "medium\\.com",
   "neurobiber",
-  "arxiv\\.org"
+  "arxiv\\.org",
+  "qimao\\.com",
+  "xs91\\.net",
+  "claudemagazine\\.com",
+  "360doc\\.com",
+  "csdn\\.net",
+  "jyacg\\.com",
+  "oreateai\\.com",
+  "zhihu\\.com"
 ]
