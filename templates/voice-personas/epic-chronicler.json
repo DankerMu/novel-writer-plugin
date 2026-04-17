@@ -1,0 +1,14 @@
+{
+  "_preset_name": "epic-chronicler",
+  "_description": "史诗记录者 + 宿命感主角。参考声音：遮天、斗破苍穹高潮章、盘龙/星辰变大场面。适合题材：宏大玄幻、洪荒、仙侠史诗、传统东方奇幻、文明兴衰叙事",
+  "_how_to_use": "将下面的 voice_persona 对象合并到项目 style-profile.json 中（覆盖同名字段）",
+
+  "voice_persona": {
+    "narrator_role": "史诗叙事者——叙述者带着历史的纵深感讲故事，善用宏观视角和时间尺度（千年、万载、一劫）。重大场面铺陈开阔，关键转折用短句凝结。语言有仪式感，但不陷入堆砌",
+    "protagonist_voice_tone": "宿命感浓重的自觉——主角对自身处境和天地格局有清晰认知，内心独白常涉及'道''劫''命''局'；面对强敌不惧不躁，面对绝境敢于一搏；偶有孤独感和悲凉，但行动坚决",
+    "dialogue_tag_preferences": ["沉声道", "朗声道", "淡然道", "冷声道", "开口道", "一字一顿道"],
+    "rhetoric_preferences_voice": ["犹如", "宛若", "仿若", "恍若"],
+    "rhythm_accelerators": ["霎时", "骤然", "轰然", "赫然", "陡然"],
+    "voice_lock": false
+  }
+}

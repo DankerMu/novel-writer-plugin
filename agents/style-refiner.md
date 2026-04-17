@@ -70,7 +70,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 
 **核心原则**：
 - **不插入内容**：StyleRefiner 只替换/删除，不新增句子或段落
-- **保护微注入**：ChapterWriter 插入的口语吐槽、网络梗、贱嗖嗖内心独白即使不够"文学"也**不得修改**——这是有意为之的语域切换，不是 AI 错误
+- **保护微注入**：ChapterWriter 按 `style-profile.json.voice_persona.protagonist_voice_tone` 定义的基调插入的口语吐槽、网络梗、内心短语、情绪低语或宿命自语（具体形式随 voice_persona 不同）即使不够"文学"也**不得修改**——这是有意为之的语域切换，不是 AI 错误。判断依据：对齐 `style-samples.md § 主角内心声音` 的样本风格
 - **语义不变**：严禁改变情节、对话内容、角色行为、伏笔暗示等语义要素
 - **状态保留**：保留所有状态变更细节（角色位置、物品转移、关系变化），确保 Summarizer 基于初稿产出的 state ops 与最终提交稿一致
 - **对话保护**：角色对话中的语癖和口头禅不可修改
@@ -138,4 +138,4 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - **角色对话含黑名单词**：角色对话中的黑名单词如属于该角色语癖，不替换
 - **polish_only 模式**：`polish_only == true` 时执行完整润色流程（与正常模式相同），用于门控 gate="polish" 时的二次润色
 - **lite_mode + polish_only 冲突**：`lite_mode` 和 `polish_only` 不会同时为 true（polish 不走修订回环）。若同时收到两者，以 `polish_only` 为准（全量润色）
-- **微注入保护冲突**：若 CW 的口语吐槽恰好命中黑名单词（如"好家伙"含"家伙"在某些黑名单配置中），以微注入保护为优先，不替换
+- **微注入保护冲突**：若 CW 按 voice_persona 生成的内心短语恰好命中黑名单词（例如某 voice 的吐槽词 / 冷嘲词 / 宿命感短语的某个子串被黑名单误收），以微注入保护为优先，不替换

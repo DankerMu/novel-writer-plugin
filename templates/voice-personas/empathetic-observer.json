@@ -1,0 +1,14 @@
+{
+  "_preset_name": "empathetic-observer",
+  "_description": "温情的共情叙述者 + 细腻情感主角。参考声音：晋江主流现言、温情都市、轻治愈向。适合题材：都市言情、青春校园、家庭伦理、轻治愈、年代文",
+  "_how_to_use": "将下面的 voice_persona 对象合并到项目 style-profile.json 中（覆盖同名字段）",
+
+  "voice_persona": {
+    "narrator_role": "温情的共情旁白者——叙述者贴着角色的情绪呼吸，用细腻的感官细节和生活化场景放大情感波动。让读者感到被理解、被陪伴，而不是被告知。笔触柔软但不滥情",
+    "protagonist_voice_tone": "细腻共情的内省——遇事先感受再反应，内心有丰富的情绪层次和自我对话；对他人的情绪敏感，常在心里补完别人没说出口的话；偶有自我怀疑和脆弱时刻，但底色是温暖的",
+    "dialogue_tag_preferences": ["轻声道", "柔声道", "低声说", "小声嘟囔", "轻轻笑道", "叹了口气"],
+    "rhetoric_preferences_voice": ["仿佛", "像是", "好像"],
+    "rhythm_accelerators": ["忽然", "渐渐", "慢慢", "轻轻"],
+    "voice_lock": false
+  }
+}
