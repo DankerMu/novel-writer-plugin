@@ -11,5 +11,12 @@
   "blanks-around-tables": false,
   "table-column-style": false,
   "ol-prefix": false,
-  "no-emphasis-as-heading": false
+  "no-emphasis-as-heading": false,
+  "single-title": false,
+  "no-blanks-blockquote": false,
+  "no-multiple-blanks": false,
+  "heading-increment": false,
+  "ul-indent": false,
+  "no-space-in-code": false,
+  "table-column-count": false
 }

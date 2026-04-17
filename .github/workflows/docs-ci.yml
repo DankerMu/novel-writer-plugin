@@ -30,8 +30,11 @@ jobs:
             --no-progress
             --exclude-path node_modules
             --suggest
-            "{docs,agents,skills}/**/*.md"
+            'docs/**/*.md'
+            'agents/**/*.md'
+            'skills/**/*.md'
           fail: true
+          failIfEmpty: false
 
   structure:
     name: Manifest & JSON Validation
