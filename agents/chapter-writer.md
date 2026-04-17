@@ -15,7 +15,7 @@ description: |
   Context: 质量不达标需要修订
   user: "修订第 50 章"
   assistant: "I'll use the chapter-writer agent to revise the chapter."
-  <commentary>章节修订时触发，可使用 Opus 模型</commentary>
+  <commentary>章节修订时触发</commentary>
   </example>
 
   <example>
@@ -24,7 +24,7 @@ description: |
   assistant: "I'll use the chapter-writer agent to write an intersection chapter."
   <commentary>交汇事件章：严格遵守 storyline-schedule 的交汇锚点与已知信息边界</commentary>
   </example>
-model: opus
+model: sonnet
 color: green
 tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 ---
