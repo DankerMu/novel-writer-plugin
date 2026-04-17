@@ -1033,6 +1033,56 @@ def assemble_all(
 
 
 # ---------------------------------------------------------------------------
+# Sliding-window manifest
+# ---------------------------------------------------------------------------
+
+def assemble_sliding_window(root: Path, volume: int, chapter: int) -> dict:
+    """Build sliding-window manifest for a checkpoint chapter.
+
+    Window: [max(1, chapter-9), chapter] — 10 chapters, step 5 overlap.
+    """
+    start = max(1, chapter - 9)
+    end = chapter
+
+    chapters: List[str] = []
+    for c in range(start, end + 1):
+        p = root / f"chapters/chapter-{c:03d}.md"
+        if p.exists():
+            chapters.append(rel(p, root))
+        else:
+            warn(f"章节文件不存在，跳过: chapters/chapter-{c:03d}.md")
+
+    contracts: List[str] = []
+    for c in range(start, end + 1):
+        md = root / f"volumes/vol-{volume:02d}/chapter-contracts/chapter-{c:03d}.md"
+        js = root / f"volumes/vol-{volume:02d}/chapter-contracts/chapter-{c:03d}.json"
+        if md.exists():
+            contracts.append(rel(md, root))
+        elif js.exists():
+            contracts.append(rel(js, root))
+        else:
+            warn(f"章节契约不存在，跳过: chapter-{c:03d}")
+
+    outline_path = root / f"volumes/vol-{volume:02d}/outline.md"
+    outline_rel = rel(outline_path, root) if outline_path.exists() else None
+    if outline_rel is None:
+        warn(f"卷大纲不存在: {outline_path}")
+
+    manifest: dict = {
+        "window": {"volume": volume, "start": start, "end": end},
+        "paths": {},
+    }
+    if chapters:
+        manifest["paths"]["chapters"] = chapters
+    if contracts:
+        manifest["paths"]["contracts"] = contracts
+    if outline_rel:
+        manifest["paths"]["outline_path"] = outline_rel
+
+    return manifest
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -1043,6 +1093,9 @@ def main() -> None:
     ap.add_argument("-v", "--volume", type=int, required=True)
     ap.add_argument("-p", "--project", required=True,
                     help="小说项目根目录")
+    ap.add_argument("--mode", choices=["chapter", "sliding-window"],
+                    default="chapter",
+                    help="组装模式：chapter（默认）或 sliding-window")
     ap.add_argument("--eval-backend", default="codex",
                     choices=["codex", "opus"])
     ap.add_argument("--revision", default=None,
@@ -1055,6 +1108,17 @@ def main() -> None:
     if not root.is_dir():
         die(f"项目目录不存在: {root}")
 
+    out = Path(args.output_dir) if args.output_dir else root / "staging/manifests"
+    out.mkdir(parents=True, exist_ok=True)
+
+    if args.mode == "sliding-window":
+        manifest = assemble_sliding_window(root, args.volume, args.chapter)
+        p = out / "sliding-window.json"
+        write_json(p, manifest)
+        info(f"  {p.name}")
+        info(f"完成: 1 个 manifest → {out}")
+        return
+
     rev = None
     if args.revision:
         try:
@@ -1064,9 +1128,6 @@ def main() -> None:
 
     manifests = assemble_all(root, args.volume, args.chapter,
                              args.eval_backend, rev)
-
-    out = Path(args.output_dir) if args.output_dir else root / "staging/manifests"
-    out.mkdir(parents=True, exist_ok=True)
 
     for agent, data in manifests.items():
         p = out / f"chapter-{args.chapter:03d}-{agent}.json"

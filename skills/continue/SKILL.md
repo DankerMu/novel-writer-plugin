@@ -420,9 +420,11 @@ for chapter_num in range(start, start + remaining_N):
        - 窗口范围：`[max(1, last_completed_chapter - 9), last_completed_chapter]`（天然形成 ch1-10, ch6-15, ch11-20... 的重叠滑窗）
 
        **执行流程**（Codex 优先，失败 fallback Opus Task agent）：
-       1. 组装滑窗 manifest（window 范围 + 章节/契约/大纲路径列表）
+       1. 组装滑窗 manifest（window 范围 + 章节/契约/大纲路径列表）:
+          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/assemble-manifests.py --mode sliding-window -c {C} -v {V} -p <root>")`
+          输出: `staging/manifests/sliding-window.json`
        2. 组装 task content:
-          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py sliding-window-manifest.json --agent sliding-window --project <root>")`
+          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py staging/manifests/sliding-window.json --agent sliding-window --project <root>")`
        3. Codex 执行（读取 10 章原文 + 契约 + 大纲，输出报告 JSON）:
           `Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/sliding-window.md", timeout=7200000)`
        4. 校验报告:
