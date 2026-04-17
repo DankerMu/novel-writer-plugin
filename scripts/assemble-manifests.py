@@ -46,7 +46,14 @@ def _resolve_voice_persona_for_manifest(project_root: Path) -> dict:
     """
     try:
         aw = _load_api_writer_module()
-    except Exception:
+    except Exception as err:
+        print(
+            f"[assemble-manifests] WARNING: failed to load api-writer module "
+            f"for voice_persona resolution: {err}; CW manifest will omit "
+            f"voice_persona and ChapterWriter will fall back to reading "
+            f"style-profile.json directly",
+            file=sys.stderr,
+        )
         return {}
     sp_path = project_root / "style-profile.json"
     sp_str = str(sp_path) if sp_path.exists() else None

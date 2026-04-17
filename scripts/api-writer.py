@@ -209,13 +209,12 @@ def _read_style_profile_section_without_voice(profile_path: str) -> str | None:
 
     The voice_persona object is rendered in a separate '## voice_persona' section
     by build_voice_persona_section(); keeping both leads to duplicate injection
-    and wasted tokens.
+    and wasted tokens. Missing or corrupt style-profile.json yields None
+    (the JSONDecodeError path already warned in _load_style_profile).
     """
     sp = _load_style_profile(profile_path)
     if not sp:
-        # Parse error or missing file: fall back to raw read so ChapterWriter
-        # at least sees some form of style-profile content (defensive).
-        return read_section(profile_path, "风格指纹")
+        return None
     filtered = {k: v for k, v in sp.items() if k not in _VOICE_PERSONA_PROFILE_KEYS}
     if not filtered:
         return None
