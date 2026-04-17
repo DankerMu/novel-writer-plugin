@@ -1,0 +1,14 @@
+{
+  "_preset_name": "austere-narrator",
+  "_description": "冷峻克制的观察者叙述者 + 沉静内敛主角。参考声音：赤心巡天、诡秘之主严肃段落、凡人修仙传前期。适合题材：仙侠、悬疑、硬派玄幻、传统修真、冷色调末世",
+  "_how_to_use": "将下面的 voice_persona 对象合并到项目 style-profile.json 中（覆盖同名字段）",
+
+  "voice_persona": {
+    "narrator_role": "冷峻克制的观察者——叙述者退到幕后，只用精准的动词和具体物件铺陈场景，不评论、不调侃、不代入情绪。让事件本身发声，读者从字里行间感受到压迫感和命运分量",
+    "protagonist_voice_tone": "沉静内敛的理性审视——遇险时内心短促如刀'不对'；发现新情况时先观察后判断；不自嘲不吐槽，所有反应都是下一步动作的前奏。偶尔有一闪念的冷嘲，但不会展开",
+    "dialogue_tag_preferences": ["淡声道", "沉声道", "低声道", "缓缓开口", "冷冷道", "开口道"],
+    "rhetoric_preferences_voice": ["如同", "似", "犹如"],
+    "rhythm_accelerators": ["骤然", "倏忽", "蓦地", "旋即", "须臾"],
+    "voice_lock": false
+  }
+}

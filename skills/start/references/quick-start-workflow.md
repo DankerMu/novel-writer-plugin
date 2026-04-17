@@ -70,6 +70,26 @@
 
 `platform` 值在 Step C 写入 `style-profile.json` 的 `platform` 字段。
 
+**Voice Persona 采集**（在 Step B 内完成，平台选择之后）：
+
+平台选择完成后，使用 AskUserQuestion 询问声音基调：
+
+```
+选择声音基调（决定叙述者态度和主角内心语气）：
+1. snarky-storyteller (Recommended) — 有态度的说书人 + 贱嗖嗖乐观实用主义主角。适合都市异能/轻科幻/穿越日常/带吐槽属性的玄幻
+2. austere-narrator — 冷峻克制的观察者 + 沉静内敛主角。适合仙侠/悬疑/硬派玄幻/传统修真
+3. empathetic-observer — 温情共情旁白者 + 细腻情感主角。适合都市言情/青春校园/家庭伦理/轻治愈
+4. epic-chronicler — 史诗叙事者 + 宿命感主角。适合宏大玄幻/洪荒/仙侠史诗
+5. custom — 不选预置，由 WorldBuilder Mode 7 从用户样本自动提取 voice_persona（voice_lock=true）
+```
+
+- 选项 1-4 → 读取 `${CLAUDE_PLUGIN_ROOT}/templates/voice-personas/{preset}.json`，将其 `voice_persona` 对象合并到项目 `style-profile.json.voice_persona`，`voice_lock=false`
+- 选项 5 → 在 `style-profile.json.voice_persona` 写入 `{"voice_lock": true}`，其余字段留空（由 Mode 7 填充）
+- 用户输入未知预置名 → WARNING 并退化为选项 1（snarky-storyteller）
+- **缺省处理**（老项目或用户直接跳过）：不写 voice_persona 字段，`api-writer.py` 在运行时用 DEFAULT_VOICE_PERSONA（等价 snarky-storyteller）自动 fallback，行为与 v3.0.x 一致
+
+`voice_persona` 在 Step C 写入 `style-profile.json.voice_persona` 对象。
+
 > 关键：每条路径的补充信息必须在 Step B 内收齐，不得延迟到 Step E 再问。Step E 仅执行风格提取派发，不再与用户交互。
 
 ##### Step B.5: Brief 交互完善（1-2 轮交互）
@@ -113,7 +133,7 @@
 1. 创建项目目录结构（参考 `docs/dr-workflow/novel-writer-tool/final/prd/09-data.md` §9.1）
 2. 从 `${CLAUDE_PLUGIN_ROOT}/templates/` 复制模板文件到项目目录（至少生成以下文件）：
    - `brief.md`：从 `brief-template.md` 复制并用用户输入填充占位符
-   - `style-profile.json`：从 `style-profile-template.json` 复制（后续由 WorldBuilder 风格提取模式填充）。将 Step B 采集的 `platform` 值写入 `style-profile.json` 的 `platform` 字段（必填，不可为 null）
+   - `style-profile.json`：从 `style-profile-template.json` 复制（后续由 WorldBuilder 风格提取模式填充）。将 Step B 采集的 `platform` 值写入 `style-profile.json` 的 `platform` 字段（必填，不可为 null）。将 Step B 采集的 voice_persona preset（若选 1-4）合并到 `style-profile.json.voice_persona` 对象；若选 custom，写入 `{"voice_lock": true}` 其余字段留空；若用户未选择，不写该字段（运行时 fallback 到插件内置默认）
    - `ai-blacklist.json`：从 `ai-blacklist.json` 复制
 3. **初始化最小可运行文件**（模板复制后立即创建，确保后续 Agent 可正常读取）：
    - `.checkpoint.json`：`{"schema_version": 2, "last_completed_chapter": 0, "current_volume": 0, "orchestrator_state": "QUICK_START", "pipeline_stage": null, "inflight_chapter": null, "quick_start_step": "C", "revision_count": 0, "pending_actions": [], "eval_backend": "codex", "last_checkpoint_time": "<now>"}`

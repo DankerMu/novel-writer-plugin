@@ -101,7 +101,7 @@ Shared methodology in `skills/novel-writing/SKILL.md` (passive reference, not us
 
 ### Anti-AI Output (4 Layers)
 
-1. Style anchoring via `style-profile.json` + register micro-injection guidance in ChapterWriter
+1. Style anchoring via `style-profile.json` (including `voice_persona` object — narrator_role / protagonist_voice_tone / dialogue_tag_preferences / rhetoric_preferences_voice / rhythm_accelerators, plus `voice_lock` flag for fallback control) + register micro-injection guidance in ChapterWriter. 4 presets shipped in `templates/voice-personas/` (snarky-storyteller / austere-narrator / empathetic-observer / epic-chronicler)
 2. Constraint injection: blacklist + character speech patterns + anti-intuitive details (CW does NOT see blacklist — isolation by design)
 3. Post-processing: StyleRefiner mechanical de-AI polish (blacklist scan, AI pattern removal, dash elimination, connector cleanup)
 4. Detection metrics: blacklist density + adjacent-sentence repetition + simile density + AI sentence pattern count + dialogue distinctiveness + tonal_variance (10 style_naturalness sub-indicators + tonal_variance dimension in QJ)

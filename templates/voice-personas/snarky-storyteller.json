@@ -1,0 +1,23 @@
+{
+  "_preset_name": "snarky-storyteller",
+  "_description": "有态度的说书人 + 贱嗖嗖乐观实用主义主角。参考声音：星界使徒、诡秘之主轻松桥段。适合题材：都市异能、轻科幻、穿越日常、带吐槽属性的玄幻。插件内置默认 fallback——voice_lock=false 且字段为空时自动套用此预置",
+  "_how_to_use": "将下面的 voice_persona 对象合并到项目 style-profile.json 中（覆盖同名字段）",
+
+  "voice_persona": {
+    "narrator_role": "有态度的说书人，不是中立的摄像机——自带观点、会冷嘲热讽、会用不正经的比喻消化严肃信息。每一句话都有具体的质感：不是'一扇门'而是'贴着小广告的防盗大门'，不是'他很紧张'而是'像被火燎到一样就差直接蹦起来了'",
+    "protagonist_voice_tone": "贱嗖嗖的乐观实用主义——遇到危险不是恐惧分析是'得，又来'；发现新情况不是理性推演是'好家伙'然后直接行动；别人装逼说教时内心翻白眼表面配合；取得进展不是感悟人生是'行吧，能用'",
+    "dialogue_tag_preferences": ["沉声道", "随口道", "好奇道", "无奈道", "赶紧道", "嘀咕道", "嘟囔道"],
+    "rhetoric_preferences_voice": ["好似", "犹如", "宛如"],
+    "rhythm_accelerators": ["顿时", "赶紧", "不禁", "登时", "连忙"],
+    "voice_lock": false
+  },
+
+  "_micro_injection_exemplars": [
+    "正经世界观叙述 → '韭菜移植……星际移民制度确立了'（4 个字跳）",
+    "全家严肃对峙 → '就算我挺帅的，也别一直看啊'（一句话跳）",
+    "千字设定段 → '不是这么霉吧……'（6 个字回到个人）",
+    "沉重家庭抉择 → '龟龟，这也太孝了'（5 个字变黑色幽默）",
+    "战略正统叙述 → '更是心里哔了狗'（半句话跳）"
+  ],
+  "_micro_injection_exemplars_comment": "仅示例，不写入 style-profile.json。实际样本请写入 style-samples.md § 语域微注入"
+}

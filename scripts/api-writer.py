@@ -81,14 +81,97 @@ def detect_manifest_task(manifest: dict, manifest_path: str) -> str:
     return "unknown"
 
 
-def extract_style_directives(profile_path: str) -> list[str]:
-    """Extract quantitative writing directives from style-profile.json."""
+DEFAULT_VOICE_PERSONA = {
+    "narrator_role": (
+        "有态度的说书人，不是中立的摄像机——自带观点、会冷嘲热讽、会用不正经的比喻消化严肃信息。"
+        "每一句话都有具体的质感：不是'一扇门'而是'贴着小广告的防盗大门'，"
+        "不是'他很紧张'而是'像被火燎到一样就差直接蹦起来了'"
+    ),
+    "protagonist_voice_tone": (
+        "贱嗖嗖的乐观实用主义——遇到危险不是恐惧分析是'得，又来'；"
+        "发现新情况不是理性推演是'好家伙'然后直接行动；"
+        "别人装逼说教时内心翻白眼表面配合；取得进展不是感悟人生是'行吧，能用'"
+    ),
+    "dialogue_tag_preferences": ["沉声道", "随口道", "好奇道", "无奈道", "赶紧道"],
+    "rhetoric_preferences_voice": ["好似", "犹如", "宛如"],
+    "rhythm_accelerators": ["顿时", "赶紧", "不禁", "登时", "连忙"],
+}
+
+
+def _load_style_profile(profile_path: str) -> dict | None:
+    """Parse style-profile.json; return None on any failure."""
     content = read_file(profile_path)
     if not content:
-        return []
+        return None
     try:
-        sp = json.loads(content)
+        return json.loads(content)
     except json.JSONDecodeError:
+        return None
+
+
+def resolve_voice_persona(profile_path: str | None) -> dict:
+    """Resolve voice_persona with voice_lock fallback semantics.
+
+    voice_lock=false (default): empty fields fall back to DEFAULT_VOICE_PERSONA
+    voice_lock=true: empty fields stay empty (signals "feel from samples").
+    """
+    sp = _load_style_profile(profile_path) if profile_path else None
+    vp = (sp or {}).get("voice_persona") or {}
+    voice_lock = bool(vp.get("voice_lock"))
+
+    resolved: dict = {"voice_lock": voice_lock}
+    for key, fallback in DEFAULT_VOICE_PERSONA.items():
+        value = vp.get(key)
+        is_empty = value is None or value == "" or value == []
+        if is_empty:
+            resolved[key] = None if voice_lock else fallback
+        else:
+            resolved[key] = value
+    return resolved
+
+
+def build_voice_persona_section(vp: dict) -> str | None:
+    """Render voice_persona into a user-message section."""
+    lines: list[str] = []
+    if v := vp.get("narrator_role"):
+        lines.append(f"### 叙述者态度（narrator_role）\n\n{v}")
+    if v := vp.get("protagonist_voice_tone"):
+        lines.append(f"### 主角内心基调（protagonist_voice_tone）\n\n{v}")
+    if v := vp.get("dialogue_tag_preferences"):
+        tags = "、".join(v) if isinstance(v, list) else str(v)
+        lines.append(
+            f"### 对话标签偏好（dialogue_tag_preferences）\n\n"
+            f"优先使用：{tags}。其余按 style-samples 的标签习惯。"
+        )
+    if v := vp.get("rhetoric_preferences_voice"):
+        rhet = "、".join(v) if isinstance(v, list) else str(v)
+        lines.append(
+            f"### 比喻词偏好（rhetoric_preferences_voice）\n\n"
+            f"优先选用：{rhet}。"
+        )
+    if v := vp.get("rhythm_accelerators"):
+        rhy = "、".join(v) if isinstance(v, list) else str(v)
+        lines.append(
+            f"### 节奏加速词（rhythm_accelerators）\n\n"
+            f"写到需要加速处自然使用：{rhy}。不需要计数，不需要硬塞。"
+        )
+
+    if not lines and vp.get("voice_lock"):
+        # voice_lock=true 且全字段为空：显式提示从样本感受
+        return (
+            "## voice_persona（声音人格）\n\n"
+            "voice_lock=true 且所有 voice_persona 字段为空——请完全从 `style-samples.md` "
+            "中的原文样本感受叙述者态度和主角内心基调，不要从训练数据里借其他小说的声音。"
+        )
+    if not lines:
+        return None
+    return "## voice_persona（声音人格）\n\n" + "\n\n".join(lines)
+
+
+def extract_style_directives(profile_path: str) -> list[str]:
+    """Extract quantitative writing directives from style-profile.json."""
+    sp = _load_style_profile(profile_path)
+    if not sp:
         return []
     directives = []
     # Inner monologue density from tonal_variance expectations
@@ -164,10 +247,16 @@ def assemble_user_message(m: dict) -> str:
             core_parts.append(s)
 
     # 2. Style profile
-    if p := paths.get("style_profile"):
-        if s := read_section(p, "风格指纹"):
+    style_profile_path = paths.get("style_profile")
+    if style_profile_path:
+        if s := read_section(style_profile_path, "风格指纹"):
             core_parts.append(s)
-        style_directives = extract_style_directives(p)
+        style_directives = extract_style_directives(style_profile_path)
+
+    # 2b. Voice persona (resolve from style_profile with voice_lock fallback)
+    voice_persona = resolve_voice_persona(style_profile_path)
+    if section := build_voice_persona_section(voice_persona):
+        core_parts.append(section)
 
     # 3. Style drift (optional)
     if p := paths.get("style_drift"):

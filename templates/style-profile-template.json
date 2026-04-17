@@ -70,6 +70,16 @@
   "override_constraints": {},
   "_override_constraints_comment": "可选：覆盖 ChapterWriter 默认写作约束。支持的 key：anti_intuitive_detail (bool, 默认 true), max_scene_sentences (int, 默认 2)。未设置的 key 使用默认值",
 
+  "voice_persona": {
+    "narrator_role": null,
+    "protagonist_voice_tone": null,
+    "dialogue_tag_preferences": [],
+    "rhetoric_preferences_voice": [],
+    "rhythm_accelerators": [],
+    "voice_lock": false
+  },
+  "_voice_persona_comment": "声音人格——定义叙述者态度和主角内心基调。所有字段可空。narrator_role：叙述者在讲故事时的态度（例：'有态度的说书人，自带观点、冷嘲热讽' / '冷峻克制的观察者' / '温情的旁白者' / '史诗叙事者'）。protagonist_voice_tone：主角内心独白的语气基调（例：'贱嗖嗖的乐观实用主义' / '沉静克制' / '细腻共情' / '宿命感浓重'）。dialogue_tag_preferences：对话标签偏好数组（例：['沉声道', '随口道', '低声道']），ChapterWriter 优先从此列表选用，空数组时自由发挥。rhetoric_preferences_voice：比喻词偏好（例：['好似', '犹如'] / ['仿佛', '如同']）。rhythm_accelerators：节奏加速词（例：['顿时', '赶紧', '不禁'] / ['旋即', '倏忽']），缺省时不强求密度。voice_lock=false（默认）：缺省字段 fallback 到插件内置默认 voice（snarky-storyteller）；voice_lock=true：缺省字段视为'无偏好，由模型从样本自行感受'，不注入任何 fallback",
+
   "analysis_notes": null,
   "_analysis_notes_comment": "WorldBuilder 风格提取模式的分析备注"
 }
