@@ -25,6 +25,34 @@ from typing import Any, Dict, List, NoReturn, Optional, Tuple
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 
 
+def _load_api_writer_module():
+    """Dynamically load scripts/api-writer.py (dashed filename → importlib)."""
+    import importlib.util
+    path = PLUGIN_ROOT / "scripts" / "api-writer.py"
+    spec = importlib.util.spec_from_file_location("api_writer", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _resolve_voice_persona_for_manifest(project_root: Path) -> dict:
+    """Share api-writer's voice_persona resolver so both API and CW paths agree.
+
+    ChapterWriter falls back to the agent when API writing fails. Without this
+    resolver on the manifest path, legacy projects (no voice_persona field) get
+    different voice on the API path vs the agent path. Inline the resolved dict
+    into the CW manifest so ChapterWriter sees the same voice the API writer
+    would have emitted.
+    """
+    try:
+        aw = _load_api_writer_module()
+    except Exception:
+        return {}
+    sp_path = project_root / "style-profile.json"
+    sp_str = str(sp_path) if sp_path.exists() else None
+    return aw.resolve_voice_persona(sp_str)
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -822,6 +850,7 @@ def assemble_all(
         "concurrent_state": concurrent,
         "hard_rules_list": hard_rules,
         "foreshadowing_tasks": fs_tasks,
+        "voice_persona": _resolve_voice_persona_for_manifest(root),
         "paths": {
             "style_profile": "style-profile.json",
             "chapter_contract": contract_rel,

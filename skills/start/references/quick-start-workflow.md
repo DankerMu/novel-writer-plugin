@@ -72,7 +72,7 @@
 
 **Voice Persona 采集**（在 Step B 内完成，平台选择之后）：
 
-平台选择完成后，使用 AskUserQuestion 询问声音基调：
+平台选择完成后，使用 AskUserQuestion 询问声音基调。**严格闭枚举，不接受任何其他字符串**：
 
 ```
 选择声音基调（决定叙述者态度和主角内心语气）：
@@ -83,10 +83,15 @@
 5. custom — 不选预置，由 WorldBuilder Mode 7 从用户样本自动提取 voice_persona（voice_lock=true）
 ```
 
-- 选项 1-4 → 读取 `${CLAUDE_PLUGIN_ROOT}/templates/voice-personas/{preset}.json`，将其 `voice_persona` 对象合并到项目 `style-profile.json.voice_persona`，`voice_lock=false`
-- 选项 5 → 在 `style-profile.json.voice_persona` 写入 `{"voice_lock": true}`，其余字段留空（由 Mode 7 填充）
-- 用户输入未知预置名 → WARNING 并退化为选项 1（snarky-storyteller）
-- **缺省处理**（老项目或用户直接跳过）：不写 voice_persona 字段，`api-writer.py` 在运行时用 DEFAULT_VOICE_PERSONA（等价 snarky-storyteller）自动 fallback，行为与 v3.0.x 一致
+**Allowlist**（允许的 preset 值只有 5 个，硬编码枚举）：
+`{"snarky-storyteller", "austere-narrator", "empathetic-observer", "epic-chronicler", "custom"}`
+
+- 选项 1-4（映射到前 4 个 allowlist 值）→ 从 `${CLAUDE_PLUGIN_ROOT}/templates/voice-personas/{preset}.json` 读取（`{preset}` 只能从 allowlist 取值，不接受任意字符串插入路径），将其 `voice_persona` 对象合并到项目 `style-profile.json.voice_persona`，`voice_lock=false`
+- 选项 5（`custom`）→ 在 `style-profile.json.voice_persona` 写入 `{"voice_lock": true}`，其余字段留空（由 Mode 7 填充）
+- **任何 allowlist 之外的输入**（包括空输入、路径样输入、其他字符串）→ 重新询问直到获得有效选择，**禁止**退化成任何默认 preset（避免用户以为选了 A 实际跑了 B）
+- **缺省处理**（用户直接跳过整个 Voice Persona 步骤）：不写 voice_persona 字段，`api-writer.py` 在运行时用 DEFAULT_VOICE_PERSONA（等价 snarky-storyteller）自动 fallback，行为与 v3.0.x 一致
+
+> **安全约束**：实现时 preset 名必须**先**在 allowlist 内校验通过，**再**构造文件路径；严禁把用户自由输入直接拼接进文件路径。
 
 `voice_persona` 在 Step C 写入 `style-profile.json.voice_persona` 对象。
 

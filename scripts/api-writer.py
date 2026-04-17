@@ -81,7 +81,10 @@ def detect_manifest_task(manifest: dict, manifest_path: str) -> str:
     return "unknown"
 
 
-DEFAULT_VOICE_PERSONA = {
+_SNARKY_PRESET_PATH = PLUGIN_ROOT / "templates" / "voice-personas" / "snarky-storyteller.json"
+_HARDCODED_DEFAULT_VOICE_PERSONA = {
+    # Defense-in-depth: used only if snarky preset file is missing/corrupt.
+    # Authoritative source is templates/voice-personas/snarky-storyteller.json.
     "narrator_role": (
         "有态度的说书人，不是中立的摄像机——自带观点、会冷嘲热讽、会用不正经的比喻消化严肃信息。"
         "每一句话都有具体的质感：不是'一扇门'而是'贴着小广告的防盗大门'，"
@@ -92,20 +95,50 @@ DEFAULT_VOICE_PERSONA = {
         "发现新情况不是理性推演是'好家伙'然后直接行动；"
         "别人装逼说教时内心翻白眼表面配合；取得进展不是感悟人生是'行吧，能用'"
     ),
-    "dialogue_tag_preferences": ["沉声道", "随口道", "好奇道", "无奈道", "赶紧道"],
+    "dialogue_tag_preferences": ["沉声道", "随口道", "好奇道", "无奈道", "赶紧道", "嘀咕道", "嘟囔道"],
     "rhetoric_preferences_voice": ["好似", "犹如", "宛如"],
     "rhythm_accelerators": ["顿时", "赶紧", "不禁", "登时", "连忙"],
 }
 
 
+def _load_default_voice_persona() -> dict:
+    """Load snarky-storyteller preset as the authoritative DEFAULT_VOICE_PERSONA."""
+    try:
+        with open(_SNARKY_PRESET_PATH, "r", encoding="utf-8") as f:
+            preset = json.load(f).get("voice_persona") or {}
+        # Drop voice_lock — only the 5 voice fields are defaults.
+        preset.pop("voice_lock", None)
+        # Sanity check: all expected keys present; else degrade to hardcoded.
+        expected_keys = set(_HARDCODED_DEFAULT_VOICE_PERSONA.keys())
+        if not expected_keys.issubset(preset.keys()):
+            return _HARDCODED_DEFAULT_VOICE_PERSONA
+        return {k: preset[k] for k in expected_keys}
+    except (OSError, json.JSONDecodeError):
+        return _HARDCODED_DEFAULT_VOICE_PERSONA
+
+
+DEFAULT_VOICE_PERSONA = _load_default_voice_persona()
+
+
 def _load_style_profile(profile_path: str) -> dict | None:
-    """Parse style-profile.json; return None on any failure."""
+    """Parse style-profile.json; return None if missing; warn on parse error.
+
+    A missing file is a normal path (legacy projects, bootstrap); silent None.
+    A malformed file is a configuration bug that silently regresses voice —
+    surface it loudly so users notice instead of seeing wrong output.
+    """
     content = read_file(profile_path)
     if not content:
         return None
     try:
         return json.loads(content)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as err:
+        print(
+            f"[api-writer] WARNING: style-profile.json is not valid JSON at "
+            f"{profile_path}: {err}; voice_persona + style directives will "
+            f"fall back to defaults",
+            file=sys.stderr,
+        )
         return None
 
 
@@ -166,6 +199,27 @@ def build_voice_persona_section(vp: dict) -> str | None:
     if not lines:
         return None
     return "## voice_persona（声音人格）\n\n" + "\n\n".join(lines)
+
+
+_VOICE_PERSONA_PROFILE_KEYS = {"voice_persona", "_voice_persona_comment"}
+
+
+def _read_style_profile_section_without_voice(profile_path: str) -> str | None:
+    """Render style-profile.json as '## 风格指纹' but strip voice_persona keys.
+
+    The voice_persona object is rendered in a separate '## voice_persona' section
+    by build_voice_persona_section(); keeping both leads to duplicate injection
+    and wasted tokens.
+    """
+    sp = _load_style_profile(profile_path)
+    if not sp:
+        # Parse error or missing file: fall back to raw read so ChapterWriter
+        # at least sees some form of style-profile content (defensive).
+        return read_section(profile_path, "风格指纹")
+    filtered = {k: v for k, v in sp.items() if k not in _VOICE_PERSONA_PROFILE_KEYS}
+    if not filtered:
+        return None
+    return "## 风格指纹\n\n```json\n" + json.dumps(filtered, ensure_ascii=False, indent=2) + "\n```"
 
 
 def extract_style_directives(profile_path: str) -> list[str]:
@@ -246,10 +300,11 @@ def assemble_user_message(m: dict) -> str:
         if s := read_section(p, "风格样本"):
             core_parts.append(s)
 
-    # 2. Style profile
+    # 2. Style profile — strip voice_persona keys to avoid duplicate injection
+    #    with the dedicated voice section below (Step 2b).
     style_profile_path = paths.get("style_profile")
     if style_profile_path:
-        if s := read_section(style_profile_path, "风格指纹"):
+        if s := _read_style_profile_section_without_voice(style_profile_path):
             core_parts.append(s)
         style_directives = extract_style_directives(style_profile_path)
 
