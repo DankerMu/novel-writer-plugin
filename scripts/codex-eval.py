@@ -172,16 +172,14 @@ def build_output_section(agent: str, manifest: dict) -> str:
         lines.append(f"- staging/evaluations/chapter-{ch:03d}-content-eval-raw.json")
     elif agent == "sliding-window":
         w = manifest.get("window")
-        if w is None:
-            print(
-                "[codex-eval] WARN: manifest 缺少 window 字段，"
-                "请用 assemble-manifests.py --mode sliding-window 生成 manifest",
-                file=sys.stderr,
+        if not isinstance(w, dict) or "start" not in w or "end" not in w:
+            raise SystemExit(
+                "[codex-eval] FATAL: manifest 缺少 window.start/end 字段，"
+                "请先运行 assemble-manifests.py --mode sliding-window 生成 manifest"
             )
-            w = {}
         vol = w.get("volume", 1)
-        start = w.get("start", 1)
-        end = w.get("end", 10)
+        start = w["start"]
+        end = w["end"]
         lines.append(
             f"- staging/logs/continuity/continuity-report-vol-{vol:02d}"
             f"-ch{start:03d}-ch{end:03d}.json"
