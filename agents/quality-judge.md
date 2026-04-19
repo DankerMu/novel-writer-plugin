@@ -120,7 +120,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
    - 输出至 `contract_verification.terminology_checks`
    - **非硬门槛**：不影响 has_violations，仅记录
 6. **格式规则检查**：运行 `scripts/lint-format.sh`
-   - error 命中（破折号、非中文引号、分隔线）→ `status: "violation"`, confidence=high
+   - error 命中（破折号、非直角引号、分隔线）→ `status: "violation"`, confidence=high
    - warning 命中（字数越界）→ `status: "warning"`
    - 输出至 `contract_verification.format_checks`
    - **硬门槛**：errors > 0 时 `has_violations = true`
@@ -184,7 +184,7 @@ tools: ["Read", "Write", "Glob", "Grep"]
    - **破折号判定更新**：`em_dash_count > 0` 即视为 AI 特征区（零容忍）
    - **格式违规检测（硬违规，不参与维度评分但触发 has_violations）**：
      - **模型 artifact 泄漏**：扫描正文中是否存在 `<thinking>`、`</thinking>`、`<reflection>`、`</reflection>`、`<output>`、`</output>` 或任何 `<[a-z_]+>` 形式的 LLM 内部标签。命中 > 0 → `has_violations = true`，输出 violation `format_violation_model_artifact`（confidence=high），同时加入 `risk_flags` 和 `required_fixes`
-     - **英文引号残留**：扫描正文中是否存在英文直引号（`"`，U+0022）或其他非中文双引号的引号字符（英文弯引号 `""`、单引号 `''`、直角引号 `「」`）。命中 > 0 → 输出 `risk_flags: ["format_violation_english_quotes"]`，`required_fixes` 中标注需要替换为中文双引号（""）。注意：**不触发 has_violations**（格式问题，非语义违规），但会拉低 `style_naturalness` 评分（命中 ≥ 3 处降至过渡区）
+     - **非直角引号残留**：扫描正文中是否存在英文直引号（`"`，U+0022）、英文弯引号（`""`）、中文双引号（`""`）或单引号（`''`）等非直角引号字符。命中 > 0 → 输出 `risk_flags: ["format_violation_non_corner_quotes"]`，`required_fixes` 中标注需要替换为直角引号（「」）。注意：**不触发 has_violations**（格式问题，非语义违规），但会拉低 `style_naturalness` 评分（命中 ≥ 3 处降至过渡区）
    - **tonal_variance 评估**：评估语域微注入密度（全章跳转次数）、内心独白口语度（口语/吐槽 vs 书面分析比例）、连续同调最大长度、对话活力（是否有互怼/批话/夸张表达）。详见 quality-rubric.md §9
    - **向后兼容**：旧版评估缺失新增指标时，QJ 应从正文中补足缺失指标的统计，始终按完整维度评分
    - `detected_humanize_techniques` **不影响评分**，但为**必须输出字段**（允许空数组 `[]`，不可省略）——供 dashboard 跨章统计和 periodic-maintenance 人性化技法干旱检测使用

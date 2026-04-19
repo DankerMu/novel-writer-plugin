@@ -48,7 +48,7 @@ tools: ["Read", "Write", "Edit", "Glob", "Grep"]
 - **模型 artifact 清除**：扫描并删除所有 LLM 内部标签残留（`<thinking>`、`</thinking>`、`<reflection>`、`</reflection>`、`<output>`、`</output>`、`<answer>`、`</answer>` 及任何 `<[a-z_]+>...</[a-z_]+>` 形式的非正文 XML 标签）
 - **元信息泄漏清除**：运行 `scripts/lint-meta-leak.sh` 扫描正文，清除所有 severity="error" 的泄漏（伏笔代号 F-XXX、规则代号 W-XXX、故事线 ID、snake_case 技术字段、JSON 块、文件路径格式、Markdown 表格/契约标题、Agent 名称、评分格式、系统标签）。severity="warning" 的泄漏逐条判断：元结构引用则删除/改写，世界观内合理引用则保留
 - **术语一致性检查**：若 `world/terminology.json` 存在，运行 `scripts/lint-terminology.sh` 扫描正文。确认为漂移（非合法变体/别名）则统一为 canonical 形式；角色对话中的刻意别称豁免
-- **引号格式统一**：将所有非中文双引号统一替换为中文双引号（""）。成对匹配后替换，确保不破坏引号嵌套
+- **引号格式统一**：将所有非直角引号统一替换为直角引号（「」）。成对匹配后替换，确保不破坏引号嵌套
 - **格式规则检查**：运行 `scripts/lint-format.sh` 扫描正文。error 级别命中必须修复；warning 级别记录但不阻断
 
 ## 合规步骤

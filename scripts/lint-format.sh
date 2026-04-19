@@ -15,7 +15,7 @@
 #
 # Checks:
 #   - Em-dash (—— / —) → severity=error
-#   - Non-Chinese quotes ("" '' "" 「」) → severity=error
+#   - Non-corner-bracket quotes ("" '' "" "") → severity=error
 #   - Horizontal rules (--- / *** / * * *) → severity=error
 #   - Char count < 2500 or > 3500 → severity=warning
 
@@ -77,11 +77,11 @@ def scan(text: str, lines: List[str]) -> Dict[str, Any]:
         "matches": em_dash_matches[:10],
     })
 
-    # --- 2. Non-Chinese quote detection (error) ---
-    # Chinese double quotes: \u201c \u201d (used as standard)
-    # Detect: straight double " (U+0022), curly single '' (U+2018/U+2019),
-    #         straight single ' (U+0027), corner brackets 「」(U+300c/U+300d)
-    quote_pattern = re.compile(r'["\u2018\u2019\'\u300c\u300d]')
+    # --- 2. Non-corner-bracket quote detection (error) ---
+    # Corner brackets: \u300c \u300d (「」, used as standard)
+    # Detect: straight double " (U+0022), Chinese double "" (U+201c/U+201d),
+    #         curly single '' (U+2018/U+2019), straight single ' (U+0027)
+    quote_pattern = re.compile(r'["\u201c\u201d\u2018\u2019\']')
     quote_matches: List[Dict[str, Any]] = []
     for idx, line in enumerate(lines, start=1):
         for m in quote_pattern.finditer(line):
@@ -99,7 +99,7 @@ def scan(text: str, lines: List[str]) -> Dict[str, Any]:
         "severity": "error",
         "status": "violation" if quote_count > 0 else "pass",
         "count": quote_count,
-        "detail": f"非中文引号出现 {quote_count} 处" if quote_count else "引号格式正确",
+        "detail": f"非直角引号出现 {quote_count} 处" if quote_count else "引号格式正确",
         "matches": quote_matches[:10],
     })
 
