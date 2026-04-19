@@ -258,12 +258,25 @@ for chapter_num in range(start, start + remaining_N):
      3a. 组装 QJ + CC task content（并行）:
          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py staging/manifests/chapter-{C:03d}-quality-judge.json --agent quality-judge --project <root>")`  ─┐ 并行
          `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py staging/manifests/chapter-{C:03d}-content-critic.json --agent content-critic --project <root>")` ─┘ 并行
-     3b. 两个独立 codeagent-wrapper 并行执行:
-         `Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/chapter-{C:03d}-quality-judge.md", timeout=3600000)`  ─┐ 并行
-         `Bash("codeagent-wrapper --backend codex - <root> < staging/prompts/chapter-{C:03d}-content-critic.md", timeout=3600000)` ─┘ 并行
-     3c. 各自校验:
-         `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema quality-judge --project <root> --chapter {C}")`
-         `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema content-critic --project <root> --chapter {C}")`
+     3b. 单次 codeagent-wrapper `--parallel` 并行执行 QJ + CC:
+         ```bash
+         codeagent-wrapper --parallel --backend codex <<EVAL
+         ---TASK---
+         id: quality-judge
+         workdir: <root>
+         ---CONTENT---
+         $(cat staging/prompts/chapter-{C:03d}-quality-judge.md)
+         ---TASK---
+         id: content-critic
+         workdir: <root>
+         ---CONTENT---
+         $(cat staging/prompts/chapter-{C:03d}-content-critic.md)
+         EVAL
+         ```
+         Bash timeout=3600000（两个 task 共享超时，wrapper 内部并发调度）
+     3c. 各自校验（并行）:
+         `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema quality-judge --project <root> --chapter {C}")`  ─┐ 并行
+         `Bash("python3 ${CLAUDE_PLUGIN_ROOT}/scripts/codex-eval.py --validate --schema content-critic --project <root> --chapter {C}")` ─┘ 并行
          任一校验失败 → 重试一次（从 3b 重跑对应 agent）；二次失败 → 该 agent fallback
      **Codex 不可用 fallback**（逐 agent 独立 fallback，一个失败不影响另一个）：
      - QJ fallback: Task(subagent_type="quality-judge", model="opus")，传入 manifest 路径
@@ -339,7 +352,7 @@ for chapter_num in range(start, start + remaining_N):
          - Step 2 预处理（NER/黑名单 lint → patch 到 QJ manifest）：在修订后的章节上重新执行
 
          **QJ + CC 并行派发**（Codex 优先，逐 agent 独立 fallback）：
-         - 两个 `codex-eval.py --agent` 组装（并行）→ 两个 `codeagent-wrapper`（并行）→ 各自 `--validate`
+         - 两个 `codex-eval.py --agent` 组装（并行）→ 单次 `codeagent-wrapper --parallel`（同 Step 2 的 3b 格式）→ 各自 `--validate`（并行）
          - 任一 agent Codex 失败 → 该 agent fallback 到 Task(subagent_type=对应agent, model="opus")
          - Checkpoint：`pipeline_stage` 保持 `"refined"` 直到并行全部完成 → 更新为 `"judged"`
 
