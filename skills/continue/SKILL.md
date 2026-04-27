@@ -76,23 +76,13 @@ mkdir -p staging/chapters staging/summaries staging/state staging/storylines sta
 
 恢复章完成 commit 后，再继续从 `last_completed_chapter + 1` 续写后续章节，直到累计提交 N 章（包含恢复章）。
 
-### Step 2: 组装 Context（骨架脚本 + Task agent 上下文规划 + 主控校验）
+### Step 2: 组装骨架 Manifest（确定性脚本 + Agent 审查）
 
-Step 2 采用混合架构：
+确定性脚本 `assemble-manifests.py` 负责生成 5 个骨架 manifest JSON 到 `staging/manifests/`，主控只审查骨架结构，不读取大文件。
 
-- `assemble-manifests.py` 只负责**确定性骨架 manifest** 与稳定候选路径
-- **上下文规划权**交给显式派发的 Task agent
-- Task agent 负责读取候选上下文、决定 support-context 取舍、materialize 到 `staging/context/`，并 patch ChapterWriter manifest
-- 主控只做结构校验，不读取大文件
+规则权威来源：[`references/context-assembly.md`](references/context-assembly.md)
 
-规则权威来源：
-
-- [`references/context-assembly.md`](references/context-assembly.md)
-- [`references/context-planning.md`](references/context-planning.md)
-
-> 收益：主控不吞大文件；上下文裁剪由 LLM 决定；JSON 序列化与基础结构仍保持确定性。
-
-**Step 2a: 脚本组装骨架 manifest + agent 审查**
+**脚本组装骨架 manifest + Agent 审查**
 
 派发 Task agent（通用类型，model="sonnet"）执行以下两步：
 
@@ -128,11 +118,15 @@ Task prompt：
   全部通过 → 报告 "审查通过"。
 ```
 
-> **修订回环复用**：gate_decision="revise" 时，重新派发 Step 2a 并传入 `revision_state`（作为 `--revision` JSON 参数），脚本自动在 CW manifest 追加修订字段。主控不需要自行 patch manifest。
+> **修订回环复用**：gate_decision="revise" 时，重新派发 Step 2 并传入 `revision_state`（作为 `--revision` JSON 参数），脚本自动在 CW manifest 追加修订字段。主控不需要自行 patch manifest。
 
-**Step 2b: Task agent 上下文规划 + materialize**
+### Step 2.5: 上下文规划（Hard Gate — 未完成则禁止调用 API Writer）
 
-在 Step 2a 通过后，显式再派发一个 Task agent（通用类型，model="sonnet"）执行 ChapterWriter / API Writer 的上下文规划。这个 Task agent 是**唯一允许读取大上下文并决定 support-context 取舍的主控代理**。
+> **Hard Gate**：`staging/context-plans/chapter-{C:03d}.json` 必须存在且可解析为合法 JSON，否则流水线**不得**进入 Step 3（API Writer / ChapterWriter 均被阻断）。此步骤不可跳过、不可延迟、不可与 Step 3 合并执行。
+
+规则权威来源：[`references/context-planning.md`](references/context-planning.md)
+
+在 Step 2 通过后，显式派发一个 Task agent（通用类型，model="sonnet"）执行 ChapterWriter / API Writer 的上下文规划。这个 Task agent 是**唯一允许读取大上下文并决定 support-context 取舍的主控代理**。
 
 ```
 Task prompt：
@@ -175,9 +169,15 @@ Task prompt：
   - 从 CW manifest 中保留 / 删除的 support-context 字段列表
 ```
 
-> **修订回环复用**：gate_decision="revise" 时，Step 2b 同样必须重新执行。修订模式下 context planner 应优先保留 `required_fixes`、相关失败维度证据、上一版 draft 邻近上下文，避免 full-context 重读。
+> **修订回环复用**：gate_decision="revise" 时，Step 2.5 同样必须重新执行。修订模式下 context planner 应优先保留 `required_fixes`、相关失败维度证据、上一版 draft 邻近上下文，避免 full-context 重读。
 
-**Step 2c: 主控校验**（manifest 结构校验，不读源文件）
+### Step 2.6: 主控校验（manifest 结构 + context-plan 存在性校验）
+
+> **Hard Gate 校验**：以下校验新增第 0 项——context-plan 产物存在性。任一校验失败均阻断进入 Step 3。
+
+```
+0. staging/context-plans/chapter-{C:03d}.json 存在 + JSON 可解析
+```
 
 ```
 for agent in [chapter-writer, chapter-writer-align, style-refiner, summarizer, quality-judge, content-critic]:
@@ -204,6 +204,8 @@ for agent in [chapter-writer, chapter-writer-align, style-refiner, summarizer, q
 
 ### Step 3: 逐章流水线
 
+> **每章前置**：循环中的每一章（含首章）在进入下方 Agent 链前，必须先完成 Step 2 + Step 2.5 + Step 2.6。多章批量模式下，后续章节的 manifest 组装与上下文规划在上一章 commit 后、本章 API Writer 前执行。
+
 对每一章执行以下 Agent 链：
 
 ```
@@ -220,6 +222,8 @@ for chapter_num in range(start, start + remaining_N):
      更新 checkpoint: pipeline_stage = "drafting", inflight_chapter = chapter_num
 
   1. API Writer → 生成初稿（纯净环境调用，绕过 Claude Code 系统提示词）
+     **Hard Gate 前置检查**：验证 `staging/context-plans/chapter-{C:03d}.json` 存在且可解析为合法 JSON；不存在或解析失败 → 终止并报错：
+     > ❌ 上下文规划（Step 2.5）未完成或产物缺失，禁止调用 API Writer。请先执行 Step 2 + Step 2.5。
      执行：`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/api-writer.py staging/manifests/chapter-{C:03d}-chapter-writer.json --project <novel_project_root> --output staging/chapters/chapter-{C:03d}-raw.md`
      若 API 调用失败（网络/超时/余额不足）→ 降级为 ChapterWriter Agent，传入 manifest 路径：`staging/manifests/chapter-{C:03d}-chapter-writer.json`，输出直接写 `staging/chapters/chapter-{C:03d}.md`（跳过 Step 1.3，降级原因记日志）
      输出: staging/chapters/chapter-{C:03d}-raw.md
@@ -318,7 +322,7 @@ for chapter_num in range(start, start + remaining_N):
 
      **修订子流水线分支**（gate_decision="revise" 且可进入修订：trivial/定向 `revision_count < 1`，全量 `revision_count < 2`）：
 
-     > **修订禁用 API Writer**：以下修订子流水线**必须**使用 ChapterWriter Agent，**不得**调用 API Writer。API Writer 仅用于上方 Step 1 的初始稿件生成。修订前先重新派发 manifest 组装器（传入 `revision_state`），获取含修订字段的 manifest 后再启动子流水线。
+     > **修订禁用 API Writer**：以下修订子流水线**必须**使用 ChapterWriter Agent，**不得**调用 API Writer。API Writer 仅用于 loop Step 1 的初始稿件生成。修订前先重新派发 Step 2 + Step 2.5（传入 `revision_state`），获取含修订字段的 manifest 和更新的 context-plan 后再启动子流水线。
 
      3t. **revision_scope = "trivial"**（轻量修订，约 15-20K tokens）：
          适用：len(failed_dimensions) <= 1 且 len(failed_tracks) == 0 且 overall_final >= 3.5 且失分维度不在 [plot_logic, storyline_coherence, tonal_variance] 且 engagement_decision != "revise"
@@ -483,6 +487,6 @@ Ch {X}: {字数}字 {分数} {状态} | Ch {X+1}: {字数}字 {分数} {状态} 
 
 - 每章严格按 API Writer（降级 CW）→ StyleRefiner → [QualityJudge + ContentCritic 并行] → Gate → Summarizer（仅通过时） 顺序
 - 质量不达标时自动修订（定向修订 1 轮 + 直接修复兜底；全量修订最多 2 轮）
-- 写入使用 staging → commit 事务模式（详见 Step 2-6）
+- 写入使用 staging → commit 事务模式（详见 Step 2-2.6 + Step 3）
 - **Agent 写入边界**：ChapterWriter/StyleRefiner/Summarizer 仅写入 `staging/` 目录，QualityJudge 仅写入 `staging/evaluations/chapter-{C:03d}-eval-raw.json`，ContentCritic 仅写入 `staging/evaluations/chapter-{C:03d}-content-eval-raw.json`，正式目录由入口 Skill 在 commit 阶段操作。Summarizer 在 gate 后执行，仅对终稿生成摘要
 - 所有输出使用中文

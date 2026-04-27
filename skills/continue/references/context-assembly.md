@@ -1,6 +1,6 @@
-# Context Assembly 规则（骨架确定性 + 规划由 Task agent 决定）
+# Context Assembly 规则（骨架确定性 — Step 2 权威来源）
 
-本文档定义 `/novel:continue` Step 2 的 context 组装规则。
+本文档定义 `/novel:continue` Step 2（骨架 manifest）+ Step 2.5（上下文规划）的 context 组装规则。
 
 - **骨架 manifest**：由确定性脚本组装
 - **support-context 取舍**：由显式派发的 Task agent 决定
@@ -13,11 +13,11 @@
 **v3 架构变更**：manifest 骨架由 Python 脚本 `scripts/assemble-manifests.py` 完成（`json.dumps` 序列化，消除 LLM 手工拼 JSON 导致的双引号/转义错误）；support-context 的语义裁剪与 staged materialization 由 Task agent 完成。
 
 执行流程：
-1. Task agent 执行 `python3 scripts/assemble-manifests.py -c {C} -v {V} -p {PROJECT_ROOT} ...`
+1. **Step 2**：Task agent 执行 `python3 scripts/assemble-manifests.py -c {C} -v {V} -p {PROJECT_ROOT} ...`
 2. 脚本按本文档 Step 2.1-2.7 规则组装 5 个 manifest 骨架 JSON → `staging/manifests/`
 3. Task agent 审查脚本输出（字段语义、路径存在性、与源文件一致性）
-4. Task agent 按 `references/context-planning.md` 读取候选上下文，产出 `staging/context-plans/` + `staging/context/` 并 patch ChapterWriter manifest
-5. 主控做结构校验
+4. **Step 2.5（Hard Gate）**：Task agent 按 `references/context-planning.md` 读取候选上下文，产出 `staging/context-plans/` + `staging/context/` 并 patch ChapterWriter manifest
+5. **Step 2.6**：主控做结构 + context-plan 存在性校验
 
 manifest 包含两类字段：
 - **inline**（内联）：脚本确定性计算，直接写入 JSON
@@ -176,7 +176,7 @@ manifest 包含两类字段：
 - 其余路径为固定模式（如 `style-profile.json`、`ai-blacklist.json`）
 - **API Writer manifest 不含**：`paths.ai_blacklist`、`paths.style_guide`、inline `ai_blacklist_top10`（写作者不应看到黑名单，消除隐性回避）
 
-### Step 2.6b: ChapterWriter support-context 规划与 materialize（Task agent）
+### Step 2.6b: ChapterWriter support-context 规划与 materialize（对应 SKILL.md Step 2.5）
 
 Task agent planner 必须按 `references/context-planning.md` 执行：
 
